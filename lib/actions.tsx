@@ -35,7 +35,7 @@ export async function handlePost(request: NextRequest) {
       CREATE TABLE IF NOT EXISTS categories (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL UNIQUE
-      )
+      );
     `);
 
     await connection.query(`
@@ -271,78 +271,82 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
   }
 }
 
-// Function to fetch a product by ID
-
-export async function fetchProductByIdFromDb(
-  id: number
-): Promise<ProductssData | null> {
+export async function fetchProductByIdFromDb(id: number) {
   const connection = await getConnection();
-
   try {
-    const [rows]: [any[], any] = await connection.query(
+    const [rows]: any[] = await connection.execute(
       `
       SELECT
-        p.id, p.sku, p.price, p.discount, p.quantity, p.status, p.name, p.description,
+        p.id AS product_id,
+        p.name,
+        p.sku,
+        p.price,
+        p.discount,
+        p.quantity,
         c.name AS category,
-        i.main_image, i.thumbnail1, i.thumbnail2, i.thumbnail3, i.thumbnail4, i.thumbnail5
+        p.status,
+        p.description,
+        i.main_image,
+        i.thumbnail1,
+        i.thumbnail2,
+        i.thumbnail3,
+        i.thumbnail4,
+        i.thumbnail5
       FROM product p
-      LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN images i ON p.image_id = i.id
+      LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.id = ?
-      `,
+    `,
       [id]
     );
 
     if (rows.length === 0) {
-      return null;
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     const row = rows[0];
+    const thumbnails = [
+      row.thumbnail1,
+      row.thumbnail2,
+      row.thumbnail3,
+      row.thumbnail4,
+      row.thumbnail5,
+    ]
+      .filter(Boolean)
+      .map(convertToBase64);
 
-    const product: ProductssData = {
-      id: row.id,
+    const product = {
+      id: row.product_id,
       sku: row.sku,
-      price: row.price,
-      discount: row.discount,
-      quantity: row.quantity,
       status: row.status,
       category: row.category,
       name: row.name,
       description: row.description,
+      price: row.price,
+      discount: row.discount,
+      quantity: row.quantity,
       images: {
-        main: row.main_image ? row.main_image.toString("base64") : "",
-        thumbnails: [
-          row.thumbnail1 ? row.thumbnail1.toString("base64") : "",
-          row.thumbnail2 ? row.thumbnail2.toString("base64") : "",
-          row.thumbnail3 ? row.thumbnail3.toString("base64") : "",
-          row.thumbnail4 ? row.thumbnail4.toString("base64") : "",
-          row.thumbnail5 ? row.thumbnail5.toString("base64") : "",
-        ].filter((thumbnail) => thumbnail !== ""), // Filter out empty thumbnails explicitly
+        main: convertToBase64(row.main_image),
+        thumbnails,
       },
     };
 
-    return product;
+    return NextResponse.json(product, { status: 200 });
   } catch (error) {
-    console.error("Error fetching product by ID:", error);
-    throw error;
+    console.error("Error fetching product:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch product" },
+      { status: 500 }
+    );
   } finally {
-    await connection.end();
+    connection.end();
   }
 }
 
 // Function to update a product
-export async function handlePut(request: NextRequest) {
+export async function handlePut(request: NextRequest, id: number) {
   const connection = await getConnection();
   try {
-    const { searchParams } = new URL(request.url);
-    const productId = parseInt(searchParams.get("id") || "", 10);
-    if (isNaN(productId)) {
-      return NextResponse.json(
-        { error: "Product ID is required and must be a number" },
-        { status: 400 }
-      );
-    }
-
     const formData = await request.formData();
     const fields = Object.fromEntries(formData.entries());
     const {
@@ -361,17 +365,7 @@ export async function handlePut(request: NextRequest) {
     // Update product details
     await connection.execute(
       "UPDATE product SET sku = ?, name = ?, description = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
-      [
-        sku,
-        name,
-        description,
-        category,
-        status,
-        price,
-        discount,
-        quantity,
-        productId,
-      ]
+      [sku, name, description, category, status, price, discount, quantity, id]
     );
 
     // Handle file uploads
@@ -403,7 +397,7 @@ export async function handlePut(request: NextRequest) {
 
       await connection.execute(
         "UPDATE images SET main_image = ?, thumbnail1 = ?, thumbnail2 = ?, thumbnail3 = ?, thumbnail4 = ?, thumbnail5 = ? WHERE id = (SELECT image_id FROM product WHERE id = ?)",
-        [mainImageBuffer, ...thumbnailBuffers, productId]
+        [mainImageBuffer, ...thumbnailBuffers, id]
       );
     }
 
@@ -420,33 +414,24 @@ export async function handlePut(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await connection.end();
+    connection.end();
   }
 }
 
 // Function to delete a product
-export async function handleDelete(request: NextRequest) {
+export async function handleDelete(request: NextRequest, id: number) {
   const connection = await getConnection();
   try {
-    const { searchParams } = new URL(request.url);
-    const productId = parseInt(searchParams.get("id") || "", 10);
-    if (isNaN(productId)) {
-      return NextResponse.json(
-        { error: "Product ID is required and must be a number" },
-        { status: 400 }
-      );
-    }
-
     await connection.beginTransaction();
 
     // Delete associated images
     await connection.execute(
       "DELETE FROM images WHERE id = (SELECT image_id FROM product WHERE id = ?)",
-      [productId]
+      [id]
     );
 
     // Delete the product
-    await connection.execute("DELETE FROM product WHERE id = ?", [productId]);
+    await connection.execute("DELETE FROM product WHERE id = ?", [id]);
 
     await connection.commit();
     return NextResponse.json(
@@ -461,6 +446,6 @@ export async function handleDelete(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await connection.end();
+    connection.end();
   }
 }

@@ -17,10 +17,7 @@ import {
 
 import { UploadFormProps } from "@/lib/definitions";
 
-export default function ProductForm({
-  initialData,
-  onSubmit,
-}: UploadFormProps) {
+export default function UploadForm({ initialData, onSubmit }: UploadFormProps) {
   const { toast } = useToast();
 
   const [mainImage, setMainImage] = useState<File | null>(null);
@@ -57,6 +54,7 @@ export default function ProductForm({
     const fetchCategories = async () => {
       try {
         const res = await fetch("/api/categories");
+        if (!res.ok) throw new Error("Failed to fetch categories");
         const data = await res.json();
         setCategories(data);
       } catch (error) {

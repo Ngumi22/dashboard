@@ -1,6 +1,7 @@
 import DashboardHeader from "@/components/dashboard-header";
+import { Toaster } from "@/components/ui/toaster";
 
-export default function RootLayout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -10,6 +11,7 @@ export default function RootLayout({
       <body>
         <DashboardHeader />
         {children}
+        <Toaster />
       </body>
     </html>
   );

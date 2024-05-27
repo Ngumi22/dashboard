@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { handlePut, handleDelete, fetchProductByIdFromDb } from "@/lib/actions";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const id = parseInt(searchParams.get("id") || "", 10);
+  const id = parseInt(request.nextUrl.pathname.split("/").pop() || "", 10);
   if (isNaN(id)) {
     return NextResponse.json(
       { error: "Product ID is required and must be a number" },
@@ -14,9 +13,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  return handlePut(request);
+  const id = parseInt(request.nextUrl.pathname.split("/").pop() || "", 10);
+  if (isNaN(id)) {
+    return NextResponse.json(
+      { error: "Product ID is required and must be a number" },
+      { status: 400 }
+    );
+  }
+  return handlePut(request, id);
 }
 
 export async function DELETE(request: NextRequest) {
-  return handleDelete(request);
+  const id = parseInt(request.nextUrl.pathname.split("/").pop() || "", 10);
+  if (isNaN(id)) {
+    return NextResponse.json(
+      { error: "Product ID is required and must be a number" },
+      { status: 400 }
+    );
+  }
+  return handleDelete(request, id);
 }

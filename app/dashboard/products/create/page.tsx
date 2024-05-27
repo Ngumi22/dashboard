@@ -1,28 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import UploadForm from "@/components/UploadForm";
+import ProductForm from "@/components/add-form";
 
-export default function Upload({ id }: { id: string }) {
+export default function CreatePage({ id }: { id: string }) {
   const [productData, setProductData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchCategory = async () => {
+    const fetchProductData = async () => {
       try {
-        const res = await fetch(`/api/categories`);
+        const res = await fetch(`/api/products/${id}`);
         if (res.ok) {
           const product = await res.json();
           setProductData(product);
         } else {
-          throw new Error("Failed to fetch category");
+          setProductData(null);
         }
       } catch (error) {
-        console.error("Error fetching category:", error);
+        console.error("Error fetching product data:", error);
+        setProductData(null);
       }
     };
 
-    fetchCategory();
-  }, []);
+    if (id) {
+      fetchProductData();
+    }
+  }, [id]);
 
   const handleSubmit = async (formData: FormData) => {
     try {
@@ -42,9 +45,8 @@ export default function Upload({ id }: { id: string }) {
 
   return (
     <>
-      {productData && (
-        <UploadForm onSubmit={handleSubmit} productData={productData} />
-      )}
+      <div>Add Product</div>
+      <ProductForm onSubmit={handleSubmit} productData={productData} />
     </>
   );
 }

@@ -104,6 +104,9 @@ export default function ProductList() {
   return (
     <div>
       <h1>Product List</h1>
+      <div>
+        <Link href="/dashboard/products/create"></Link>
+      </div>
       <ul className="my-5">
         {products.map((product) => (
           <li key={product.id} className="my-5">
@@ -142,8 +145,7 @@ export default function ProductList() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => handleDelete(product.id)}
-              >
+                onClick={() => handleDelete(product.id)}>
                 Delete
               </Button>
             </div>
