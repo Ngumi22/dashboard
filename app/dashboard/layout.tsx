@@ -7,12 +7,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        <DashboardHeader />
-        {children}
-        <Toaster />
-      </body>
-    </html>
+    <main>
+      <DashboardHeader />
+      {children}
+      <Toaster />
+    </main>
   );
 }

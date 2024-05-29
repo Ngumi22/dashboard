@@ -46,7 +46,11 @@ export default function CreatePage({ id }: { id: string }) {
   return (
     <>
       <div>Add Product</div>
-      <ProductForm onSubmit={handleSubmit} productData={productData} />
+      <ProductForm
+        onSubmit={handleSubmit}
+        productData={productData}
+        isEdit={false}
+      />
     </>
   );
 }

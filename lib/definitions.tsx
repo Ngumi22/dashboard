@@ -83,6 +83,8 @@ export interface ProductData {
 export interface UploadFormProps {
   initialData?: any;
   onSubmit: (data: FormData) => Promise<void>;
+  isEdit: any;
+  productData: any;
 }
 
 export interface ProductssData {

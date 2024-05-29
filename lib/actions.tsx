@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 import { NextRequest, NextResponse } from "next/server";
 import { FileData, ProductssData, ImageData } from "@/lib/definitions";
 import { validateFiles } from "./utils";
+import { convertToBase64 } from "./utils";
 
 // Database connection
 export async function getConnection() {
@@ -18,10 +19,6 @@ export async function getConnection() {
     queueLimit: 0,
   });
 }
-
-// Utility function to convert binary data to base64
-const convertToBase64 = (buffer: Buffer | null) =>
-  buffer ? buffer.toString("base64") : "";
 
 // POST function
 export async function handlePost(request: NextRequest) {
@@ -90,9 +87,16 @@ export async function handlePost(request: NextRequest) {
     const { valid, message } = validateFiles(filesToValidate);
     if (!valid) {
       await connection.rollback();
-      return NextResponse.json({ success: false, message }, { status: 400 });
+      const response = NextResponse.json(
+        { success: false, message },
+        { status: 400 }
+      );
+      response.headers.set("Cache-Control", "no-store");
+      return response;
     }
 
+    // Input validation to prevent SQL injection and other vulnerabilities
+    const sanitizeInput = (input: string) => input.replace(/['"]/g, "");
     const fileData: FileData = {
       main_image,
       thumbnail1,
@@ -101,10 +105,10 @@ export async function handlePost(request: NextRequest) {
       thumbnail4,
       thumbnail5,
       fields: {
-        sku: fields.sku as string,
-        name: fields.name as string,
-        description: fields.description as string,
-        category: fields.category as string,
+        sku: sanitizeInput(fields.sku as string),
+        name: sanitizeInput(fields.name as string),
+        description: sanitizeInput(fields.description as string),
+        category: sanitizeInput(fields.category as string),
         status: fields.status as "Archived" | "Active" | "Draft",
         price: parseFloat(fields.price as string),
         discount: parseFloat(fields.discount as string),
@@ -131,10 +135,12 @@ export async function handlePost(request: NextRequest) {
 
     if (existingProducts.length > 0) {
       await connection.rollback();
-      return NextResponse.json(
+      const response = NextResponse.json(
         { success: false, message: "Product with this SKU already exists" },
         { status: 400 }
       );
+      response.headers.set("Cache-Control", "no-store");
+      return response;
     }
 
     // Check if the category exists, if not, insert it
@@ -198,14 +204,24 @@ export async function handlePost(request: NextRequest) {
 
     await connection.commit();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: "Files uploaded successfully",
     });
+    response.headers.set(
+      "Cache-Control",
+      "s-maxage=10, stale-while-revalidate"
+    );
+    return response;
   } catch (error) {
     console.error("Database error:", error);
     await connection.rollback();
-    return NextResponse.json({ success: false, message: "Database error" });
+    const response = NextResponse.json({
+      success: false,
+      message: "Database error",
+    });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } finally {
     await connection.end();
   }
@@ -271,7 +287,7 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
   }
 }
 
-export async function fetchProductByIdFromDb(id: number) {
+export async function fetchProductByIdFromDb(id: string) {
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(
@@ -331,7 +347,10 @@ export async function fetchProductByIdFromDb(id: number) {
       },
     };
 
-    return NextResponse.json(product, { status: 200 });
+    // Ensure that the product is a plain object
+    return NextResponse.json(JSON.parse(JSON.stringify(product)), {
+      status: 200,
+    });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -344,7 +363,7 @@ export async function fetchProductByIdFromDb(id: number) {
 }
 
 // Function to update a product
-export async function handlePut(request: NextRequest, id: number) {
+export async function handlePut(request: NextRequest, id: string) {
   const connection = await getConnection();
   try {
     const formData = await request.formData();
@@ -419,7 +438,7 @@ export async function handlePut(request: NextRequest, id: number) {
 }
 
 // Function to delete a product
-export async function handleDelete(request: NextRequest, id: number) {
+export async function handleDelete(request: NextRequest, id: string) {
   const connection = await getConnection();
   try {
     await connection.beginTransaction();

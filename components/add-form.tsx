@@ -17,7 +17,11 @@ import {
 
 import { UploadFormProps } from "@/lib/definitions";
 
-export default function UploadForm({ initialData, onSubmit }: UploadFormProps) {
+export default function UploadForm({
+  initialData,
+  onSubmit,
+  isEdit,
+}: UploadFormProps & { isEdit: boolean }) {
   const { toast } = useToast();
 
   const [mainImage, setMainImage] = useState<File | null>(null);
@@ -110,8 +114,10 @@ export default function UploadForm({ initialData, onSubmit }: UploadFormProps) {
 
       await onSubmit(data);
 
+      // Custom toast message based on isEdit prop
+      const toastTitle = isEdit ? "Product updated" : "Product added";
       toast({
-        title: "Form Upload",
+        title: toastTitle,
         description: "Successfully uploaded",
       });
     } catch (e: any) {
@@ -136,7 +142,6 @@ export default function UploadForm({ initialData, onSubmit }: UploadFormProps) {
       return newThumbnails;
     });
   };
-
   return (
     <section className="container my-8">
       <form onSubmit={handleSubmit}>

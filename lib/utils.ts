@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export const formatCurrency = (amount: number) => {
   return (amount / 100).toLocaleString("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "KSH",
   });
 };
 
@@ -46,3 +46,7 @@ export function validateFiles(files: File[]): {
   }
   return { valid: true };
 }
+
+// Utility function to convert binary data to base64
+export const convertToBase64 = (buffer: Buffer | null) =>
+  buffer ? buffer.toString("base64") : "";

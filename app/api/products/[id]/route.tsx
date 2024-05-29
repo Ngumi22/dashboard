@@ -1,35 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handlePut, handleDelete, fetchProductByIdFromDb } from "@/lib/actions";
+import { fetchProductByIdFromDb, handlePut, handleDelete } from "@/lib/actions";
 
-export async function GET(request: NextRequest) {
-  const id = parseInt(request.nextUrl.pathname.split("/").pop() || "", 10);
-  if (isNaN(id)) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { id } = params;
+
+  if (!id) {
+    return NextResponse.json({ error: "ID is required" }, { status: 400 });
+  }
+
+  try {
+    const product = await fetchProductByIdFromDb(id);
+    return product;
+  } catch (error) {
+    console.error("Error fetching product:", error);
     return NextResponse.json(
-      { error: "Product ID is required and must be a number" },
-      { status: 400 }
+      { error: "Failed to fetch product" },
+      { status: 500 }
     );
   }
-  return fetchProductByIdFromDb(id);
 }
 
-export async function PUT(request: NextRequest) {
-  const id = parseInt(request.nextUrl.pathname.split("/").pop() || "", 10);
-  if (isNaN(id)) {
-    return NextResponse.json(
-      { error: "Product ID is required and must be a number" },
-      { status: 400 }
-    );
-  }
-  return handlePut(request, id);
-}
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { id } = params;
 
-export async function DELETE(request: NextRequest) {
-  const id = parseInt(request.nextUrl.pathname.split("/").pop() || "", 10);
-  if (isNaN(id)) {
+  // Check if ID is provided
+  if (!id) {
+    return NextResponse.json({ error: "ID not provided" }, { status: 400 });
+  }
+
+  try {
+    // Call handlePut function to update the product
+    const product = await handlePut(request, id);
+    return product;
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    // Return 500 Internal Server Error if there's an error
     return NextResponse.json(
-      { error: "Product ID is required and must be a number" },
-      { status: 400 }
+      { error: "Failed to fetch product" },
+      { status: 500 }
     );
   }
-  return handleDelete(request, id);
 }
