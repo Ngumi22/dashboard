@@ -54,7 +54,6 @@ export default function UploadForm({
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    // Fetch categories from the database
     const fetchCategories = async () => {
       try {
         const res = await fetch("/api/categories");
@@ -97,35 +96,34 @@ export default function UploadForm({
       return;
     }
 
-    try {
-      const data = new FormData();
-      data.append("main_image", mainImage);
-      thumbnails.forEach((thumbnail, index) =>
-        data.append(`thumbnail${index + 1}`, thumbnail)
-      );
-      data.append("name", productName);
-      data.append("sku", productSKU);
-      data.append("price", productPrice);
-      data.append("quantity", productQuantity);
-      data.append("discount", productDiscount);
-      data.append("description", productDescription);
-      data.append("category", productCategory || selectedCategory); // Use either the new or existing category
-      data.append("status", productStatus);
+    const data = new FormData();
+    data.append("main_image", mainImage);
+    thumbnails.forEach((thumbnail, index) =>
+      data.append(`thumbnail${index + 1}`, thumbnail)
+    );
+    data.append("name", productName);
+    data.append("sku", productSKU);
+    data.append("price", productPrice);
+    data.append("quantity", productQuantity);
+    data.append("discount", productDiscount);
+    data.append("description", productDescription);
+    data.append("category", productCategory || selectedCategory);
+    data.append("status", productStatus);
 
+    try {
       await onSubmit(data);
 
-      // Custom toast message based on isEdit prop
       const toastTitle = isEdit ? "Product updated" : "Product added";
       toast({
         title: toastTitle,
         description: "Successfully uploaded",
       });
-    } catch (e: any) {
-      console.error(e);
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: e.message,
+        description:
+          error.message || "Failed to submit the form. Please try again later.",
         action: <ToastAction altText="Try again">Try again</ToastAction>,
       });
     }
@@ -142,6 +140,7 @@ export default function UploadForm({
       return newThumbnails;
     });
   };
+
   return (
     <section className="container my-8">
       <form onSubmit={handleSubmit}>

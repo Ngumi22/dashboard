@@ -80,11 +80,11 @@ export interface ProductData {
     Dimensions?: string;
   };
 }
+
 export interface UploadFormProps {
   initialData?: any;
   onSubmit: (data: FormData) => Promise<void>;
-  isEdit: any;
-  productData: any;
+  isEdit: boolean;
 }
 
 export interface ProductssData {

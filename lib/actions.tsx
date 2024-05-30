@@ -2,9 +2,8 @@
 
 import mysql from "mysql2/promise";
 import { NextRequest, NextResponse } from "next/server";
-import { FileData, ProductssData, ImageData } from "@/lib/definitions";
-import { validateFiles } from "./utils";
-import { convertToBase64 } from "./utils";
+import { FileData } from "@/lib/definitions";
+import { validateFiles, convertToBase64, formatCurrency } from "./utils";
 
 // Database connection
 export async function getConnection() {
@@ -67,6 +66,29 @@ export async function handlePost(request: NextRequest) {
     const formData = await request.formData();
     const fields = Object.fromEntries(formData.entries());
 
+    // Extract and validate numeric fields
+    const price = parseFloat(fields.price as string);
+    const discount = parseFloat(fields.discount as string);
+    const quantity = parseInt(fields.quantity as string, 10);
+
+    if (
+      isNaN(price) ||
+      price < 0 ||
+      isNaN(discount) ||
+      discount < 0 ||
+      isNaN(quantity) ||
+      quantity < 0
+    ) {
+      await connection.rollback();
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Price, discount, and quantity cannot be less than zero",
+        },
+        { status: 400 }
+      );
+    }
+
     // Extract files from formData
     const main_image = formData.get("main_image") as File;
     const thumbnail1 = formData.get("thumbnail1") as File;
@@ -95,6 +117,23 @@ export async function handlePost(request: NextRequest) {
       return response;
     }
 
+    // Check image size
+    const checkImageSize = (file: File) => file.size <= 100 * 1024; // 100KB
+    if (
+      !checkImageSize(main_image) ||
+      !checkImageSize(thumbnail1) ||
+      !checkImageSize(thumbnail2) ||
+      !checkImageSize(thumbnail3) ||
+      !checkImageSize(thumbnail4) ||
+      !checkImageSize(thumbnail5)
+    ) {
+      await connection.rollback();
+      return NextResponse.json(
+        { success: false, message: "Images must be less than 100KB." },
+        { status: 400 }
+      );
+    }
+
     // Input validation to prevent SQL injection and other vulnerabilities
     const sanitizeInput = (input: string) => input.replace(/['"]/g, "");
     const fileData: FileData = {
@@ -110,22 +149,13 @@ export async function handlePost(request: NextRequest) {
         description: sanitizeInput(fields.description as string),
         category: sanitizeInput(fields.category as string),
         status: fields.status as "Archived" | "Active" | "Draft",
-        price: parseFloat(fields.price as string),
-        discount: parseFloat(fields.discount as string),
-        quantity: parseInt(fields.quantity as string, 10),
+        price: price,
+        discount: discount,
+        quantity: quantity,
       },
     };
 
-    const {
-      sku,
-      name,
-      description,
-      category,
-      status,
-      price,
-      discount,
-      quantity,
-    } = fileData.fields;
+    const { sku, name, description, category, status } = fileData.fields;
 
     // Check if a product with the same sku already exists
     const [existingProducts]: [any[], any] = await connection.query(
@@ -204,22 +234,19 @@ export async function handlePost(request: NextRequest) {
 
     await connection.commit();
 
-    const response = NextResponse.json({
-      success: true,
-      message: "Files uploaded successfully",
-    });
-    response.headers.set(
-      "Cache-Control",
-      "s-maxage=10, stale-while-revalidate"
+    const response = NextResponse.json(
+      { success: true, message: "Product added successfully" },
+      { status: 200 }
     );
+    response.headers.set("Cache-Control", "no-store");
     return response;
-  } catch (error) {
-    console.error("Database error:", error);
+  } catch (error: any) {
     await connection.rollback();
-    const response = NextResponse.json({
-      success: false,
-      message: "Database error",
-    });
+    console.error(error);
+    const response = NextResponse.json(
+      { success: false, message: error.message },
+      { status: 500 }
+    );
     response.headers.set("Cache-Control", "no-store");
     return response;
   } finally {
@@ -270,8 +297,8 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         category: row.category,
         name: row.name,
         description: row.description,
-        price: row.price,
-        discount: row.discount,
+        price: formatCurrency(row.price * 100), // Format to KSH
+        discount: formatCurrency(row.discount * 100), // Format to KSH
         quantity: row.quantity,
         images: {
           main: convertToBase64(row.main_image),
@@ -338,8 +365,8 @@ export async function fetchProductByIdFromDb(id: string) {
       category: row.category,
       name: row.name,
       description: row.description,
-      price: row.price,
-      discount: row.discount,
+      price: formatCurrency(row.price * 100), // Format to KSH
+      discount: formatCurrency(row.discount * 100), // Format to KSH
       quantity: row.quantity,
       images: {
         main: convertToBase64(row.main_image),
@@ -347,10 +374,7 @@ export async function fetchProductByIdFromDb(id: string) {
       },
     };
 
-    // Ensure that the product is a plain object
-    return NextResponse.json(JSON.parse(JSON.stringify(product)), {
-      status: 200,
-    });
+    return NextResponse.json(product, { status: 200 });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
@@ -363,10 +387,12 @@ export async function fetchProductByIdFromDb(id: string) {
 }
 
 // Function to update a product
-export async function handlePut(request: NextRequest, id: string) {
+
+export async function handlePut(req: NextRequest, id: string) {
   const connection = await getConnection();
+
   try {
-    const formData = await request.formData();
+    const formData = await req.formData();
     const fields = Object.fromEntries(formData.entries());
     const {
       sku,
@@ -379,46 +405,60 @@ export async function handlePut(request: NextRequest, id: string) {
       quantity,
     } = fields;
 
-    await connection.beginTransaction();
+    // Validation for negative values
+    const priceValue = Number(price);
+    const discountValue = Number(discount);
+    const quantityValue = Number(quantity);
 
-    // Update product details
+    if (priceValue < 0 || discountValue < 0 || quantityValue < 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Price, discount, and quantity cannot be negative",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Fetch category ID based on category name
+    const [categoryRows] = await connection.execute(
+      "SELECT id FROM categories WHERE name = ?",
+      [category]
+    );
+
+    // Ensure categoryRows is an array of objects with an 'id' property
+    if (
+      !Array.isArray(categoryRows) ||
+      categoryRows.length === 0 ||
+      !("id" in categoryRows[0])
+    ) {
+      // Category not found
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    const categoryId = categoryRows[0].id;
+
+    // Update product details using parameterized query
     await connection.execute(
       "UPDATE product SET sku = ?, name = ?, description = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
-      [sku, name, description, category, status, price, discount, quantity, id]
+      [
+        sku,
+        name,
+        description,
+        categoryId,
+        status,
+        price,
+        discount,
+        quantity,
+        id,
+      ]
     );
 
     // Handle file uploads
-    const main_image = formData.get("main_image") as File | null;
-    const thumbnail1 = formData.get("thumbnail1") as File | null;
-    const thumbnail2 = formData.get("thumbnail2") as File | null;
-    const thumbnail3 = formData.get("thumbnail3") as File | null;
-    const thumbnail4 = formData.get("thumbnail4") as File | null;
-    const thumbnail5 = formData.get("thumbnail5") as File | null;
-
-    if (
-      main_image ||
-      thumbnail1 ||
-      thumbnail2 ||
-      thumbnail3 ||
-      thumbnail4 ||
-      thumbnail5
-    ) {
-      const mainImageBuffer = main_image
-        ? Buffer.from(await main_image.arrayBuffer())
-        : null;
-      const thumbnailBuffers = [
-        thumbnail1 ? Buffer.from(await thumbnail1.arrayBuffer()) : null,
-        thumbnail2 ? Buffer.from(await thumbnail2.arrayBuffer()) : null,
-        thumbnail3 ? Buffer.from(await thumbnail3.arrayBuffer()) : null,
-        thumbnail4 ? Buffer.from(await thumbnail4.arrayBuffer()) : null,
-        thumbnail5 ? Buffer.from(await thumbnail5.arrayBuffer()) : null,
-      ];
-
-      await connection.execute(
-        "UPDATE images SET main_image = ?, thumbnail1 = ?, thumbnail2 = ?, thumbnail3 = ?, thumbnail4 = ?, thumbnail5 = ? WHERE id = (SELECT image_id FROM product WHERE id = ?)",
-        [mainImageBuffer, ...thumbnailBuffers, id]
-      );
-    }
+    // Separate logic for updating images
 
     await connection.commit();
     return NextResponse.json(
@@ -437,20 +477,20 @@ export async function handlePut(request: NextRequest, id: string) {
   }
 }
 
-// Function to delete a product
-export async function handleDelete(request: NextRequest, id: string) {
+// Function to delete a product and its associated images and categories
+export async function handleDelete(req: NextRequest, id: string) {
   const connection = await getConnection();
   try {
     await connection.beginTransaction();
 
-    // Delete associated images
-    await connection.execute(
-      "DELETE FROM images WHERE id = (SELECT image_id FROM product WHERE id = ?)",
-      [id]
-    );
-
     // Delete the product
     await connection.execute("DELETE FROM product WHERE id = ?", [id]);
+
+    // Delete associated images
+    await connection.execute(
+      "DELETE FROM images WHERE id IN (SELECT image_id FROM product WHERE id = ?)",
+      [id]
+    );
 
     await connection.commit();
     return NextResponse.json(

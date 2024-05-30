@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatCurrency = (amount: number) => {
-  return (amount / 100).toLocaleString("en-US", {
+  return (amount / 100).toLocaleString("en-KE", {
     style: "currency",
     currency: "KSH",
   });
