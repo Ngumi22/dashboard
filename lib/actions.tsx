@@ -3,7 +3,12 @@
 import mysql from "mysql2/promise";
 import { NextRequest, NextResponse } from "next/server";
 import { FileData } from "@/lib/definitions";
-import { validateFiles, convertToBase64, formatCurrency } from "./utils";
+import {
+  validateFiles,
+  convertToBase64,
+  formatCurrency,
+  formatDateToLocal,
+} from "./utils";
 
 // Database connection
 export async function getConnection() {
@@ -57,7 +62,10 @@ export async function handlePost(request: NextRequest) {
         image_id INT,
         price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
         discount DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
+        brand VARCHAR(255) NOT NULL,
         quantity INT NOT NULL DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (image_id) REFERENCES images(id),
         FOREIGN KEY (category_id) REFERENCES categories(id)
       )
@@ -152,10 +160,11 @@ export async function handlePost(request: NextRequest) {
         price: price,
         discount: discount,
         quantity: quantity,
+        brand: sanitizeInput(fields.brand as string),
       },
     };
 
-    const { sku, name, description, category, status } = fileData.fields;
+    const { sku, name, description, category, status, brand } = fileData.fields;
 
     // Check if a product with the same sku already exists
     const [existingProducts]: [any[], any] = await connection.query(
@@ -218,7 +227,7 @@ export async function handlePost(request: NextRequest) {
 
     // Insert product with associated image_id and category_id
     await connection.query(
-      "INSERT INTO product (sku, name, description, category_id, status, image_id, price, discount, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO product (sku, name, description, category_id, status, image_id, price, discount, quantity, brand,createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
       [
         sku,
         name,
@@ -229,6 +238,7 @@ export async function handlePost(request: NextRequest) {
         price,
         discount,
         quantity,
+        brand,
       ]
     );
 
@@ -268,6 +278,8 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         c.name AS category,
         p.status,
         p.description,
+        p.createdAt,
+        p.updatedAt,
         i.main_image,
         i.thumbnail1,
         i.thumbnail2,
@@ -300,6 +312,8 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         price: formatCurrency(row.price * 100), // Format to KSH
         discount: formatCurrency(row.discount * 100), // Format to KSH
         quantity: row.quantity,
+        createdAt: formatDateToLocal(row.createdAt),
+        updatedAt: formatDateToLocal(row.updatedAt),
         images: {
           main: convertToBase64(row.main_image),
           thumbnails,
@@ -329,6 +343,8 @@ export async function fetchProductByIdFromDb(id: string) {
         c.name AS category,
         p.status,
         p.description,
+        p.createdAt,
+        p.updatedAt,
         i.main_image,
         i.thumbnail1,
         i.thumbnail2,
@@ -368,6 +384,8 @@ export async function fetchProductByIdFromDb(id: string) {
       price: formatCurrency(row.price * 100), // Format to KSH
       discount: formatCurrency(row.discount * 100), // Format to KSH
       quantity: row.quantity,
+      createdAt: formatDateToLocal(row.createdAt),
+      updatedAt: formatDateToLocal(row.updatedAt),
       images: {
         main: convertToBase64(row.main_image),
         thumbnails,

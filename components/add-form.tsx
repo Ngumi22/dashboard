@@ -51,6 +51,11 @@ export default function UploadForm({
   const [productStatus, setProductStatus] = useState<
     "Archived" | "Active" | "Draft"
   >(initialData?.status || "Draft");
+
+  const [productBrand, setProductBrand] = useState<string>(
+    initialData?.brand || ""
+  );
+
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
@@ -84,7 +89,8 @@ export default function UploadForm({
       !productDiscount ||
       !productDescription ||
       (!productCategory && !selectedCategory) ||
-      !productStatus
+      !productStatus ||
+      !productBrand
     ) {
       toast({
         variant: "destructive",
@@ -109,6 +115,7 @@ export default function UploadForm({
     data.append("description", productDescription);
     data.append("category", productCategory || selectedCategory);
     data.append("status", productStatus);
+    data.append("brand", productBrand);
 
     try {
       await onSubmit(data);
@@ -255,6 +262,16 @@ export default function UploadForm({
                 <option value="Active">Active</option>
                 <option value="Archived">Archived</option>
               </select>
+            </div>
+
+            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+              <Label htmlFor="brand">Product Brand</Label>
+              <Input
+                className="w-60"
+                type="text"
+                value={productBrand}
+                onChange={(e) => setProductBrand(e.target.value)}
+              />
             </div>
           </div>
 

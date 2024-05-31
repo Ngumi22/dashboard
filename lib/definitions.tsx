@@ -14,6 +14,7 @@ export interface FileData {
     price: number;
     discount: number;
     quantity: number;
+    brand: string;
   };
 }
 
