@@ -121,8 +121,9 @@ export default function ProductList() {
       setProducts(products.filter((product) => product.id !== productId));
 
       toast({
+        variant: "destructive",
         title: "Product Deleted",
-        description: "The product has been deleted successfully.",
+        description: "Product deleted successfully.",
       });
     } catch (err) {
       console.error(err);
@@ -287,7 +288,8 @@ export default function ProductList() {
                                 <Button
                                   aria-haspopup="true"
                                   size="icon"
-                                  variant="ghost">
+                                  variant="ghost"
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                   <span className="sr-only">Toggle menu</span>
                                 </Button>
@@ -297,7 +299,8 @@ export default function ProductList() {
                                 <DropdownMenuItem>
                                   <Button variant="default">
                                     <Link
-                                      href={`/dashboard/products/${product.id}/edit`}>
+                                      href={`/dashboard/products/${product.id}/edit`}
+                                    >
                                       Edit
                                     </Link>
                                   </Button>
@@ -306,7 +309,8 @@ export default function ProductList() {
                                 <DropdownMenuItem>
                                   <Button
                                     variant="destructive"
-                                    onClick={() => handleDelete(product.id)}>
+                                    onClick={() => handleDelete(product.id)}
+                                  >
                                     Delete
                                   </Button>
                                 </DropdownMenuItem>

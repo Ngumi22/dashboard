@@ -17,6 +17,7 @@ interface Product {
   price: number;
   discount: number;
   quantity: number;
+  brand: string;
   images: {
     main: string | null;
     thumbnails: string[];
@@ -66,10 +67,6 @@ export default function ProductPage() {
     return <div>Loading...</div>;
   }
 
-  const handleDelete = (id: number) => {
-    // Handle delete functionality here
-  };
-
   return (
     <div>
       <p>Single Product</p>
@@ -102,18 +99,6 @@ export default function ProductPage() {
                   alt={`Thumbnail ${index + 1}`}
                 />
               ))}
-            </div>
-            <div className="flex gap-x-4 my-2">
-              <Button variant="default">
-                <Link href={`/dashboard/products/${product.id}/edit`}>
-                  Edit
-                </Link>
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(product.id)}>
-                Delete
-              </Button>
             </div>
           </li>
         </ul>

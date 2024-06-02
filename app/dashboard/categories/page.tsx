@@ -108,7 +108,8 @@ export default function CategoryList() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => handleDelete(category.id)}>
+                onClick={() => handleDelete(category.id)}
+              >
                 Delete
               </Button>
             </div>

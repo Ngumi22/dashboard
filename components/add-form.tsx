@@ -120,10 +120,14 @@ export default function UploadForm({
     try {
       await onSubmit(data);
 
-      const toastTitle = isEdit ? "Product updated" : "Product added";
+      const toastTitle = isEdit
+        ? `Updating ${productName}`
+        : "Adding New Product";
       toast({
         title: toastTitle,
-        description: "Successfully uploaded",
+        description: isEdit
+          ? "Product Successfully updated"
+          : `Product ${productName} successfully added`,
       });
     } catch (error: any) {
       toast({
@@ -160,6 +164,15 @@ export default function UploadForm({
                 type="text"
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
+              />
+            </div>
+            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+              <Label htmlFor="brand">Product Brand</Label>
+              <Input
+                className="w-60"
+                type="text"
+                value={productBrand}
+                onChange={(e) => setProductBrand(e.target.value)}
               />
             </div>
             <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
@@ -233,7 +246,8 @@ export default function UploadForm({
                 onValueChange={(value) => {
                   setSelectedCategory(value);
                   setProductCategory(""); // Clear new category input when selecting existing category
-                }}>
+                }}
+              >
                 <SelectTrigger className="w-60">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -257,21 +271,12 @@ export default function UploadForm({
                   setProductStatus(
                     e.target.value as "Archived" | "Active" | "Draft"
                   )
-                }>
+                }
+              >
                 <option value="Draft">Draft</option>
                 <option value="Active">Active</option>
                 <option value="Archived">Archived</option>
               </select>
-            </div>
-
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="brand">Product Brand</Label>
-              <Input
-                className="w-60"
-                type="text"
-                value={productBrand}
-                onChange={(e) => setProductBrand(e.target.value)}
-              />
             </div>
           </div>
 
@@ -291,7 +296,8 @@ export default function UploadForm({
             {[...Array(5)].map((_, index) => (
               <div
                 key={index}
-                className="flex w-full max-w-sm items-center gap-1.5 my-4">
+                className="flex w-full max-w-sm items-center gap-1.5 my-4"
+              >
                 <Label htmlFor={`thumbnail${index}`}>
                   Thumbnail {index + 1}
                 </Label>
