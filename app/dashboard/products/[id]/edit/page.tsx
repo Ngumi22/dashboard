@@ -91,7 +91,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
           initialData={productData}
           onSubmit={handleSubmit}
           isEdit={true}
-          productData={undefined}
         />
       ) : (
         <p>Loading...</p>

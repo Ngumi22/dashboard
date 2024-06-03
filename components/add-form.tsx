@@ -228,26 +228,14 @@ export default function UploadForm({
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <p>Add New Category</p>
-              <Label htmlFor="category">Category</Label>
-              <Input
-                className="w-60"
-                value={productCategory}
-                onChange={(e) => {
-                  setProductCategory(e.target.value);
-                  setSelectedCategory(""); // Clear selected category when typing new category
-                }}
-              />
-
-              <p>Or Select Existing Category</p>
-
+              <p className="my-2">Category</p>
+              <p>Select Existing Category</p>
               <Select
                 value={selectedCategory}
                 onValueChange={(value) => {
                   setSelectedCategory(value);
                   setProductCategory(""); // Clear new category input when selecting existing category
-                }}
-              >
+                }}>
                 <SelectTrigger className="w-60">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -260,6 +248,16 @@ export default function UploadForm({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="my-2">Or create new category</p>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                className="w-60"
+                value={productCategory}
+                onChange={(e) => {
+                  setProductCategory(e.target.value);
+                  setSelectedCategory(""); // Clear selected category when typing new category
+                }}
+              />
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
@@ -271,8 +269,7 @@ export default function UploadForm({
                   setProductStatus(
                     e.target.value as "Archived" | "Active" | "Draft"
                   )
-                }
-              >
+                }>
                 <option value="Draft">Draft</option>
                 <option value="Active">Active</option>
                 <option value="Archived">Archived</option>
@@ -296,8 +293,7 @@ export default function UploadForm({
             {[...Array(5)].map((_, index) => (
               <div
                 key={index}
-                className="flex w-full max-w-sm items-center gap-1.5 my-4"
-              >
+                className="flex w-full max-w-sm items-center gap-1.5 my-4">
                 <Label htmlFor={`thumbnail${index}`}>
                   Thumbnail {index + 1}
                 </Label>
