@@ -526,3 +526,100 @@ export async function handleDelete(req: NextRequest, id: string) {
     connection.end();
   }
 }
+
+export async function fetchCategoryByIdFromDb(id: string) {
+  const connection = await getConnection();
+  try {
+    const [rows]: any[] = await connection.execute(
+      `SELECT * FROM categories WHERE id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    const row = rows[0];
+
+    const category = {
+      id: row.id,
+      name: row.name, // Ensure to include necessary fields
+    };
+
+    return NextResponse.json(category, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching category:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch category" },
+      { status: 500 }
+    );
+  } finally {
+    connection.end();
+  }
+}
+
+export async function handleCategoryPut(req: NextRequest, id: string) {
+  const connection = await getConnection();
+
+  try {
+    const formData = await req.formData();
+    const fields = Object.fromEntries(formData.entries());
+    const { name } = fields;
+
+    // Update category details using parameterized query
+    await connection.execute("UPDATE categories SET name = ? WHERE id = ?", [
+      name,
+      id,
+    ]);
+
+    // Handle file uploads if any (add your logic here)
+
+    await connection.commit();
+    return NextResponse.json(
+      { message: "Category updated successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error updating category:", error);
+    await connection.rollback();
+    return NextResponse.json(
+      { error: "Failed to update category" },
+      { status: 500 }
+    );
+  } finally {
+    connection.end();
+  }
+}
+
+export async function handleCategoryDelete(req: NextRequest, id: string) {
+  const connection = await getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Delete the category
+    await connection.execute("DELETE FROM categories WHERE id = ?", [id]);
+
+    // Delete associated products
+    await connection.execute("DELETE FROM products WHERE category_id = ?", [
+      id,
+    ]);
+
+    await connection.commit();
+    return NextResponse.json(
+      { message: "Category deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    await connection.rollback();
+    return NextResponse.json(
+      { error: "Failed to delete category" },
+      { status: 500 }
+    );
+  } finally {
+    connection.end();
+  }
+}
