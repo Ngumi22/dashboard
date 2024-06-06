@@ -310,7 +310,7 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         name: row.name,
         description: row.description,
         price: formatCurrency(row.price * 100), // Format to KSH
-        discount: formatCurrency(row.discount * 100), // Format to KSH
+        discount: row.discount,
         quantity: row.quantity,
         createdAt: formatDateToLocal(row.createdAt),
         updatedAt: formatDateToLocal(row.updatedAt),
@@ -382,7 +382,7 @@ export async function fetchProductByIdFromDb(id: string) {
       name: row.name,
       description: row.description,
       price: formatCurrency(row.price * 100), // Format to KSH
-      discount: formatCurrency(row.discount * 100), // Format to KSH
+      discount: row.discount,
       quantity: row.quantity,
       createdAt: formatDateToLocal(row.createdAt),
       updatedAt: formatDateToLocal(row.updatedAt),
