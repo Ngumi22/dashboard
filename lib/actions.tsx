@@ -61,7 +61,7 @@ export async function handlePost(request: NextRequest) {
         status ENUM('Archived', 'Active', 'Draft') DEFAULT 'Draft',
         image_id INT,
         price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-        discount DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
+        discount INT NOT NULL DEFAULT 0,
         brand VARCHAR(255) NOT NULL,
         quantity INT NOT NULL DEFAULT 0,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
