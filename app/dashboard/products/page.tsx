@@ -140,6 +140,10 @@ export default function ProductList() {
     }
   };
 
+  const activeProducts = products.filter((p) => p.status === "Active");
+  const draftProducts = products.filter((p) => p.status === "Draft");
+  const archivedProducts = products.filter((p) => p.status === "Archived");
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -147,6 +151,7 @@ export default function ProductList() {
   if (error) {
     return <div>Error: {error}</div>;
   }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
@@ -288,8 +293,7 @@ export default function ProductList() {
                                 <Button
                                   aria-haspopup="true"
                                   size="icon"
-                                  variant="ghost"
-                                >
+                                  variant="ghost">
                                   <MoreHorizontal className="h-4 w-4" />
                                   <span className="sr-only">Toggle menu</span>
                                 </Button>
@@ -299,8 +303,7 @@ export default function ProductList() {
                                 <DropdownMenuItem>
                                   <Button variant="default">
                                     <Link
-                                      href={`/dashboard/products/${product.id}/edit`}
-                                    >
+                                      href={`/dashboard/products/${product.id}/edit`}>
                                       Edit
                                     </Link>
                                   </Button>
@@ -309,8 +312,316 @@ export default function ProductList() {
                                 <DropdownMenuItem>
                                   <Button
                                     variant="destructive"
-                                    onClick={() => handleDelete(product.id)}
-                                  >
+                                    onClick={() => handleDelete(product.id)}>
+                                    Delete
+                                  </Button>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <CardFooter>
+                  <div className="text-xs text-muted-foreground">
+                    Showing <strong>1-10</strong> of <strong>32</strong>{" "}
+                    products
+                  </div>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            <TabsContent value="active">
+              <Card x-chunk="dashboard-06-chunk-0">
+                <CardHeader>
+                  <CardTitle>Products</CardTitle>
+                  <CardDescription>
+                    Manage your products and view their sales performance.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="hidden w-[100px] sm:table-cell">
+                          <span className="sr-only">Image</span>
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Price
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Stock
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Created at
+                        </TableHead>
+                        <TableHead>
+                          <span className="sr-only">Actions</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activeProducts.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="hidden sm:table-cell">
+                            <Image
+                              alt="Product image"
+                              className="aspect-square rounded-md object-cover"
+                              height="64"
+                              src={`data:image/jpeg;base64,${product.images.main}`}
+                              width="64"
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {product.name}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{product.status}</Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.price}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.quantity}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.createdAt}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  aria-haspopup="true"
+                                  size="icon"
+                                  variant="ghost">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Toggle menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem>
+                                  <Button variant="default">
+                                    <Link
+                                      href={`/dashboard/products/${product.id}/edit`}>
+                                      Edit
+                                    </Link>
+                                  </Button>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => handleDelete(product.id)}>
+                                    Delete
+                                  </Button>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <CardFooter>
+                  <div className="text-xs text-muted-foreground">
+                    Showing <strong>1-10</strong> of <strong>32</strong>{" "}
+                    products
+                  </div>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            <TabsContent value="draft">
+              <Card x-chunk="dashboard-06-chunk-0">
+                <CardHeader>
+                  <CardTitle>Products</CardTitle>
+                  <CardDescription>
+                    Manage your products and view their sales performance.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="hidden w-[100px] sm:table-cell">
+                          <span className="sr-only">Image</span>
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Price
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Stock
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Created at
+                        </TableHead>
+                        <TableHead>
+                          <span className="sr-only">Actions</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {draftProducts.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="hidden sm:table-cell">
+                            <Image
+                              alt="Product image"
+                              className="aspect-square rounded-md object-cover"
+                              height="64"
+                              src={`data:image/jpeg;base64,${product.images.main}`}
+                              width="64"
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {product.name}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{product.status}</Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.price}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.quantity}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.createdAt}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  aria-haspopup="true"
+                                  size="icon"
+                                  variant="ghost">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Toggle menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem>
+                                  <Button variant="default">
+                                    <Link
+                                      href={`/dashboard/products/${product.id}/edit`}>
+                                      Edit
+                                    </Link>
+                                  </Button>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => handleDelete(product.id)}>
+                                    Delete
+                                  </Button>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <CardFooter>
+                  <div className="text-xs text-muted-foreground">
+                    Showing <strong>1-10</strong> of <strong>32</strong>{" "}
+                    products
+                  </div>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            <TabsContent value="archived">
+              <Card x-chunk="dashboard-06-chunk-0">
+                <CardHeader>
+                  <CardTitle>Products</CardTitle>
+                  <CardDescription>
+                    Manage your products and view their sales performance.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="hidden w-[100px] sm:table-cell">
+                          <span className="sr-only">Image</span>
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Price
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Stock
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Created at
+                        </TableHead>
+                        <TableHead>
+                          <span className="sr-only">Actions</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {archivedProducts.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="hidden sm:table-cell">
+                            <Image
+                              alt="Product image"
+                              className="aspect-square rounded-md object-cover"
+                              height="64"
+                              src={`data:image/jpeg;base64,${product.images.main}`}
+                              width="64"
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {product.name}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{product.status}</Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.price}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.quantity}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {product.createdAt}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  aria-haspopup="true"
+                                  size="icon"
+                                  variant="ghost">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Toggle menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem>
+                                  <Button variant="default">
+                                    <Link
+                                      href={`/dashboard/products/${product.id}/edit`}>
+                                      Edit
+                                    </Link>
+                                  </Button>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => handleDelete(product.id)}>
                                     Delete
                                   </Button>
                                 </DropdownMenuItem>

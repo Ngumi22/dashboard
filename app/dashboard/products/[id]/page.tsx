@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 interface Product {
   id: number;
@@ -79,6 +76,7 @@ export default function ProductPage() {
             <p>Quantity: {product.quantity}</p>
             <p>Discount: {product.discount}</p>
             <p>Description: {product.description}</p>
+            <p>Brand: {product.brand}</p>
             <p>Category: {product.category}</p>
             <p>Status: {product.status}</p>
             <div>

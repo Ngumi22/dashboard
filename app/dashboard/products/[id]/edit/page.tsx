@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import ProductForm from "@/components/add-form";
-import { fetchProductByIdFromDb } from "@/lib/actions";
 
 export default function EditPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();

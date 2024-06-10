@@ -25,7 +25,13 @@ export default function UploadForm({
   const { toast } = useToast();
 
   const [mainImage, setMainImage] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string | null>(
+    initialData?.main_image || null
+  );
   const [thumbnails, setThumbnails] = useState<File[]>([]);
+  const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>(
+    initialData?.thumbnails || []
+  );
   const [productName, setProductName] = useState<string>(
     initialData?.name || ""
   );
@@ -80,8 +86,8 @@ export default function UploadForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (
-      !mainImage ||
-      thumbnails.length !== 5 ||
+      (!mainImage && !mainImagePreview) ||
+      (thumbnailPreviews.length < 5 && thumbnails.length < 5) ||
       !productName ||
       !productSKU ||
       !productPrice ||
@@ -103,7 +109,9 @@ export default function UploadForm({
     }
 
     const data = new FormData();
-    data.append("main_image", mainImage);
+    if (mainImage) {
+      data.append("main_image", mainImage);
+    }
     thumbnails.forEach((thumbnail, index) =>
       data.append(`thumbnail${index + 1}`, thumbnail)
     );
@@ -150,6 +158,10 @@ export default function UploadForm({
       newThumbnails[index] = files[0];
       return newThumbnails;
     });
+
+    const newPreviews = [...thumbnailPreviews];
+    newPreviews[index] = URL.createObjectURL(files[0]);
+    setThumbnailPreviews(newPreviews);
   };
 
   return (
@@ -186,10 +198,10 @@ export default function UploadForm({
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="price-1">Price</Label>
+              <Label htmlFor="price">Price</Label>
               <Input
                 className="w-60"
-                id="price-1"
+                id="price"
                 type="number"
                 value={productPrice}
                 onChange={(e) => setProductPrice(e.target.value)}
@@ -285,10 +297,21 @@ export default function UploadForm({
                 id="picture"
                 type="file"
                 name="main_image"
-                onChange={(e) =>
-                  setMainImage(e.target.files ? e.target.files[0] : null)
-                }
+                onChange={(e) => {
+                  const file = e.target.files ? e.target.files[0] : null;
+                  setMainImage(file);
+                  if (file) {
+                    setMainImagePreview(URL.createObjectURL(file));
+                  }
+                }}
               />
+              {mainImagePreview && (
+                <img
+                  src={mainImagePreview}
+                  alt="Main Image Preview"
+                  className="w-20 h-20 object-cover mt-2"
+                />
+              )}
             </div>
             {[...Array(5)].map((_, index) => (
               <div
@@ -304,6 +327,13 @@ export default function UploadForm({
                   name={`thumbnail${index + 1}`}
                   onChange={(e) => handleThumbnailChange(e, index)}
                 />
+                {thumbnailPreviews[index] && (
+                  <img
+                    src={thumbnailPreviews[index]}
+                    alt={`Thumbnail ${index + 1} Preview`}
+                    className="w-20 h-20 object-cover mt-2"
+                  />
+                )}
               </div>
             ))}
           </div>

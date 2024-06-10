@@ -1,49 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchCategoryByIdFromDb,
+  fetchProductsByCategoryFromDb,
   handleCategoryDelete,
   handleCategoryPut,
 } from "@/lib/actions";
 
+// GET category by ID or fetch products by category name
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const { id } = params;
+  const name = req.nextUrl.searchParams.get("name");
 
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
   }
 
   try {
-    const category = await fetchCategoryByIdFromDb(id);
-    return category;
+    if (name) {
+      const products = await fetchProductsByCategoryFromDb(name);
+      return products;
+    } else {
+      const category = await fetchCategoryByIdFromDb(id);
+      return category;
+    }
   } catch (error) {
-    console.error("Error fetching category:", error);
+    console.error("Error fetching category or products:", error);
     return NextResponse.json(
-      { error: "Failed to fetch category" },
+      { error: "Failed to fetch category or products" },
       { status: 500 }
     );
   }
 }
+
+// PUT update category by ID
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const { id } = params;
 
-  // Check if ID is provided
   if (!id) {
     return NextResponse.json({ error: "ID not provided" }, { status: 400 });
   }
 
   try {
-    // Call handlePut function to update the category
     const category = await handleCategoryPut(req, id);
     return category;
   } catch (error) {
     console.error("Error Updating category:", error);
-    // Return 500 Internal Server Error if there's an error
     return NextResponse.json(
       { error: "Failed to update category" },
       { status: 500 }
@@ -51,6 +58,7 @@ export async function PUT(
   }
 }
 
+// DELETE category by ID
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -61,7 +69,6 @@ export async function DELETE(
   }
 
   try {
-    // Call handleDelete with the id parameter
     const category = await handleCategoryDelete(req, id);
     return category;
   } catch (error) {
