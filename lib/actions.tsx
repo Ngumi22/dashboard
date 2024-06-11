@@ -42,12 +42,12 @@ export async function handlePost(request: NextRequest) {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS images (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        main_image LONGBLOB,
-        thumbnail1 LONGBLOB,
-        thumbnail2 LONGBLOB,
-        thumbnail3 LONGBLOB,
-        thumbnail4 LONGBLOB,
-        thumbnail5 LONGBLOB
+        main_image MEDIUMBLOB,
+        thumbnail1 MEDIUMBLOB,
+        thumbnail2 MEDIUMBLOB,
+        thumbnail3 MEDIUMBLOB,
+        thumbnail4 MEDIUMBLOB,
+        thumbnail5 MEDIUMBLOB
       )
     `);
 
@@ -620,18 +620,14 @@ export async function fetchProductsByCategoryFromDb(name: string) {
       };
     });
 
-    return NextResponse.json(products, { status: 200 });
+    return products;
   } catch (error) {
     console.error("Error fetching products by category:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch products by category" },
-      { status: 500 }
-    );
+    throw new Error("Failed to fetch products");
   } finally {
     connection.end();
   }
 }
-
 export async function handleCategoryPut(req: NextRequest, id: string) {
   const connection = await getConnection();
 

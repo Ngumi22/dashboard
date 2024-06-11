@@ -1,14 +1,23 @@
 import { handlePost } from "@/lib/actions";
-import { query } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-
-import { fetchAllProductFromDb } from "@/lib/actions";
+import {
+  fetchProductsByCategoryFromDb,
+  fetchAllProductFromDb,
+} from "@/lib/actions";
 
 export async function GET(req: NextRequest) {
+  const category = req.nextUrl.searchParams.get("category");
+
   try {
-    const products = await fetchAllProductFromDb();
-    return NextResponse.json(products, { status: 200 });
+    if (category) {
+      const products = await fetchProductsByCategoryFromDb(category);
+      return NextResponse.json(products, { status: 200 });
+    } else {
+      const products = await fetchAllProductFromDb();
+      return NextResponse.json(products, { status: 200 });
+    }
   } catch (error) {
+    console.error("Error fetching products:", error);
     return NextResponse.json(
       { error: "Failed to fetch products" },
       { status: 500 }

@@ -39,7 +39,6 @@ export default function CategoryList() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch categories on component mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -52,7 +51,6 @@ export default function CategoryList() {
         const data = await res.json();
         setCategories(data);
 
-        // Fetch products for each category
         for (const category of data) {
           await fetchProducts(category.name);
         }
@@ -75,7 +73,6 @@ export default function CategoryList() {
     fetchCategories();
   }, [toast]);
 
-  // Fetch products for a specific category
   const fetchProducts = async (categoryName: string) => {
     try {
       const res = await fetch(`/api/products?category=${categoryName}`);
@@ -118,12 +115,15 @@ export default function CategoryList() {
             </TabsTrigger>
           ))}
         </TabsList>
-        {categories.map((category) => (
-          <TabsContent key={category.id} value={category.name}>
-            <div className="flex flex-wrap gap-4">
+        <div>
+          {categories.map((category) => (
+            <TabsContent
+              key={category.id}
+              value={category.name}
+              className="grid grid-cols-2 gap-5">
               {productsByCategory[category.name]?.length > 0 ? (
                 productsByCategory[category.name].map((product) => (
-                  <Card key={product.id} className="w-full md:w-1/2 lg:w-1/2">
+                  <Card key={product.id} className="mb-4">
                     <CardHeader>
                       <CardTitle>{product.name}</CardTitle>
                     </CardHeader>
@@ -154,9 +154,9 @@ export default function CategoryList() {
               ) : (
                 <p>No products found in this category.</p>
               )}
-            </div>
-          </TabsContent>
-        ))}
+            </TabsContent>
+          ))}
+        </div>
       </Tabs>
     </div>
   );

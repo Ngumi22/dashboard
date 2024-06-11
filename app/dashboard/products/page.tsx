@@ -145,7 +145,7 @@ export default function ProductList() {
   const archivedProducts = products.filter((p) => p.status === "Archived");
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Loading....</div>;
   }
 
   if (error) {

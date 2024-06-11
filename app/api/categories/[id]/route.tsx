@@ -12,19 +12,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const { id } = params;
-  const name = req.nextUrl.searchParams.get("name");
 
   if (!id) {
     return NextResponse.json({ error: "ID is required" }, { status: 400 });
   }
 
   try {
-    if (name) {
-      const products = await fetchProductsByCategoryFromDb(name);
-      return products;
-    } else {
+    if (id) {
       const category = await fetchCategoryByIdFromDb(id);
       return category;
+    } else {
+      console.error("Error fetching categories");
     }
   } catch (error) {
     console.error("Error fetching category or products:", error);

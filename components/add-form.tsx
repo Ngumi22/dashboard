@@ -167,7 +167,7 @@ export default function UploadForm({
   return (
     <section className="container my-8">
       <form onSubmit={handleSubmit}>
-        <div className="flex justify-between">
+        <div className="flex justify-center gap-40">
           <div>
             <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
               <Label htmlFor="name">Product Name</Label>
@@ -290,33 +290,28 @@ export default function UploadForm({
           </div>
 
           <div className="">
-            <div className="flex w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="picture">Main Image</Label>
-              <Input
-                className="w-60"
-                id="picture"
-                type="file"
-                name="main_image"
-                onChange={(e) => {
-                  const file = e.target.files ? e.target.files[0] : null;
-                  setMainImage(file);
-                  if (file) {
-                    setMainImagePreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
-              {mainImagePreview && (
-                <img
-                  src={mainImagePreview}
-                  alt="Main Image Preview"
-                  className="w-20 h-20 object-cover mt-2"
+            <div className="flex w-full max-w-sm items-center gap-1">
+              <div className="flex w-full max-w-sm items-center gap-1">
+                <Label htmlFor="picture">Main Image</Label>
+                <Input
+                  className="w-60"
+                  id="picture"
+                  type="file"
+                  name="main_image"
+                  onChange={(e) => {
+                    const file = e.target.files ? e.target.files[0] : null;
+                    setMainImage(file);
+                    if (file) {
+                      setMainImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
                 />
-              )}
+              </div>
             </div>
             {[...Array(5)].map((_, index) => (
               <div
                 key={index}
-                className="flex w-full max-w-sm items-center gap-1.5 my-4">
+                className="flex w-full max-w-sm items-center gap-1 my-4">
                 <Label htmlFor={`thumbnail${index}`}>
                   Thumbnail {index + 1}
                 </Label>
@@ -331,11 +326,19 @@ export default function UploadForm({
                   <img
                     src={thumbnailPreviews[index]}
                     alt={`Thumbnail ${index + 1} Preview`}
-                    className="w-20 h-20 object-cover mt-2"
+                    className="w-12 h-12 object-contain"
                   />
                 )}
               </div>
             ))}
+
+            {mainImagePreview && (
+              <img
+                src={mainImagePreview}
+                alt="Main Image Preview"
+                className="w-12 h-12 object-contain"
+              />
+            )}
           </div>
         </div>
         <Button type="submit">Submit</Button>
