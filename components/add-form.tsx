@@ -43,7 +43,7 @@ export default function UploadForm({
     initialData?.quantity || ""
   );
   const [productDiscount, setProductDiscount] = useState<string>(
-    initialData?.discount || ""
+    initialData?.discount || 0
   );
   const [productDescription, setProductDescription] = useState<string>(
     initialData?.description || ""
@@ -129,7 +129,7 @@ export default function UploadForm({
       await onSubmit(data);
 
       const toastTitle = isEdit
-        ? `Updating ${productName}`
+        ? `Updating ${productName}...`
         : "Adding New Product";
       toast({
         title: toastTitle,

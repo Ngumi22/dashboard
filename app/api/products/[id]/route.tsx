@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  fetchProductByIdFromDb,
-  handlePut,
-  handleDelete,
-  fetchProductsByCategoryFromDb,
-} from "@/lib/actions";
+import { fetchProductByIdFromDb, handlePut, handleDelete } from "@/lib/actions";
 
 export async function GET(
   req: NextRequest,

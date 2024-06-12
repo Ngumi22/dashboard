@@ -278,6 +278,7 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         c.name AS category,
         p.status,
         p.description,
+        p.brand,
         p.createdAt,
         p.updatedAt,
         i.main_image,
@@ -309,7 +310,8 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         category: row.category,
         name: row.name,
         description: row.description,
-        price: formatCurrency(row.price * 100), // Format to KSH
+        brand: row.brand,
+        price: row.price, // Format to KSH
         discount: row.discount,
         quantity: row.quantity,
         createdAt: formatDateToLocal(row.createdAt),
@@ -343,6 +345,7 @@ export async function fetchProductByIdFromDb(id: string) {
         c.name AS category,
         p.status,
         p.description,
+        p.brand,
         p.createdAt,
         p.updatedAt,
         i.main_image,
@@ -381,7 +384,8 @@ export async function fetchProductByIdFromDb(id: string) {
       category: row.category,
       name: row.name,
       description: row.description,
-      price: formatCurrency(row.price * 100), // Format to KSH
+      brand: row.brand,
+      price: row.price,
       discount: row.discount,
       quantity: row.quantity,
       createdAt: formatDateToLocal(row.createdAt),
@@ -416,6 +420,7 @@ export async function handlePut(req: NextRequest, id: string) {
       sku,
       name,
       description,
+      brand,
       category,
       status,
       price,
@@ -461,11 +466,12 @@ export async function handlePut(req: NextRequest, id: string) {
 
     // Update product details using parameterized query
     await connection.execute(
-      "UPDATE product SET sku = ?, name = ?, description = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
+      "UPDATE product SET sku = ?, name = ?, description = ?, brand = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
       [
         sku,
         name,
         description,
+        brand,
         categoryId,
         status,
         price,

@@ -30,9 +30,8 @@ export interface ProductData {
     sku: string;
     name: string;
     description: string;
-    product_status_id: number;
+    brand: string;
     price: number;
-    discount_percentage: number;
     category: string;
     status: "Archived" | "Active" | "Draft";
     discount: number;
@@ -93,6 +92,7 @@ export interface ProductssData {
   sku: string;
   price: number;
   discount: number;
+  brand: string;
   quantity: number;
   status: string;
   category: string;
