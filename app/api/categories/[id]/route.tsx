@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchCategoryByIdFromDb,
-  fetchProductsByCategoryFromDb,
   handleCategoryDelete,
   handleCategoryPut,
 } from "@/lib/actions";
