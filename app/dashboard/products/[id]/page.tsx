@@ -3,31 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-
-interface Product {
-  id: number;
-  sku: string;
-  name: string;
-  description: string;
-  category: string;
-  status: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  brand: string;
-  images: {
-    main: string | null;
-    thumbnails: string[];
-  };
-}
-
-// Define the type for the route parameters
-interface Params {
-  id: string;
-}
+import { ProductData } from "@/lib/definitions";
 
 export default function ProductPage() {
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const { id } = params;

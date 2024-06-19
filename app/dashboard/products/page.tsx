@@ -51,27 +51,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface Product {
-  id: number;
-  sku: string;
-  name: string;
-  description: string;
-  category: string;
-  status: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  createdAt: string;
-  updatedAt: string;
-  images: {
-    main: string | null;
-    thumbnails: string[];
-  };
-}
+import { ProductData } from "@/lib/definitions";
 
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -191,7 +174,7 @@ export default function ProductList() {
                   Archived
                 </TabsTrigger>
               </TabsList>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-2 my-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="h-8 gap-1">
@@ -205,11 +188,16 @@ export default function ProductList() {
                     <DropdownMenuLabel>Filter by</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuCheckboxItem checked>
-                      Active
+                      Name
                     </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem>Draft</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem>Brand</DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem>
-                      Archived
+                      Category
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem>Stock</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem>Price</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem>
+                      Discount Percentage
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

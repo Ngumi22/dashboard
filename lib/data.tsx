@@ -1,5 +1,3 @@
-"use server";
-
 import mysql from "mysql2/promise";
 import { NextResponse } from "next/server";
 import { convertToBase64, formatDateToLocal } from "./utils";
@@ -20,15 +18,52 @@ export async function initDbConnection() {
       queueLimit: 0,
     });
   }
-  return pool;
 }
 
 export async function getConnection() {
-  if (!pool) initDbConnection();
+  if (!pool) await initDbConnection();
   return pool.getConnection();
 }
 
+// Index the database
+export async function indexDatabase() {
+  const connection = await getConnection();
+  try {
+    const queries = [
+      `CREATE INDEX IF NOT EXISTS idx_product_id ON product(id);`,
+      `CREATE INDEX IF NOT EXISTS idx_product_category_id ON product(category_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_product_name ON product(name);`,
+      `CREATE INDEX IF NOT EXISTS idx_product_sku ON product(sku);`,
+      `CREATE INDEX IF NOT EXISTS idx_category_name ON categories(name);`,
+      `CREATE INDEX IF NOT EXISTS idx_images_id ON images(id);`,
+    ];
+
+    for (const query of queries) {
+      await connection.execute(query);
+    }
+
+    console.log("Indexes created successfully");
+  } catch (error) {
+    console.error("Error creating indexes:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+// Call indexDatabase to ensure indexes are created when the server starts
+indexDatabase().catch((err) => {
+  console.error("Failed to index the database:", err);
+});
+
+const cache = new Map<string, any>();
+
 export async function fetchAllProductFromDb(): Promise<any[]> {
+  const cacheKey = "all_products";
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(`
@@ -87,14 +122,22 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
       };
     });
 
+    cache.set(cacheKey, products);
     return products;
   } catch (error) {
     console.error("Error fetching products:", error);
     throw error;
+  } finally {
+    connection.release();
   }
 }
 
 export async function fetchProductByIdFromDb(id: string) {
+  const cacheKey = `product_${id}`;
+  if (cache.has(cacheKey)) {
+    return NextResponse.json(cache.get(cacheKey), { status: 200 });
+  }
+
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(
@@ -160,6 +203,7 @@ export async function fetchProductByIdFromDb(id: string) {
       },
     };
 
+    cache.set(cacheKey, product);
     return NextResponse.json(product, { status: 200 });
   } catch (error) {
     return NextResponse.json(
@@ -172,10 +216,15 @@ export async function fetchProductByIdFromDb(id: string) {
 }
 
 export async function fetchCategoryByIdFromDb(id: string) {
+  const cacheKey = `category_${id}`;
+  if (cache.has(cacheKey)) {
+    return NextResponse.json(cache.get(cacheKey), { status: 200 });
+  }
+
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(
-      `SELECT * FROM categories WHERE id = ?`,
+      `SELECT id, name FROM categories WHERE id = ?`,
       [id]
     );
 
@@ -189,6 +238,7 @@ export async function fetchCategoryByIdFromDb(id: string) {
     const row = rows[0];
     const category = { id: row.id, name: row.name };
 
+    cache.set(cacheKey, category);
     return NextResponse.json(category, { status: 200 });
   } catch (error) {
     return NextResponse.json(
@@ -201,6 +251,11 @@ export async function fetchCategoryByIdFromDb(id: string) {
 }
 
 export async function fetchProductsByCategoryFromDb(name: string) {
+  const cacheKey = `products_category_${name}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(
@@ -263,15 +318,22 @@ export async function fetchProductsByCategoryFromDb(name: string) {
       };
     });
 
+    cache.set(cacheKey, products);
     return products;
   } catch (error) {
-    throw new Error("Failed to fetch products");
+    console.error("Error fetching products by category:", error);
+    throw error;
   } finally {
     connection.release();
   }
 }
 
 export async function fetchProductsByNameFromDb(name: string) {
+  const cacheKey = `products_name_${name}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(
@@ -298,9 +360,9 @@ export async function fetchProductsByNameFromDb(name: string) {
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.name = ?
+      WHERE p.name LIKE ?
     `,
-      [name]
+      [`%${name}%`]
     );
 
     const products = rows.map((row: any) => {
@@ -334,9 +396,11 @@ export async function fetchProductsByNameFromDb(name: string) {
       };
     });
 
+    cache.set(cacheKey, products);
     return products;
   } catch (error) {
-    throw new Error("Failed to fetch products");
+    console.error("Error fetching products by name:", error);
+    throw error;
   } finally {
     connection.release();
   }

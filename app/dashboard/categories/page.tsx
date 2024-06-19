@@ -5,35 +5,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface Product {
-  id: number;
-  sku: string;
-  status: string;
-  category: string;
-  name: string;
-  description: string;
-  brand: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  createdAt: string;
-  updatedAt: string;
-  images: {
-    main: string;
-    thumbnails: string[];
-  };
-}
+import { ProductData, CategoryData } from "@/lib/definitions";
 
 export default function CategoryList() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [productsByCategory, setProductsByCategory] = useState<{
-    [key: string]: Product[];
+    [key: string]: ProductData[];
   }>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,12 +92,12 @@ export default function CategoryList() {
             </TabsTrigger>
           ))}
         </TabsList>
-        <div>
+        <div className="my-2">
           {categories.map((category) => (
             <TabsContent
               key={category.id}
               value={category.name}
-              className="grid grid-cols-2 gap-5">
+              className="grid grid-cols-3 gap-5">
               {productsByCategory[category.name]?.length > 0 ? (
                 productsByCategory[category.name].map((product) => (
                   <Card key={product.id} className="mb-4">
@@ -133,15 +110,15 @@ export default function CategoryList() {
                       <p>Discount: {product.discount}</p>
                       <p>Quantity: {product.quantity}</p>
                       <p>Brand: {product.brand}</p>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full">
                         <img
-                          className="h-20 w-20"
+                          className="h-14 w-14"
                           src={`data:image/jpeg;base64,${product.images.main}`}
                           alt={product.name}
                         />
                         {product.images.thumbnails.map((thumb, index) => (
                           <img
-                            className="h-20 w-20"
+                            className="h-14 w-14"
                             key={index}
                             src={`data:image/jpeg;base64,${thumb}`}
                             alt={`Thumbnail ${index + 1}`}
