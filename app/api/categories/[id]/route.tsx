@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  fetchCategoryByIdFromDb,
-  handleCategoryDelete,
-  handleCategoryPut,
-} from "@/lib/actions";
+import { handleCategoryDelete, handleCategoryPut } from "@/lib/actions";
+import { fetchCategoryByIdFromDb } from "@/lib/data";
 
 // GET category by ID or fetch products by category name
 export async function GET(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,22 +15,23 @@ export default function CategoryList() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const fetchedCategories = useRef(new Set<string>());
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/categories");
+        const resCategories = await fetch("/api/categories");
 
-        if (!res.ok) {
+        if (!resCategories.ok) {
           throw new Error("Failed to fetch categories");
         }
 
-        const data = await res.json();
-        setCategories(data);
+        const categoriesData = await resCategories.json();
+        setCategories(categoriesData);
 
-        for (const category of data) {
-          await fetchProducts(category.name);
-        }
+        categoriesData.forEach((category: CategoryData) => {
+          fetchProducts(category.name);
+        });
       } catch (err) {
         console.error(err);
         const errorMessage =
@@ -47,32 +48,48 @@ export default function CategoryList() {
       }
     };
 
-    fetchCategories();
+    fetchData();
   }, [toast]);
 
-  const fetchProducts = async (categoryName: string) => {
-    try {
-      const res = await fetch(`/api/products?category=${categoryName}`);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch products");
+  const fetchProducts = useCallback(
+    async (categoryName: string) => {
+      if (fetchedCategories.current.has(categoryName)) {
+        return;
       }
+      fetchedCategories.current.add(categoryName);
 
-      const data = await res.json();
-      setProductsByCategory((prev) => ({ ...prev, [categoryName]: data }));
-    } catch (err) {
-      console.error(err);
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
-      setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage,
-        action: <ToastAction altText="Try again">Try again</ToastAction>,
-      });
-    }
-  };
+      try {
+        const res = await fetch(`/api/products?category=${categoryName}`);
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch products");
+        }
+
+        const data = await res.json();
+
+        if (data.length === 0) {
+          await fetch(`/api/categories/${categoryName}`, { method: "DELETE" });
+          setCategories((prevCategories) =>
+            prevCategories.filter((category) => category.name !== categoryName)
+          );
+        } else {
+          setProductsByCategory((prev) => ({ ...prev, [categoryName]: data }));
+        }
+      } catch (err) {
+        console.error(err);
+        const errorMessage =
+          err instanceof Error ? err.message : "An unknown error occurred";
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+          action: <ToastAction altText="Try again">Try again</ToastAction>,
+        });
+      }
+    },
+    [toast]
+  );
 
   if (loading) {
     return <div>Loading...</div>;

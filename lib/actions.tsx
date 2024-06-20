@@ -374,14 +374,43 @@ export async function handleDelete(req: NextRequest, id: string) {
   try {
     await connection.beginTransaction();
 
+    // First, retrieve the category and image IDs associated with the product
+    const [relatedData]: [any[], any] = await connection.execute(
+      "SELECT category_id, image_id FROM product WHERE id = ?",
+      [id]
+    );
+
+    if (relatedData.length === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    const { category_id, image_id } = relatedData[0];
+
     // Delete the product
     await connection.execute("DELETE FROM product WHERE id = ?", [id]);
 
-    // Delete associated images
-    await connection.execute(
-      "DELETE FROM images WHERE id IN (SELECT image_id FROM product WHERE id = ?)",
-      [id]
+    // Check if there are any other products in the same category
+    const [remainingProducts]: [any[], any] = await connection.execute(
+      "SELECT id FROM product WHERE category_id = ?",
+      [category_id]
     );
+
+    if (remainingProducts.length === 0) {
+      // If no other products in the category, delete the category
+      await connection.execute("DELETE FROM categories WHERE id = ?", [
+        category_id,
+      ]);
+    }
+
+    // Delete associated images if they are not used by any other products
+    const [usedImages]: [any[], any] = await connection.execute(
+      "SELECT id FROM product WHERE image_id = ?",
+      [image_id]
+    );
+
+    if (usedImages.length === 0) {
+      await connection.execute("DELETE FROM images WHERE id = ?", [image_id]);
+    }
 
     await connection.commit();
     return NextResponse.json(
@@ -433,17 +462,44 @@ export async function handleCategoryPut(req: NextRequest, id: string) {
   }
 }
 
-export async function handleCategoryDelete(req: NextRequest, id: string) {
+export async function handleCategoryDelete(req: NextRequest, name: string) {
   const connection = await getConnection();
   try {
     await connection.beginTransaction();
 
-    // Delete the category
-    await connection.execute("DELETE FROM categories WHERE id = ?", [id]);
+    // Check if the category exists
+    const [categoryRows]: [mysql.RowDataPacket[], mysql.FieldPacket[]] =
+      await connection.execute(
+        "SELECT id FROM categories WHERE name = ? FOR UPDATE",
+        [name]
+      );
 
-    // Delete associated products
-    await connection.execute("DELETE FROM products WHERE category_id = ?", [
-      id,
+    if (categoryRows.length === 0) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    const categoryId = categoryRows[0].id;
+
+    // Check if there are products in the category
+    const [products]: [mysql.RowDataPacket[], mysql.FieldPacket[]] =
+      await connection.execute("SELECT id FROM product WHERE category_id = ?", [
+        categoryId,
+      ]);
+
+    if (products.length > 0) {
+      // Cannot delete the category if it has products
+      return NextResponse.json(
+        { error: "Cannot delete category with products" },
+        { status: 400 }
+      );
+    }
+
+    // Delete the category
+    await connection.execute("DELETE FROM categories WHERE id = ?", [
+      categoryId,
     ]);
 
     await connection.commit();

@@ -1,4 +1,4 @@
-import mysql from "mysql2/promise";
+import mysql, { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { NextResponse } from "next/server";
 import { convertToBase64, formatDateToLocal } from "./utils";
 
@@ -25,21 +25,48 @@ export async function getConnection() {
   return pool.getConnection();
 }
 
-// Index the database
+async function indexExists(
+  connection: mysql.PoolConnection,
+  tableName: string,
+  indexName: string
+): Promise<boolean> {
+  const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+    `
+    SELECT COUNT(1) as count
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE table_schema = DATABASE()
+    AND table_name = ?
+    AND index_name = ?;
+  `,
+    [tableName, indexName]
+  );
+
+  return rows[0].count > 0;
+}
+
 export async function indexDatabase() {
   const connection = await getConnection();
   try {
-    const queries = [
-      `CREATE INDEX IF NOT EXISTS idx_product_id ON product(id);`,
-      `CREATE INDEX IF NOT EXISTS idx_product_category_id ON product(category_id);`,
-      `CREATE INDEX IF NOT EXISTS idx_product_name ON product(name);`,
-      `CREATE INDEX IF NOT EXISTS idx_product_sku ON product(sku);`,
-      `CREATE INDEX IF NOT EXISTS idx_category_name ON categories(name);`,
-      `CREATE INDEX IF NOT EXISTS idx_images_id ON images(id);`,
+    const indexes = [
+      { table: "product", name: "idx_product_id", column: "id" },
+      {
+        table: "product",
+        name: "idx_product_category_id",
+        column: "category_id",
+      },
+      { table: "product", name: "idx_product_name", column: "name" },
+      { table: "product", name: "idx_product_sku", column: "sku" },
+      { table: "categories", name: "idx_category_name", column: "name" },
+      { table: "images", name: "idx_images_id", column: "id" },
     ];
 
-    for (const query of queries) {
-      await connection.execute(query);
+    for (const { table, name, column } of indexes) {
+      const exists = await indexExists(connection, table, name);
+      if (!exists) {
+        await connection.execute(
+          `CREATE INDEX ${name} ON ${table}(${column});`
+        );
+      }
     }
 
     console.log("Indexes created successfully");
@@ -51,7 +78,6 @@ export async function indexDatabase() {
   }
 }
 
-// Call indexDatabase to ensure indexes are created when the server starts
 indexDatabase().catch((err) => {
   console.error("Failed to index the database:", err);
 });
