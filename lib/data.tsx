@@ -362,7 +362,7 @@ export async function fetchProductsByNameFromDb(name: string) {
 
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [any[], any] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -390,6 +390,11 @@ export async function fetchProductsByNameFromDb(name: string) {
     `,
       [`%${name}%`]
     );
+
+    if (rows.length === 0) {
+      console.log(`No products found with name like: ${name}`);
+      throw new Error("Product not found");
+    }
 
     const products = rows.map((row: any) => {
       const thumbnails = [
@@ -433,9 +438,14 @@ export async function fetchProductsByNameFromDb(name: string) {
 }
 
 export async function fetchProductsByBrandFromDb(brand: string) {
+  const cacheKey = `products_brand_${brand}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [any[], any] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -459,9 +469,95 @@ export async function fetchProductsByBrandFromDb(brand: string) {
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.brand = ?
+      WHERE p.brand LIKE ?
     `,
-      [brand]
+      [`%${brand}%`]
+    );
+
+    if (rows.length === 0) {
+      console.log(`No products found with brand like: ${brand}`);
+      throw new Error("Product not found");
+    }
+
+    const products = rows.map((row: any) => {
+      const thumbnails = [
+        row.thumbnail1,
+        row.thumbnail2,
+        row.thumbnail3,
+        row.thumbnail4,
+        row.thumbnail5,
+      ]
+        .filter(Boolean)
+        .map(convertToBase64);
+
+      return {
+        id: row.product_id,
+        sku: row.sku,
+        status: row.status,
+        category: row.category,
+        name: row.name,
+        description: row.description,
+        brand: row.brand,
+        price: row.price,
+        discount: row.discount,
+        quantity: row.quantity,
+        createdAt: formatDateToLocal(row.createdAt),
+        updatedAt: formatDateToLocal(row.updatedAt),
+        images: {
+          main: convertToBase64(row.main_image),
+          thumbnails,
+        },
+      };
+    });
+
+    cache.set(cacheKey, products);
+    return products;
+  } catch (error) {
+    console.error("Error fetching products by brand:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchProductsByPriceRangeFromDb(
+  minPrice: number,
+  maxPrice: number
+) {
+  const cacheKey = `products_price_${minPrice}_${maxPrice}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
+  const connection = await getConnection();
+  try {
+    const [rows]: [any[], any] = await connection.execute(
+      `
+      SELECT
+        p.id AS product_id,
+        p.name,
+        p.sku,
+        p.price,
+        p.discount,
+        p.quantity,
+        p.brand,
+        c.name AS category,
+        p.status,
+        p.description,
+        p.createdAt,
+        p.updatedAt,
+        i.main_image,
+        i.thumbnail1,
+        i.thumbnail2,
+        i.thumbnail3,
+        i.thumbnail4,
+        i.thumbnail5
+      FROM product p
+      LEFT JOIN images i ON p.image_id = i.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.price BETWEEN ? AND ?
+    `,
+      [minPrice, maxPrice]
     );
 
     const products = rows.map((row: any) => {
@@ -495,86 +591,25 @@ export async function fetchProductsByBrandFromDb(brand: string) {
       };
     });
 
+    cache.set(cacheKey, products);
     return products;
   } catch (error) {
+    console.error("Error fetching products by price range:", error);
     throw new Error("Failed to fetch products");
   } finally {
     connection.release();
   }
 }
 
-export async function fetchProductsByPriceFromDb(price: number) {
-  const connection = await getConnection();
-  try {
-    const [rows]: any[] = await connection.execute(
-      `
-      SELECT
-        p.id AS product_id,
-        p.name,
-        p.sku,
-        p.price,
-        p.discount,
-        p.quantity,
-        p.brand,
-        c.name AS category,
-        p.status,
-        p.description,
-        p.createdAt,
-        p.updatedAt,
-        i.main_image,
-        i.thumbnail1,
-        i.thumbnail2,
-        i.thumbnail3,
-        i.thumbnail4,
-        i.thumbnail5
-      FROM product p
-      LEFT JOIN images i ON p.image_id = i.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.price = ?
-    `,
-      [price]
-    );
-
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
-
-    return products;
-  } catch (error) {
-    throw new Error("Failed to fetch products");
-  } finally {
-    connection.release();
+export async function fetchProductsByDiscountRangeFromDb(
+  minDiscount: number,
+  maxDiscount: number
+) {
+  const cacheKey = `products_discount_${minDiscount}_${maxDiscount}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
   }
-}
 
-export async function fetchProductsByDiscountFromDb(discount: number) {
   const connection = await getConnection();
   try {
     const [rows]: any[] = await connection.execute(
@@ -601,9 +636,9 @@ export async function fetchProductsByDiscountFromDb(discount: number) {
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.discount = ?
+      WHERE p.discount BETWEEN ? AND ?
     `,
-      [discount]
+      [minDiscount, maxDiscount]
     );
 
     const products = rows.map((row: any) => {
@@ -637,8 +672,10 @@ export async function fetchProductsByDiscountFromDb(discount: number) {
       };
     });
 
+    cache.set(cacheKey, products);
     return products;
   } catch (error) {
+    console.error("Error fetching products by discount range:", error);
     throw new Error("Failed to fetch products");
   } finally {
     connection.release();
