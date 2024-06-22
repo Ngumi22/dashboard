@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { ProductData } from "@/lib/definitions";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -82,4 +84,20 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
     "...",
     totalPages,
   ];
+};
+
+// Search function
+export const searchProducts = (products: ProductData[], searchTerm: string) => {
+  return products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+};
+
+// Filter function
+export const filterProducts = (
+  products: ProductData[],
+  status: string
+): ProductData[] => {
+  if (status === "all") return products;
+  return products.filter((product) => product.status.toLowerCase() === status);
 };
