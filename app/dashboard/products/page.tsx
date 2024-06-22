@@ -268,7 +268,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
   handleDelete,
 }) => {
   if (products.length === 0) {
-    return <div>No products found.</div>;
+    return <div className="my-2">No products found.</div>;
   }
 
   return (
@@ -292,8 +292,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
               <Image
                 src={`data:image/jpeg;base64,${product.images.main}`}
                 alt={product.name}
-                width={50}
-                height={50}
+                width={40}
+                height={40}
                 className="aspect-square rounded-md object-cover"
               />
             </TableCell>
@@ -328,7 +328,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/products/${product.id}`}>Edit</Link>
+                    <Link href={`/dashboard/products/${product.id}/edit`}>
+                      Edit
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleDelete(product.id)}>
                     Delete
