@@ -1,8 +1,7 @@
 // components/ProductList.tsx
-
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
@@ -14,7 +13,6 @@ import {
   PlusCircle,
   Search,
 } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -25,16 +23,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -46,8 +35,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
+  TableHead,
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,11 +50,21 @@ export default function ProductList() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("all");
   const { toast } = useToast();
+  const [pagination, setPagination] = useState<{
+    limit: number;
+    offset: number;
+  }>({
+    limit: 10,
+    offset: 0,
+  });
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true); // Set loading to true when fetching new data
       try {
-        const res = await fetch("/api/products");
+        const res = await fetch(
+          `/api/products?limit=${pagination.limit}&offset=${pagination.offset}`
+        );
 
         if (!res.ok) {
           throw new Error("Failed to fetch products");
@@ -87,12 +86,12 @@ export default function ProductList() {
           action: <ToastAction altText="Try again">Try again</ToastAction>,
         });
       } finally {
-        setLoading(false);
+        setLoading(false); // Set loading to false after fetch completes (success or error)
       }
     };
 
     fetchProducts();
-  }, [toast]);
+  }, [pagination, toast]);
 
   const handleDelete = async (productId: number) => {
     try {
@@ -134,9 +133,165 @@ export default function ProductList() {
     setActiveTab(value);
   };
 
+  const handlePrevPage = () => {
+    if (pagination.offset - pagination.limit >= 0) {
+      setPagination((prev) => ({
+        ...prev,
+        offset: prev.offset - prev.limit,
+      }));
+    }
+  };
+
+  const handleNextPage = () => {
+    setPagination((prev) => ({
+      ...prev,
+      offset: prev.offset + prev.limit,
+    }));
+  };
+
   const filteredProducts = filterProducts(products, activeTab);
   const displayedProducts = searchProducts(filteredProducts, searchTerm);
 
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        <Breadcrumb className="hidden md:flex">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard/products">Products</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="relative ml-auto flex-1 md:grow-0">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search..."
+            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </div>
+      </header>
+      <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <Tabs defaultValue="all" onValueChange={handleTabChange}>
+          <div className="flex items-center">
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="draft">Draft</TabsTrigger>
+              <TabsTrigger value="archived">Archived</TabsTrigger>
+            </TabsList>
+            <div className="ml-auto flex items-center gap-2 my-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1">
+                    <ListFilter className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                      Filter
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>Name</DropdownMenuItem>
+                  <DropdownMenuItem>Brand</DropdownMenuItem>
+                  <DropdownMenuItem>Category</DropdownMenuItem>
+                  <DropdownMenuItem>Stock</DropdownMenuItem>
+                  <DropdownMenuItem>Price</DropdownMenuItem>
+                  <DropdownMenuItem>Discount Percentage</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" variant="outline" className="h-8 gap-1">
+                <File className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Export
+                </span>
+              </Button>
+              <Link href="/dashboard/products/create">
+                <Button size="sm" className="h-8 gap-1">
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                    Add Product
+                  </span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+          <TabsContent value="all">
+            <ProductTable
+              products={displayedProducts}
+              handleDelete={handleDelete}
+              loading={loading}
+              error={error}
+            />
+          </TabsContent>
+          <TabsContent value="active">
+            <ProductTable
+              products={displayedProducts}
+              handleDelete={handleDelete}
+              loading={loading}
+              error={error}
+            />
+          </TabsContent>
+          <TabsContent value="draft">
+            <ProductTable
+              products={displayedProducts}
+              handleDelete={handleDelete}
+              loading={loading}
+              error={error}
+            />
+          </TabsContent>
+          <TabsContent value="archived">
+            <ProductTable
+              products={displayedProducts}
+              handleDelete={handleDelete}
+              loading={loading}
+              error={error}
+            />
+          </TabsContent>
+        </Tabs>
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={handlePrevPage}
+            disabled={pagination.offset === 0}
+            className="px-3 py-1 mr-2 bg-gray-200 hover:bg-gray-300 rounded-md">
+            Previous
+          </button>
+          <button
+            onClick={handleNextPage}
+            disabled={displayedProducts.length < pagination.limit}
+            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md">
+            Next
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+type ProductTableProps = {
+  products: ProductData[];
+  handleDelete: (productId: number) => void;
+  loading: boolean;
+  error: string | null;
+};
+
+const ProductTable: React.FC<ProductTableProps> = ({
+  products,
+  handleDelete,
+  loading,
+  error,
+}) => {
   if (loading) {
     return <div>Loading....</div>;
   }
@@ -145,128 +300,6 @@ export default function ProductList() {
     return <div>Error: {error}</div>;
   }
 
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-          <Breadcrumb className="hidden md:flex">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dashboard/products">Products</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="relative ml-auto flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-          </div>
-        </header>
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-          <Tabs defaultValue="all" onValueChange={handleTabChange}>
-            <div className="flex items-center test-sm">
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="draft">Draft</TabsTrigger>
-                <TabsTrigger value="archived">Archived</TabsTrigger>
-              </TabsList>
-              <div className="ml-auto flex items-center gap-2 my-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 gap-1">
-                      <ListFilter className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Filter
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem checked>
-                      Name
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem>Brand</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem>
-                      Category
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem>Stock</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem>Price</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem>
-                      Discount Percentage
-                    </DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button size="sm" variant="outline" className="h-8 gap-1">
-                  <File className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Export
-                  </span>
-                </Button>
-                <Link href="/dashboard/products/create">
-                  <Button size="sm" className="h-8 gap-1">
-                    <PlusCircle className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Add Product
-                    </span>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            <TabsContent value="all">
-              <ProductTable
-                products={displayedProducts}
-                handleDelete={handleDelete}
-              />
-            </TabsContent>
-            <TabsContent value="active">
-              <ProductTable
-                products={displayedProducts}
-                handleDelete={handleDelete}
-              />
-            </TabsContent>
-            <TabsContent value="draft">
-              <ProductTable
-                products={displayedProducts}
-                handleDelete={handleDelete}
-              />
-            </TabsContent>
-            <TabsContent value="archived">
-              <ProductTable
-                products={displayedProducts}
-                handleDelete={handleDelete}
-              />
-            </TabsContent>
-          </Tabs>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-type ProductTableProps = {
-  products: ProductData[];
-  handleDelete: (productId: number) => void;
-};
-
-const ProductTable: React.FC<ProductTableProps> = ({
-  products,
-  handleDelete,
-}) => {
   if (products.length === 0) {
     return <div className="my-2">No products found.</div>;
   }
@@ -295,6 +328,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 width={40}
                 height={40}
                 className="aspect-square rounded-md object-cover"
+                loading="lazy"
               />
             </TableCell>
             <TableCell>{product.name}</TableCell>

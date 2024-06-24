@@ -6,6 +6,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProductData, CategoryData } from "@/lib/definitions";
+import Image from "next/image";
 
 export default function CategoryList() {
   const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -128,13 +129,19 @@ export default function CategoryList() {
                       <p>Quantity: {product.quantity}</p>
                       <p>Brand: {product.brand}</p>
                       <div className="flex gap-2 w-full">
-                        <img
+                        <Image
+                          loading="lazy"
                           className="h-14 w-14"
                           src={`data:image/jpeg;base64,${product.images.main}`}
                           alt={product.name}
+                          height={100}
+                          width={100}
                         />
                         {product.images.thumbnails.map((thumb, index) => (
-                          <img
+                          <Image
+                            height={100}
+                            width={100}
+                            loading="lazy"
                             className="h-14 w-14"
                             key={index}
                             src={`data:image/jpeg;base64,${thumb}`}

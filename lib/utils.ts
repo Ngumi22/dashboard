@@ -101,3 +101,26 @@ export const filterProducts = (
   if (status === "all") return products;
   return products.filter((product) => product.status.toLowerCase() === status);
 };
+
+export default function validateParams(
+  params: Record<string, string | null>
+): boolean {
+  const { minPrice, maxPrice, minDiscount, maxDiscount } = params;
+
+  const isPositiveNumber = (value: string | null): boolean => {
+    if (value === null) return true;
+    const number = Number(value);
+    return !isNaN(number) && number >= 0;
+  };
+
+  if (minPrice && !isPositiveNumber(minPrice)) return false;
+  if (maxPrice && !isPositiveNumber(maxPrice)) return false;
+  if (minPrice && maxPrice && Number(minPrice) > Number(maxPrice)) return false;
+
+  if (minDiscount && !isPositiveNumber(minDiscount)) return false;
+  if (maxDiscount && !isPositiveNumber(maxDiscount)) return false;
+  if (minDiscount && maxDiscount && Number(minDiscount) > Number(maxDiscount))
+    return false;
+
+  return true;
+}
