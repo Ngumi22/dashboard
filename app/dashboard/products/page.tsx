@@ -57,13 +57,14 @@ export default function ProductList() {
     limit: 10,
     offset: 0,
   });
+  const [totalPages, setTotalPages] = useState<number>(1); // Track total pages
 
   useEffect(() => {
     const fetchProducts = async () => {
-      setLoading(true); // Set loading to true when fetching new data
+      setLoading(false); // Set loading to true when fetching new data
       try {
         const res = await fetch(
-          `/api/products?limit=${pagination.limit}&offset=${pagination.offset}`
+          `/api/products?page=${pagination.offset / pagination.limit + 1}`
         );
 
         if (!res.ok) {
@@ -71,7 +72,9 @@ export default function ProductList() {
         }
 
         const data = await res.json();
-        setProducts(data);
+        console.log("API Response Data:", data); // Log API response data
+
+        setProducts(data); // Update products state with fetched data
       } catch (err) {
         console.error(err);
 
@@ -143,10 +146,12 @@ export default function ProductList() {
   };
 
   const handleNextPage = () => {
-    setPagination((prev) => ({
-      ...prev,
-      offset: prev.offset + prev.limit,
-    }));
+    if (products.length === pagination.limit) {
+      setPagination((prev) => ({
+        ...prev,
+        offset: prev.offset + prev.limit,
+      }));
+    }
   };
 
   const filteredProducts = filterProducts(products, activeTab);
@@ -263,14 +268,20 @@ export default function ProductList() {
         <div className="flex justify-end mt-4">
           <button
             onClick={handlePrevPage}
-            disabled={pagination.offset === 0}
-            className="px-3 py-1 mr-2 bg-gray-200 hover:bg-gray-300 rounded-md">
+            disabled={pagination.offset <= 0}
+            className={`px-3 py-1 mr-2 ${
+              pagination.offset <= 0 ? "bg-gray-200" : "bg-green-400"
+            } hover:bg-gray-300 rounded-md`}>
             Previous
           </button>
           <button
             onClick={handleNextPage}
-            disabled={displayedProducts.length < pagination.limit}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md">
+            disabled={products.length < pagination.limit}
+            className={`px-3 py-1 ${
+              products.length < pagination.limit
+                ? "bg-gray-200"
+                : "bg-green-400"
+            } hover:bg-gray-300 rounded-md`}>
             Next
           </button>
         </div>

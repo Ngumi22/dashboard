@@ -84,15 +84,30 @@ indexDatabase().catch((err) => {
 
 const cache = new Map<string, any>();
 
-export async function fetchAllProductFromDb(): Promise<any[]> {
-  const cacheKey = "all_products";
+const ITEMS_PER_PAGE = 10;
+
+export async function fetchAllProductFromDb(
+  currentPage: number
+): Promise<any[]> {
+  const cacheKey = `all_products_${currentPage}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  // Basic sanitization function to escape single quotes
+  function sanitizeInput(input: string | number): string | number {
+    if (typeof input === "string") {
+      return input.replace(/'/g, "\\'"); // Escape single quotes
+    }
+    return input;
+  }
+
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(`
+    // Constructing the query with sanitized and validated inputs
+    const query = `
       SELECT
         p.id AS product_id,
         p.name,
@@ -114,39 +129,38 @@ export async function fetchAllProductFromDb(): Promise<any[]> {
         i.thumbnail5
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
-      LEFT JOIN categories c ON p.category_id = c.id
-    `);
+      LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id ASC
+      LIMIT ${sanitizeInput(ITEMS_PER_PAGE)} OFFSET ${sanitizeInput(offset)}
+    `;
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
+    const [rows]: any[] = await connection.execute(query);
 
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price, // Format to KSH
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = rows.map((row: any) => ({
+      id: row.product_id,
+      sku: row.sku,
+      status: row.status,
+      category: row.category,
+      name: row.name,
+      description: row.description,
+      brand: row.brand,
+      price: row.price,
+      discount: row.discount,
+      quantity: row.quantity,
+      createdAt: formatDateToLocal(row.createdAt),
+      updatedAt: formatDateToLocal(row.updatedAt),
+      images: {
+        main: convertToBase64(row.main_image),
+        thumbnails: [
+          row.thumbnail1,
+          row.thumbnail2,
+          row.thumbnail3,
+          row.thumbnail4,
+          row.thumbnail5,
+        ]
+          .filter(Boolean)
+          .map(convertToBase64),
+      },
+    }));
 
     cache.set(cacheKey, products);
     return products;

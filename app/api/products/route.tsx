@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   const minDiscount = url.searchParams.get("minDiscount");
   const maxDiscount = url.searchParams.get("maxDiscount");
   const status = url.searchParams.get("status");
+  const currentPage = Number(url.searchParams.get("page")) || 1;
 
   const params = {
     category,
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
     } else if (status) {
       products = await fetchProductsByStatusFromDb(status);
     } else {
-      products = await fetchAllProductFromDb();
+      products = await fetchAllProductFromDb(currentPage);
     }
 
     return NextResponse.json(products);

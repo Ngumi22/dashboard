@@ -86,8 +86,12 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
   ];
 };
 
-// Search function
-export const searchProducts = (products: ProductData[], searchTerm: string) => {
+export const searchProducts = (
+  products: ProductData[] | undefined,
+  searchTerm: string
+): ProductData[] => {
+  if (!products) return [];
+
   return products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -99,7 +103,7 @@ export const filterProducts = (
   status: string
 ): ProductData[] => {
   if (status === "all") return products;
-  return products.filter((product) => product.status.toLowerCase() === status);
+  return products?.filter((product) => product.status.toLowerCase() === status);
 };
 
 export default function validateParams(

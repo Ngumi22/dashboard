@@ -115,19 +115,14 @@ export default function CategoryList() {
             <TabsContent
               key={category.id}
               value={category.name}
-              className="grid grid-cols-3 gap-5">
+              className="grid grid-flow-row gap-5">
               {productsByCategory[category.name]?.length > 0 ? (
                 productsByCategory[category.name].map((product) => (
-                  <Card key={product.id} className="mb-4">
+                  <Card key={product.id} className="mb-2">
                     <CardHeader>
                       <CardTitle>{product.name}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p>{product.description}</p>
-                      <p>Price: {product.price}</p>
-                      <p>Discount: {product.discount}</p>
-                      <p>Quantity: {product.quantity}</p>
-                      <p>Brand: {product.brand}</p>
+                    <CardContent className="flex justify-between">
                       <div className="flex gap-2 w-full">
                         <Image
                           loading="lazy"
@@ -137,18 +132,12 @@ export default function CategoryList() {
                           height={100}
                           width={100}
                         />
-                        {product.images.thumbnails.map((thumb, index) => (
-                          <Image
-                            height={100}
-                            width={100}
-                            loading="lazy"
-                            className="h-14 w-14"
-                            key={index}
-                            src={`data:image/jpeg;base64,${thumb}`}
-                            alt={`Thumbnail ${index + 1}`}
-                          />
-                        ))}
                       </div>
+                      <p className="">{product.description}</p>
+                      <p className="flex">Price: {product.price}</p>
+                      <p className="">Discount: {product.discount}</p>
+                      <p className="">Quantity: {product.quantity}</p>
+                      <p className="">Brand: {product.brand}</p>
                     </CardContent>
                   </Card>
                 ))
