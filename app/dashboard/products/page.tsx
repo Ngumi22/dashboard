@@ -186,7 +186,7 @@ export default function ProductList() {
           />
         </div>
       </header>
-      <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <main className="grid grid-flow-row flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
         <Tabs defaultValue="all" onValueChange={handleTabChange}>
           <div className="flex items-center">
             <TabsList>
@@ -271,7 +271,8 @@ export default function ProductList() {
             disabled={pagination.offset <= 0}
             className={`px-3 py-1 mr-2 ${
               pagination.offset <= 0 ? "bg-gray-200" : "bg-green-400"
-            } hover:bg-gray-300 rounded-md`}>
+            } hover:bg-gray-300 rounded-md`}
+          >
             Previous
           </button>
           <button
@@ -281,7 +282,8 @@ export default function ProductList() {
               products.length < pagination.limit
                 ? "bg-gray-200"
                 : "bg-green-400"
-            } hover:bg-gray-300 rounded-md`}>
+            } hover:bg-gray-300 rounded-md`}
+          >
             Next
           </button>
         </div>
@@ -342,7 +344,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 loading="lazy"
               />
             </TableCell>
-            <TableCell>{product.name}</TableCell>
+            <TableCell>
+              <Link href={`/dashboard/products/${product.id}`}>
+                {product.name}
+              </Link>
+            </TableCell>
             <TableCell className="hidden sm:table-cell">
               {product.brand}
             </TableCell>
@@ -359,7 +365,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     : product.status === "draft"
                     ? "secondary"
                     : "outline"
-                }>
+                }
+              >
                 {product.status}
               </Badge>
             </TableCell>

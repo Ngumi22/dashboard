@@ -54,9 +54,9 @@ export const convertToBase64 = (buffer: Buffer | null) =>
   buffer ? buffer.toString("base64") : "";
 
 export const generatePagination = (currentPage: number, totalPages: number) => {
-  // If the total number of pages is 7 or less,
+  // If the total number of pages is 10 or less,
   // display all pages without any ellipsis.
-  if (totalPages <= 7) {
+  if (totalPages <= 10) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
 
