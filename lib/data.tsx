@@ -172,6 +172,39 @@ export async function fetchAllProductFromDb(
   }
 }
 
+// Function to fetch unique brands and their associated products
+// Function to fetch unique brands and their associated products
+export async function fetchUniqueBrandsWithProducts(currentPage: number) {
+  const cacheKey = `unique_brands_with_products_${currentPage}`;
+
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
+  const products = await fetchAllProductFromDb(currentPage);
+
+  const brandsMap = new Map<string, any[]>();
+
+  products.forEach((product) => {
+    if (product.brand) {
+      if (!brandsMap.has(product.brand)) {
+        brandsMap.set(product.brand, []);
+      }
+      brandsMap.get(product.brand)!.push(product);
+    }
+  });
+
+  const brandsWithProducts = Array.from(brandsMap.entries()).map(
+    ([brand, products]) => ({
+      brand,
+      products,
+    })
+  );
+
+  cache.set(cacheKey, brandsWithProducts);
+  return brandsWithProducts;
+}
+
 export async function fetchProductByIdFromDb(id: string) {
   const cacheKey = `product_${id}`;
   if (cache.has(cacheKey)) {

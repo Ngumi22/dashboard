@@ -1,5 +1,4 @@
 import { handlePost } from "@/lib/actions";
-
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchProductsByCategoryFromDb,
@@ -9,6 +8,7 @@ import {
   fetchProductsByPriceRangeFromDb,
   fetchProductsByDiscountRangeFromDb,
   fetchProductsByStatusFromDb,
+  fetchUniqueBrandsWithProducts, // Import the new function
 } from "@/lib/data";
 
 import validateParams from "@/lib/utils";
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   const maxDiscount = url.searchParams.get("maxDiscount");
   const status = url.searchParams.get("status");
   const currentPage = Number(url.searchParams.get("page")) || 1;
+  const brands = url.searchParams.get("brands"); // Add this line
 
   const params = {
     category,
@@ -46,7 +47,10 @@ export async function GET(req: NextRequest) {
   try {
     let products;
 
-    if (name) {
+    if (brands) {
+      // Add this condition
+      products = await fetchUniqueBrandsWithProducts(currentPage);
+    } else if (name) {
       products = await fetchProductsByNameFromDb(name);
     } else if (category) {
       products = await fetchProductsByCategoryFromDb(category);
