@@ -2,16 +2,17 @@ import { handlePost } from "@/lib/actions";
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchProductsByCategoryFromDb,
-  fetchAllProductFromDb,
+  fetchAllProductsFromDb,
   fetchProductsByNameFromDb,
   fetchProductsByBrandFromDb,
   fetchProductsByPriceRangeFromDb,
   fetchProductsByDiscountRangeFromDb,
   fetchProductsByStatusFromDb,
-  fetchUniqueBrandsWithProducts, // Import the new function
+  fetchFilteredProductsFromDb, // Import the new function
 } from "@/lib/data";
 
 import validateParams from "@/lib/utils";
+import { ProductFilter } from "@/lib/definitions";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -25,6 +26,25 @@ export async function GET(req: NextRequest) {
   const status = url.searchParams.get("status");
   const currentPage = Number(url.searchParams.get("page")) || 1;
   const brands = url.searchParams.get("brands"); // Add this line
+
+  const filter: ProductFilter = {
+    minPrice: url.searchParams.has("minPrice")
+      ? parseFloat(url.searchParams.get("minPrice") as string)
+      : undefined,
+    maxPrice: url.searchParams.has("maxPrice")
+      ? parseFloat(url.searchParams.get("maxPrice") as string)
+      : undefined,
+    minDiscount: url.searchParams.has("minDiscount")
+      ? parseFloat(url.searchParams.get("minDiscount") as string)
+      : undefined,
+    maxDiscount: url.searchParams.has("maxDiscount")
+      ? parseFloat(url.searchParams.get("maxDiscount") as string)
+      : undefined,
+    name: url.searchParams.get("name") || undefined,
+    brand: url.searchParams.get("brand") || undefined,
+    category: url.searchParams.get("category") || undefined,
+    status: url.searchParams.get("status") || undefined,
+  };
 
   const params = {
     category,
@@ -47,10 +67,7 @@ export async function GET(req: NextRequest) {
   try {
     let products;
 
-    if (brands) {
-      // Add this condition
-      products = await fetchUniqueBrandsWithProducts(currentPage);
-    } else if (name) {
+    if (name) {
       products = await fetchProductsByNameFromDb(name);
     } else if (category) {
       products = await fetchProductsByCategoryFromDb(category);
@@ -68,8 +85,11 @@ export async function GET(req: NextRequest) {
       );
     } else if (status) {
       products = await fetchProductsByStatusFromDb(status);
+    } else if (filter) {
+      const products = await fetchFilteredProductsFromDb(currentPage, filter);
+      return NextResponse.json(products);
     } else {
-      products = await fetchAllProductFromDb(currentPage);
+      products = await fetchAllProductsFromDb(currentPage);
     }
 
     return NextResponse.json(products);

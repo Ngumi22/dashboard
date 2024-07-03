@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-import { ProductData } from "@/lib/definitions";
+import { ProductData, Product, ProductRow } from "@/lib/definitions";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -127,4 +127,33 @@ export default function validateParams(
     return false;
 
   return true;
+}
+
+export function mapProductRow(row: ProductRow): Product {
+  return {
+    id: row.product_id,
+    sku: row.sku,
+    status: row.status,
+    category: row.category,
+    name: row.name,
+    description: row.description,
+    brand: row.brand,
+    price: row.price,
+    discount: row.discount,
+    quantity: row.quantity,
+    createdAt: formatDateToLocal(row.createdAt),
+    updatedAt: formatDateToLocal(row.updatedAt),
+    images: {
+      main: convertToBase64(row.main_image),
+      thumbnails: [
+        row.thumbnail1,
+        row.thumbnail2,
+        row.thumbnail3,
+        row.thumbnail4,
+        row.thumbnail5,
+      ]
+        .filter(Boolean)
+        .map(convertToBase64),
+    },
+  };
 }

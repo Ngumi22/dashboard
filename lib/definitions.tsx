@@ -47,3 +47,54 @@ export interface CategoryData {
   id: string;
   name: string;
 }
+
+export interface ProductRow {
+  product_id: string;
+  name: string;
+  sku: string;
+  price: number;
+  discount: number;
+  quantity: number;
+  category: string;
+  status: string;
+  description: string;
+  brand: string;
+  createdAt: string;
+  updatedAt: string;
+  main_image: Buffer;
+  thumbnail1: Buffer | null;
+  thumbnail2: Buffer | null;
+  thumbnail3: Buffer | null;
+  thumbnail4: Buffer | null;
+  thumbnail5: Buffer | null;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  discount: number;
+  quantity: number;
+  category: string;
+  status: string;
+  description: string;
+  brand: string;
+  createdAt: string;
+  updatedAt: string;
+  images: {
+    main: string;
+    thumbnails: string[];
+  };
+}
+
+export interface ProductFilter {
+  minPrice?: number;
+  maxPrice?: number;
+  minDiscount?: number;
+  maxDiscount?: number;
+  name?: string;
+  brand?: string;
+  category?: string;
+  status?: string;
+}

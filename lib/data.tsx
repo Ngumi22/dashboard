@@ -1,112 +1,132 @@
-import mysql, { FieldPacket, RowDataPacket } from "mysql2/promise";
+import { getConnection } from "./db";
+import { mapProductRow } from "./utils";
 import { NextResponse } from "next/server";
-import { convertToBase64, formatDateToLocal } from "./utils";
+import { FieldPacket, RowDataPacket } from "mysql2/promise";
+import { Product, ProductRow, ProductFilter } from "./definitions";
 
-// Initialize database connection pool
-let pool: mysql.Pool;
+const cache = new Map<string, any>();
 
-export async function initDbConnection() {
-  if (!pool) {
-    pool = mysql.createPool({
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      port: 3306,
-      password: process.env.DB_PASSWORD,
-      user: process.env.DB_USER,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-    });
+const ITEMS_PER_PAGE = 10;
+
+function sanitizeInput(input: string | number): string | number {
+  if (typeof input === "string") {
+    return input.replace(/'/g, "\\'"); // Escape single quotes
   }
+  return input;
 }
 
-export async function getConnection() {
-  if (!pool) await initDbConnection();
-  return pool.getConnection();
-}
+export async function fetchFilteredProductsFromDb(
+  currentPage: number,
+  filter: ProductFilter
+): Promise<Product[]> {
+  const {
+    minPrice,
+    maxPrice,
+    minDiscount,
+    maxDiscount,
+    name,
+    brand,
+    category,
+    status,
+  } = filter;
+  const cacheKey = `filtered_products_${currentPage}_${JSON.stringify(filter)}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
 
-async function indexExists(
-  connection: mysql.PoolConnection,
-  tableName: string,
-  indexName: string
-): Promise<boolean> {
-  const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-    `
-    SELECT COUNT(1) as count
-    FROM INFORMATION_SCHEMA.STATISTICS
-    WHERE table_schema = DATABASE()
-    AND table_name = ?
-    AND index_name = ?;
-  `,
-    [tableName, indexName]
-  );
-
-  return rows[0].count > 0;
-}
-
-export async function indexDatabase() {
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   const connection = await getConnection();
   try {
-    const indexes = [
-      { table: "product", name: "idx_product_id", column: "id" },
-      {
-        table: "product",
-        name: "idx_product_category_id",
-        column: "category_id",
-      },
-      { table: "product", name: "idx_product_name", column: "name" },
-      { table: "product", name: "idx_product_sku", column: "sku" },
-      { table: "categories", name: "idx_category_name", column: "name" },
-      { table: "images", name: "idx_images_id", column: "id" },
-    ];
+    let query = `
+      SELECT
+        p.id AS product_id,
+        p.name,
+        p.sku,
+        p.price,
+        p.discount,
+        p.quantity,
+        c.name AS category,
+        p.status,
+        p.description,
+        p.brand,
+        p.createdAt,
+        p.updatedAt,
+        i.main_image,
+        i.thumbnail1,
+        i.thumbnail2,
+        i.thumbnail3,
+        i.thumbnail4,
+        i.thumbnail5
+      FROM product p
+      LEFT JOIN images i ON p.image_id = i.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE 1 = 1
+    `;
 
-    for (const { table, name, column } of indexes) {
-      const exists = await indexExists(connection, table, name);
-      if (!exists) {
-        await connection.execute(
-          `CREATE INDEX ${name} ON ${table}(${column});`
-        );
-      }
+    const params: (string | number)[] = [];
+
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      query += " AND p.price BETWEEN &{minPrice} AND &{maxPrice}";
     }
 
-    console.log("Indexes created successfully");
+    if (minDiscount !== undefined && maxDiscount !== undefined) {
+      query += " AND p.discount BETWEEN ? AND ?";
+      params.push(minDiscount, maxDiscount);
+    }
+
+    if (name) {
+      query += " AND p.name LIKE ?";
+      params.push(`%${sanitizeInput(name)}%`);
+    }
+
+    if (brand) {
+      query += " AND p.brand LIKE ?";
+      params.push(`%${sanitizeInput(brand)}%`);
+    }
+
+    if (category) {
+      query += " AND c.name = ?";
+      params.push(sanitizeInput(category));
+    }
+
+    if (status) {
+      query += " AND p.status = ?";
+      params.push(sanitizeInput(status));
+    }
+
+    query += " ORDER BY p.id ASC LIMIT ? OFFSET ?";
+    params.push(ITEMS_PER_PAGE, offset);
+
+    console.log("Query:", query); // Log the query for debugging
+    console.log("Params:", params); // Log the params for debugging
+
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      query,
+      params
+    );
+    const products = (rows as ProductRow[]).map(mapProductRow);
+
+    cache.set(cacheKey, products);
+    return products;
   } catch (error) {
-    console.error("Error creating indexes:", error);
+    console.error("Error fetching products:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
-indexDatabase().catch((err) => {
-  console.error("Failed to index the database:", err);
-});
-
-const cache = new Map<string, any>();
-
-const ITEMS_PER_PAGE = 10;
-
-export async function fetchAllProductFromDb(
+export async function fetchAllProductsFromDb(
   currentPage: number
-): Promise<any[]> {
+): Promise<Product[]> {
   const cacheKey = `all_products_${currentPage}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  // Basic sanitization function to escape single quotes
-  function sanitizeInput(input: string | number): string | number {
-    if (typeof input === "string") {
-      return input.replace(/'/g, "\\'"); // Escape single quotes
-    }
-    return input;
-  }
-
   const connection = await getConnection();
   try {
-    // Constructing the query with sanitized and validated inputs
     const query = `
       SELECT
         p.id AS product_id,
@@ -129,38 +149,13 @@ export async function fetchAllProductFromDb(
         i.thumbnail5
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
-      LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id ASC
+      LEFT JOIN categories c ON p.category_id = c.id
+      ORDER BY p.id ASC
       LIMIT ${sanitizeInput(ITEMS_PER_PAGE)} OFFSET ${sanitizeInput(offset)}
     `;
 
-    const [rows]: any[] = await connection.execute(query);
-
-    const products = rows.map((row: any) => ({
-      id: row.product_id,
-      sku: row.sku,
-      status: row.status,
-      category: row.category,
-      name: row.name,
-      description: row.description,
-      brand: row.brand,
-      price: row.price,
-      discount: row.discount,
-      quantity: row.quantity,
-      createdAt: formatDateToLocal(row.createdAt),
-      updatedAt: formatDateToLocal(row.updatedAt),
-      images: {
-        main: convertToBase64(row.main_image),
-        thumbnails: [
-          row.thumbnail1,
-          row.thumbnail2,
-          row.thumbnail3,
-          row.thumbnail4,
-          row.thumbnail5,
-        ]
-          .filter(Boolean)
-          .map(convertToBase64),
-      },
-    }));
+    const [rows] = await connection.execute(query);
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
@@ -172,40 +167,9 @@ export async function fetchAllProductFromDb(
   }
 }
 
-// Function to fetch unique brands and their associated products
-// Function to fetch unique brands and their associated products
-export async function fetchUniqueBrandsWithProducts(currentPage: number) {
-  const cacheKey = `unique_brands_with_products_${currentPage}`;
-
-  if (cache.has(cacheKey)) {
-    return cache.get(cacheKey);
-  }
-
-  const products = await fetchAllProductFromDb(currentPage);
-
-  const brandsMap = new Map<string, any[]>();
-
-  products.forEach((product) => {
-    if (product.brand) {
-      if (!brandsMap.has(product.brand)) {
-        brandsMap.set(product.brand, []);
-      }
-      brandsMap.get(product.brand)!.push(product);
-    }
-  });
-
-  const brandsWithProducts = Array.from(brandsMap.entries()).map(
-    ([brand, products]) => ({
-      brand,
-      products,
-    })
-  );
-
-  cache.set(cacheKey, brandsWithProducts);
-  return brandsWithProducts;
-}
-
-export async function fetchProductByIdFromDb(id: string) {
+export async function fetchProductByIdFromDb(
+  id: string
+): Promise<NextResponse> {
   const cacheKey = `product_${id}`;
   if (cache.has(cacheKey)) {
     return NextResponse.json(cache.get(cacheKey), { status: 200 });
@@ -213,7 +177,7 @@ export async function fetchProductByIdFromDb(id: string) {
 
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -246,35 +210,7 @@ export async function fetchProductByIdFromDb(id: string) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const row = rows[0];
-    const thumbnails = [
-      row.thumbnail1,
-      row.thumbnail2,
-      row.thumbnail3,
-      row.thumbnail4,
-      row.thumbnail5,
-    ]
-      .filter(Boolean)
-      .map(convertToBase64);
-
-    const product = {
-      id: row.product_id,
-      sku: row.sku,
-      status: row.status,
-      category: row.category,
-      name: row.name,
-      description: row.description,
-      brand: row.brand,
-      price: row.price,
-      discount: row.discount,
-      quantity: row.quantity,
-      createdAt: formatDateToLocal(row.createdAt),
-      updatedAt: formatDateToLocal(row.updatedAt),
-      images: {
-        main: convertToBase64(row.main_image),
-        thumbnails,
-      },
-    };
+    const product = mapProductRow(rows[0] as ProductRow);
 
     cache.set(cacheKey, product);
     return NextResponse.json(product, { status: 200 });
@@ -288,7 +224,9 @@ export async function fetchProductByIdFromDb(id: string) {
   }
 }
 
-export async function fetchCategoryByIdFromDb(id: string) {
+export async function fetchCategoryByIdFromDb(
+  id: string
+): Promise<NextResponse> {
   const cacheKey = `category_${id}`;
   if (cache.has(cacheKey)) {
     return NextResponse.json(cache.get(cacheKey), { status: 200 });
@@ -296,7 +234,7 @@ export async function fetchCategoryByIdFromDb(id: string) {
 
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `SELECT id, name FROM categories WHERE id = ?`,
       [id]
     );
@@ -308,8 +246,7 @@ export async function fetchCategoryByIdFromDb(id: string) {
       );
     }
 
-    const row = rows[0];
-    const category = { id: row.id, name: row.name };
+    const category = { id: rows[0].id, name: rows[0].name };
 
     cache.set(cacheKey, category);
     return NextResponse.json(category, { status: 200 });
@@ -323,7 +260,9 @@ export async function fetchCategoryByIdFromDb(id: string) {
   }
 }
 
-export async function fetchProductsByCategoryFromDb(name: string) {
+export async function fetchProductsByCategoryFromDb(
+  name: string
+): Promise<Product[]> {
   const cacheKey = `products_category_${name}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -331,7 +270,7 @@ export async function fetchProductsByCategoryFromDb(name: string) {
 
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -360,36 +299,7 @@ export async function fetchProductsByCategoryFromDb(name: string) {
       [name]
     );
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
@@ -401,7 +311,9 @@ export async function fetchProductsByCategoryFromDb(name: string) {
   }
 }
 
-export async function fetchProductsByNameFromDb(name: string) {
+export async function fetchProductsByNameFromDb(
+  name: string
+): Promise<Product[]> {
   const cacheKey = `products_name_${name}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -409,7 +321,7 @@ export async function fetchProductsByNameFromDb(name: string) {
 
   const connection = await getConnection();
   try {
-    const [rows]: [any[], any] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -443,36 +355,7 @@ export async function fetchProductsByNameFromDb(name: string) {
       throw new Error("Product not found");
     }
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
@@ -484,7 +367,9 @@ export async function fetchProductsByNameFromDb(name: string) {
   }
 }
 
-export async function fetchProductsByBrandFromDb(brand: string) {
+export async function fetchProductsByBrandFromDb(
+  brand: string
+): Promise<Product[]> {
   const cacheKey = `products_brand_${brand}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -492,7 +377,7 @@ export async function fetchProductsByBrandFromDb(brand: string) {
 
   const connection = await getConnection();
   try {
-    const [rows]: [any[], any] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -526,36 +411,7 @@ export async function fetchProductsByBrandFromDb(brand: string) {
       throw new Error("Product not found");
     }
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
@@ -570,7 +426,7 @@ export async function fetchProductsByBrandFromDb(brand: string) {
 export async function fetchProductsByPriceRangeFromDb(
   minPrice: number,
   maxPrice: number
-) {
+): Promise<Product[]> {
   const cacheKey = `products_price_${minPrice}_${maxPrice}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -578,7 +434,7 @@ export async function fetchProductsByPriceRangeFromDb(
 
   const connection = await getConnection();
   try {
-    const [rows]: [any[], any] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -607,36 +463,7 @@ export async function fetchProductsByPriceRangeFromDb(
       [minPrice, maxPrice]
     );
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
@@ -651,7 +478,7 @@ export async function fetchProductsByPriceRangeFromDb(
 export async function fetchProductsByDiscountRangeFromDb(
   minDiscount: number,
   maxDiscount: number
-) {
+): Promise<Product[]> {
   const cacheKey = `products_discount_${minDiscount}_${maxDiscount}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -659,7 +486,7 @@ export async function fetchProductsByDiscountRangeFromDb(
 
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -688,36 +515,7 @@ export async function fetchProductsByDiscountRangeFromDb(
       [minDiscount, maxDiscount]
     );
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
@@ -729,10 +527,12 @@ export async function fetchProductsByDiscountRangeFromDb(
   }
 }
 
-export async function fetchProductsByStatusFromDb(status: string) {
+export async function fetchProductsByStatusFromDb(
+  status: string
+): Promise<Product[]> {
   const connection = await getConnection();
   try {
-    const [rows]: any[] = await connection.execute(
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
         p.id AS product_id,
@@ -761,36 +561,7 @@ export async function fetchProductsByStatusFromDb(status: string) {
       [status]
     );
 
-    const products = rows.map((row: any) => {
-      const thumbnails = [
-        row.thumbnail1,
-        row.thumbnail2,
-        row.thumbnail3,
-        row.thumbnail4,
-        row.thumbnail5,
-      ]
-        .filter(Boolean)
-        .map(convertToBase64);
-
-      return {
-        id: row.product_id,
-        sku: row.sku,
-        status: row.status,
-        category: row.category,
-        name: row.name,
-        description: row.description,
-        brand: row.brand,
-        price: row.price,
-        discount: row.discount,
-        quantity: row.quantity,
-        createdAt: formatDateToLocal(row.createdAt),
-        updatedAt: formatDateToLocal(row.updatedAt),
-        images: {
-          main: convertToBase64(row.main_image),
-          thumbnails,
-        },
-      };
-    });
+    const products = (rows as ProductRow[]).map(mapProductRow);
 
     return products;
   } catch (error) {

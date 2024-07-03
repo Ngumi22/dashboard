@@ -1,4 +1,5 @@
 import mysql from "mysql2/promise";
+let pool: mysql.Pool;
 
 export async function query(sql: any, params: any) {
   const connection = await mysql.createConnection({
@@ -18,4 +19,24 @@ export async function query(sql: any, params: any) {
   } finally {
     await connection.end();
   }
+}
+
+export async function initDbConnection() {
+  if (!pool) {
+    pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      port: 3306,
+      password: process.env.DB_PASSWORD,
+      user: process.env.DB_USER,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+  }
+}
+
+export async function getConnection() {
+  if (!pool) await initDbConnection();
+  return pool.getConnection();
 }
