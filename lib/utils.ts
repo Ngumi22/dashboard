@@ -106,9 +106,14 @@ export const filterProducts = (
   return products?.filter((product) => product.status.toLowerCase() === status);
 };
 
-export default function validateParams(
-  params: Record<string, string | null>
-): boolean {
+const validateParams = (params: Record<string, string | null>): boolean => {
+  // Ensure all values are either null or strings
+  for (const key in params) {
+    if (params[key] !== null && typeof params[key] !== "string") {
+      return false;
+    }
+  }
+
   const { minPrice, maxPrice, minDiscount, maxDiscount } = params;
 
   const isPositiveNumber = (value: string | null): boolean => {
@@ -127,7 +132,9 @@ export default function validateParams(
     return false;
 
   return true;
-}
+};
+
+export default validateParams;
 
 export function mapProductRow(row: ProductRow): Product {
   return {

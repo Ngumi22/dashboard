@@ -1,13 +1,16 @@
+// Import necessary modules and types
 import { getConnection } from "./db";
 import { mapProductRow } from "./utils";
 import { NextResponse } from "next/server";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { Product, ProductRow, ProductFilter } from "./definitions";
+import { getCache, setCache } from "./cache";
 
+// Constants
+const ITEMS_PER_PAGE = 10;
 const cache = new Map<string, any>();
 
-const ITEMS_PER_PAGE = 10;
-
+// Utility function to sanitize input
 function sanitizeInput(input: string | number): string | number {
   if (typeof input === "string") {
     return input.replace(/'/g, "\\'"); // Escape single quotes
@@ -29,15 +32,57 @@ export async function fetchFilteredProductsFromDb(
     category,
     status,
   } = filter;
+
+  // Construct cache key based on currentPage and filter
   const cacheKey = `filtered_products_${currentPage}_${JSON.stringify(filter)}`;
-  if (cache.has(cacheKey)) {
-    return cache.get(cacheKey);
+  const cachedData = getCache(cacheKey);
+  if (cachedData) {
+    return cachedData;
   }
 
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   const connection = await getConnection();
+
   try {
-    let query = `
+    let queryParams: any[] = [];
+    let queryConditions: string[] = [];
+
+    // Building the WHERE clause dynamically based on provided filters
+    if (minPrice !== undefined) {
+      queryConditions.push("p.price >= ?");
+      queryParams.push(minPrice);
+    }
+    if (maxPrice !== undefined) {
+      queryConditions.push("p.price <= ?");
+      queryParams.push(maxPrice);
+    }
+    if (minDiscount !== undefined) {
+      queryConditions.push("p.discount >= ?");
+      queryParams.push(minDiscount);
+    }
+    if (maxDiscount !== undefined) {
+      queryConditions.push("p.discount <= ?");
+      queryParams.push(maxDiscount);
+    }
+    if (name) {
+      queryConditions.push("p.name LIKE ?");
+      queryParams.push(`%${name}%`);
+    }
+    if (brand) {
+      queryConditions.push("p.brand = ?");
+      queryParams.push(brand);
+    }
+    if (category) {
+      queryConditions.push("c.name = ?");
+      queryParams.push(category);
+    }
+    if (status !== undefined) {
+      queryConditions.push("p.status = ?");
+      queryParams.push(status);
+    }
+
+    // Construct the SQL query
+    const query = `
       SELECT
         p.id AS product_id,
         p.name,
@@ -60,62 +105,30 @@ export async function fetchFilteredProductsFromDb(
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE 1 = 1
+      WHERE 1=1
+        ${queryConditions.length > 0 ? queryConditions.join(" AND ") : ""}
+      ORDER BY p.id ASC LIMIT ? OFFSET ?
     `;
 
-    const params: (string | number)[] = [];
+    // Add pagination parameters to the query parameters array
+    queryParams.push(ITEMS_PER_PAGE, offset);
 
-    if (minPrice !== undefined && maxPrice !== undefined) {
-      query += " AND p.price BETWEEN &{minPrice} AND &{maxPrice}";
-    }
-
-    if (minDiscount !== undefined && maxDiscount !== undefined) {
-      query += " AND p.discount BETWEEN ? AND ?";
-      params.push(minDiscount, maxDiscount);
-    }
-
-    if (name) {
-      query += " AND p.name LIKE ?";
-      params.push(`%${sanitizeInput(name)}%`);
-    }
-
-    if (brand) {
-      query += " AND p.brand LIKE ?";
-      params.push(`%${sanitizeInput(brand)}%`);
-    }
-
-    if (category) {
-      query += " AND c.name = ?";
-      params.push(sanitizeInput(category));
-    }
-
-    if (status) {
-      query += " AND p.status = ?";
-      params.push(sanitizeInput(status));
-    }
-
-    query += " ORDER BY p.id ASC LIMIT ? OFFSET ?";
-    params.push(ITEMS_PER_PAGE, offset);
-
-    console.log("Query:", query); // Log the query for debugging
-    console.log("Params:", params); // Log the params for debugging
-
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      query,
-      params
-    );
+    // Execute the query with parameters
+    const [rows] = await connection.query<RowDataPacket[]>(query, queryParams);
     const products = (rows as ProductRow[]).map(mapProductRow);
 
-    cache.set(cacheKey, products);
+    // Cache the fetched products
+    setCache(cacheKey, products);
     return products;
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("Error fetching filtered products:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
+// Function to fetch all products from the database
 export async function fetchAllProductsFromDb(
   currentPage: number
 ): Promise<Product[]> {
@@ -167,6 +180,7 @@ export async function fetchAllProductsFromDb(
   }
 }
 
+// Function to fetch a product by ID from the database
 export async function fetchProductByIdFromDb(
   id: string
 ): Promise<NextResponse> {
@@ -224,6 +238,7 @@ export async function fetchProductByIdFromDb(
   }
 }
 
+// Function to fetch a category by ID from the database
 export async function fetchCategoryByIdFromDb(
   id: string
 ): Promise<NextResponse> {
@@ -260,6 +275,7 @@ export async function fetchCategoryByIdFromDb(
   }
 }
 
+// Function to fetch products by category from the database
 export async function fetchProductsByCategoryFromDb(
   name: string
 ): Promise<Product[]> {
@@ -311,6 +327,7 @@ export async function fetchProductsByCategoryFromDb(
   }
 }
 
+// Function to fetch products by name from the database
 export async function fetchProductsByNameFromDb(
   name: string
 ): Promise<Product[]> {
@@ -350,11 +367,6 @@ export async function fetchProductsByNameFromDb(
       [`%${name}%`]
     );
 
-    if (rows.length === 0) {
-      console.log(`No products found with name like: ${name}`);
-      throw new Error("Product not found");
-    }
-
     const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
@@ -367,6 +379,7 @@ export async function fetchProductsByNameFromDb(
   }
 }
 
+// Function to fetch products by brand from the database
 export async function fetchProductsByBrandFromDb(
   brand: string
 ): Promise<Product[]> {
@@ -401,15 +414,10 @@ export async function fetchProductsByBrandFromDb(
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.brand LIKE ?
+      WHERE p.brand = ?
     `,
-      [`%${brand}%`]
+      [brand]
     );
-
-    if (rows.length === 0) {
-      console.log(`No products found with brand like: ${brand}`);
-      throw new Error("Product not found");
-    }
 
     const products = (rows as ProductRow[]).map(mapProductRow);
 
@@ -423,11 +431,12 @@ export async function fetchProductsByBrandFromDb(
   }
 }
 
+// Function to fetch products by price range from the database
 export async function fetchProductsByPriceRangeFromDb(
   minPrice: number,
   maxPrice: number
 ): Promise<Product[]> {
-  const cacheKey = `products_price_${minPrice}_${maxPrice}`;
+  const cacheKey = `products_price_range_${minPrice}_${maxPrice}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
@@ -469,17 +478,18 @@ export async function fetchProductsByPriceRangeFromDb(
     return products;
   } catch (error) {
     console.error("Error fetching products by price range:", error);
-    throw new Error("Failed to fetch products");
+    throw error;
   } finally {
     connection.release();
   }
 }
 
+// Function to fetch products by discount range from the database
 export async function fetchProductsByDiscountRangeFromDb(
   minDiscount: number,
   maxDiscount: number
 ): Promise<Product[]> {
-  const cacheKey = `products_discount_${minDiscount}_${maxDiscount}`;
+  const cacheKey = `products_discount_range_${minDiscount}_${maxDiscount}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
@@ -521,15 +531,21 @@ export async function fetchProductsByDiscountRangeFromDb(
     return products;
   } catch (error) {
     console.error("Error fetching products by discount range:", error);
-    throw new Error("Failed to fetch products");
+    throw error;
   } finally {
     connection.release();
   }
 }
 
+// Function to fetch products by status from the database
 export async function fetchProductsByStatusFromDb(
   status: string
 ): Promise<Product[]> {
+  const cacheKey = `products_status_${status}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
   const connection = await getConnection();
   try {
     const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
@@ -563,9 +579,68 @@ export async function fetchProductsByStatusFromDb(
 
     const products = (rows as ProductRow[]).map(mapProductRow);
 
+    cache.set(cacheKey, products);
     return products;
   } catch (error) {
-    throw new Error("Failed to fetch products");
+    console.error("Error fetching products by status:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+// Function to fetch brands from the database
+export async function fetchBrandsFromDb(): Promise<NextResponse> {
+  const cacheKey = "brands";
+  if (cache.has(cacheKey)) {
+    return NextResponse.json(cache.get(cacheKey), { status: 200 });
+  }
+
+  const connection = await getConnection();
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT DISTINCT brand FROM product WHERE brand IS NOT NULL`
+    );
+
+    const brands = rows.map((row) => row.brand);
+
+    cache.set(cacheKey, brands);
+    return NextResponse.json(brands, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch brands" },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+// Function to fetch categories from the database
+export async function fetchCategoriesFromDb(): Promise<NextResponse> {
+  const cacheKey = "categories";
+  if (cache.has(cacheKey)) {
+    return NextResponse.json(cache.get(cacheKey), { status: 200 });
+  }
+
+  const connection = await getConnection();
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT id, name FROM categories`
+    );
+
+    const categories = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+    }));
+
+    cache.set(cacheKey, categories);
+    return NextResponse.json(categories, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch categories" },
+      { status: 500 }
+    );
   } finally {
     connection.release();
   }

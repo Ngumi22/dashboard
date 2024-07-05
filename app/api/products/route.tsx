@@ -8,7 +8,8 @@ import {
   fetchProductsByPriceRangeFromDb,
   fetchProductsByDiscountRangeFromDb,
   fetchProductsByStatusFromDb,
-  fetchFilteredProductsFromDb, // Import the new function
+  fetchFilteredProductsFromDb,
+  fetchBrandsFromDb, // Import the new function
 } from "@/lib/data";
 
 import validateParams from "@/lib/utils";
@@ -44,6 +45,7 @@ export async function GET(req: NextRequest) {
     brand: url.searchParams.get("brand") || undefined,
     category: url.searchParams.get("category") || undefined,
     status: url.searchParams.get("status") || undefined,
+    brands: url.searchParams.get("brands") || undefined,
   };
 
   const params = {
@@ -55,6 +57,7 @@ export async function GET(req: NextRequest) {
     minDiscount,
     maxDiscount,
     status,
+    brands,
   };
 
   if (!validateParams(params)) {
@@ -85,6 +88,8 @@ export async function GET(req: NextRequest) {
       );
     } else if (status) {
       products = await fetchProductsByStatusFromDb(status);
+    } else if (brands) {
+      products = await fetchBrandsFromDb();
     } else if (filter) {
       const products = await fetchFilteredProductsFromDb(currentPage, filter);
       return NextResponse.json(products);

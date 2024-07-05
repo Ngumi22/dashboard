@@ -97,4 +97,5 @@ export interface ProductFilter {
   brand?: string;
   category?: string;
   status?: string;
+  brands?: string;
 }
