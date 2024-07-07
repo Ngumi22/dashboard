@@ -14,6 +14,13 @@ export const formatCurrency = (amount: number) => {
   });
 };
 
+export function sanitizeInput(input: string | number): string | number {
+  if (typeof input === "string") {
+    return input.replace(/'/g, "\\'");
+  }
+  return input;
+}
+
 export const formatDateToLocal = (
   dateStr: string,
   locale: string = "en-KE"

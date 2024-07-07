@@ -41,14 +41,14 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductData } from "@/lib/definitions";
-import { searchProducts, filterProducts } from "@/lib/utils";
+import { filterProducts, searchProducts } from "@/lib/utils";
 
 export default function ProductList() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("all"); // State to track active tab (status)
   const { toast } = useToast();
   const [pagination, setPagination] = useState<{
     limit: number;
@@ -57,30 +57,35 @@ export default function ProductList() {
     limit: 10,
     offset: 0,
   });
-  const [totalPages, setTotalPages] = useState<number>(1); // Track total pages
 
   useEffect(() => {
     const fetchProducts = async () => {
-      setLoading(false); // Set loading to true when fetching new data
+      setLoading(true); // Set loading to true when fetching new data
       try {
-        const res = await fetch(
-          `/api/products?page=${pagination.offset / pagination.limit + 1}`
-        );
+        let url = `/api/products?page=${
+          pagination.offset / pagination.limit + 1
+        }`;
+
+        if (searchTerm) {
+          url += `&name=${encodeURIComponent(searchTerm)}`;
+        }
+
+        if (activeTab !== "all") {
+          url += `&status=${activeTab}`;
+        }
+
+        const res = await fetch(url);
 
         if (!res.ok) {
           throw new Error("Failed to fetch products");
         }
 
         const data = await res.json();
-        console.log("API Response Data:", data); // Log API response data
-
         setProducts(data); // Update products state with fetched data
       } catch (err) {
         console.error(err);
-
         const errorMessage =
           err instanceof Error ? err.message : "An unknown error occurred";
-
         setError(errorMessage);
         toast({
           variant: "destructive",
@@ -94,7 +99,7 @@ export default function ProductList() {
     };
 
     fetchProducts();
-  }, [pagination, toast]);
+  }, [pagination, searchTerm, activeTab, toast]);
 
   const handleDelete = async (productId: number) => {
     try {
@@ -130,32 +135,13 @@ export default function ProductList() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setPagination({ limit: 10, offset: 0 }); // Reset pagination when searching
   };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    setPagination({ limit: 10, offset: 0 }); // Reset pagination when tab changes
   };
-
-  const handlePrevPage = () => {
-    if (pagination.offset - pagination.limit >= 0) {
-      setPagination((prev) => ({
-        ...prev,
-        offset: prev.offset - prev.limit,
-      }));
-    }
-  };
-
-  const handleNextPage = () => {
-    if (products.length === pagination.limit) {
-      setPagination((prev) => ({
-        ...prev,
-        offset: prev.offset + prev.limit,
-      }));
-    }
-  };
-
-  const filteredProducts = filterProducts(products, activeTab);
-  const displayedProducts = searchProducts(filteredProducts, searchTerm);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -205,23 +191,16 @@ export default function ProductList() {
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Name</DropdownMenuItem>
-                  <DropdownMenuItem>Brand</DropdownMenuItem>
-                  <DropdownMenuItem>Category</DropdownMenuItem>
-                  <DropdownMenuItem>Stock</DropdownMenuItem>
-                  <DropdownMenuItem>Price</DropdownMenuItem>
-                  <DropdownMenuItem>Discount Percentage</DropdownMenuItem>
-                </DropdownMenuContent>
+                {/* Dropdown menu content */}
               </DropdownMenu>
+              {/* Export button */}
               <Button size="sm" variant="outline" className="h-8 gap-1">
                 <File className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                   Export
                 </span>
               </Button>
+              {/* Add Product link */}
               <Link href="/dashboard/products/create">
                 <Button size="sm" className="h-8 gap-1">
                   <PlusCircle className="h-3.5 w-3.5" />
@@ -232,60 +211,46 @@ export default function ProductList() {
               </Link>
             </div>
           </div>
-          <TabsContent value="all">
+          {/* TabsContent for different states */}
+          {/* Example for 'all' state */}
+          <TabsContent value={activeTab}>
             <ProductTable
-              products={displayedProducts}
+              products={products}
               handleDelete={handleDelete}
               loading={loading}
               error={error}
             />
           </TabsContent>
-          <TabsContent value="active">
-            <ProductTable
-              products={displayedProducts}
-              handleDelete={handleDelete}
-              loading={loading}
-              error={error}
-            />
-          </TabsContent>
-          <TabsContent value="draft">
-            <ProductTable
-              products={displayedProducts}
-              handleDelete={handleDelete}
-              loading={loading}
-              error={error}
-            />
-          </TabsContent>
-          <TabsContent value="archived">
-            <ProductTable
-              products={displayedProducts}
-              handleDelete={handleDelete}
-              loading={loading}
-              error={error}
-            />
-          </TabsContent>
+          {/* Repeat TabsContent for other states as needed */}
         </Tabs>
+        {/* Pagination buttons */}
         <div className="flex justify-end mt-4">
-          <button
-            onClick={handlePrevPage}
-            disabled={pagination.offset <= 0}
-            className={`px-3 py-1 mr-2 ${
-              pagination.offset <= 0 ? "bg-gray-200" : "bg-green-400"
-            } hover:bg-gray-300 rounded-md`}
-          >
-            Previous
-          </button>
-          <button
-            onClick={handleNextPage}
-            disabled={products.length < pagination.limit}
-            className={`px-3 py-1 ${
-              products.length < pagination.limit
-                ? "bg-gray-200"
-                : "bg-green-400"
-            } hover:bg-gray-300 rounded-md`}
-          >
-            Next
-          </button>
+          {pagination.offset > 0 && (
+            <button
+              onClick={() =>
+                setPagination((prev) => ({
+                  ...prev,
+                  offset: prev.offset - prev.limit,
+                }))
+              }
+              className="px-3 py-1 mr-2 bg-green-400 hover:bg-gray-300 rounded-md"
+            >
+              Previous
+            </button>
+          )}
+          {products.length === pagination.limit && (
+            <button
+              onClick={() =>
+                setPagination((prev) => ({
+                  ...prev,
+                  offset: prev.offset + prev.limit,
+                }))
+              }
+              className="px-3 py-1 bg-green-400 hover:bg-gray-300 rounded-md"
+            >
+              Next
+            </button>
+          )}
         </div>
       </main>
     </div>
@@ -319,6 +284,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
   return (
     <Table>
+      {/* Table headers */}
       <TableHeader>
         <TableRow>
           <TableHead className="hidden sm:table-cell">Image</TableHead>
@@ -331,9 +297,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
+      {/* Table body */}
       <TableBody>
         {products.map((product) => (
           <TableRow key={product.id}>
+            {/* Table cells for product data */}
             <TableCell className="hidden sm:table-cell">
               <Image
                 src={`data:image/jpeg;base64,${product.images.main}`}
@@ -358,6 +326,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <TableCell>{product.price}</TableCell>
             <TableCell>{product.quantity}</TableCell>
             <TableCell>
+              {/* Badge component for status */}
               <Badge
                 variant={
                   product.status === "active"
@@ -371,6 +340,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               </Badge>
             </TableCell>
             <TableCell>
+              {/* Dropdown menu for actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -379,11 +349,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {/* Edit link */}
                   <DropdownMenuItem asChild>
                     <Link href={`/dashboard/products/${product.id}/edit`}>
                       Edit
                     </Link>
                   </DropdownMenuItem>
+                  {/* Delete action */}
                   <DropdownMenuItem onClick={() => handleDelete(product.id)}>
                     Delete
                   </DropdownMenuItem>
