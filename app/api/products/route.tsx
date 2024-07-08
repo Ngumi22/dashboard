@@ -1,15 +1,33 @@
+import { handlePost } from "@/lib/actions";
 import { NextRequest, NextResponse } from "next/server";
 import {
+  fetchProductsByCategoryFromDb,
+  fetchAllProductsFromDb,
+  fetchProductsByNameFromDb,
+  fetchProductsByBrandFromDb,
+  fetchProductsByPriceRangeFromDb,
+  fetchProductsByDiscountRangeFromDb,
+  fetchProductsByStatusFromDb,
   fetchFilteredProductsFromDb,
-  fetchBrandsFromDb,
-  searchProducts,
+  fetchBrandsFromDb, // Import the new function
 } from "@/lib/data";
+
 import validateParams from "@/lib/utils";
 import { ProductFilter } from "@/lib/definitions";
-import { handlePost } from "@/lib/actions";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
+  const category = url.searchParams.get("category");
+  const name = url.searchParams.get("name");
+  const brand = url.searchParams.get("brand");
+  const minPrice = url.searchParams.get("minPrice");
+  const maxPrice = url.searchParams.get("maxPrice");
+  const minDiscount = url.searchParams.get("minDiscount");
+  const maxDiscount = url.searchParams.get("maxDiscount");
+  const status = url.searchParams.get("status");
+  const currentPage = Number(url.searchParams.get("page")) || 1;
+  const brands = url.searchParams.get("brands"); // Add this line
+
   const filter: ProductFilter = {
     minPrice: url.searchParams.has("minPrice")
       ? parseFloat(url.searchParams.get("minPrice") as string)
@@ -27,19 +45,19 @@ export async function GET(req: NextRequest) {
     brand: url.searchParams.get("brand") || undefined,
     category: url.searchParams.get("category") || undefined,
     status: url.searchParams.get("status") || undefined,
+    brands: url.searchParams.get("brands") || undefined,
   };
-  const currentPage = Number(url.searchParams.get("page")) || 1;
 
-  const params: Record<string, string | null> = {
-    category: url.searchParams.get("category"),
-    name: url.searchParams.get("name"),
-    brand: url.searchParams.get("brand"),
-    minPrice: url.searchParams.get("minPrice"),
-    maxPrice: url.searchParams.get("maxPrice"),
-    minDiscount: url.searchParams.get("minDiscount"),
-    maxDiscount: url.searchParams.get("maxDiscount"),
-    status: url.searchParams.get("status"),
-    brands: url.searchParams.get("brands"),
+  const params = {
+    category,
+    name,
+    brand,
+    minPrice,
+    maxPrice,
+    minDiscount,
+    maxDiscount,
+    status,
+    brands,
   };
 
   if (!validateParams(params)) {
@@ -52,14 +70,31 @@ export async function GET(req: NextRequest) {
   try {
     let products;
 
-    if (params.brands) {
+    if (name) {
+      products = await fetchProductsByNameFromDb(name);
+    } else if (category) {
+      products = await fetchProductsByCategoryFromDb(category);
+    } else if (brand) {
+      products = await fetchProductsByBrandFromDb(brand);
+    } else if (minPrice && maxPrice) {
+      products = await fetchProductsByPriceRangeFromDb(
+        Number(minPrice),
+        Number(maxPrice)
+      );
+    } else if (minDiscount && maxDiscount) {
+      products = await fetchProductsByDiscountRangeFromDb(
+        Number(minDiscount),
+        Number(maxDiscount)
+      );
+    } else if (status) {
+      products = await fetchProductsByStatusFromDb(status);
+    } else if (brands) {
       products = await fetchBrandsFromDb();
-    } else if (filter.name) {
-      // Use searchProducts for name search
-      products = await searchProducts(filter);
+    } else if (filter) {
+      const products = await fetchFilteredProductsFromDb(currentPage, filter);
+      return NextResponse.json(products);
     } else {
-      // Use fetchFilteredProductsFromDb for other filters
-      products = await fetchFilteredProductsFromDb(currentPage, filter);
+      products = await fetchAllProductsFromDb(currentPage);
     }
 
     return NextResponse.json(products);

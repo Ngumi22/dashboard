@@ -1,4 +1,4 @@
-const cache = new Map<string, any>();
+export const cache = new Map<string, any>();
 
 export function getCache(key: string): any | undefined {
   return cache.get(key);

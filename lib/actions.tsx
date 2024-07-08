@@ -12,30 +12,7 @@ import {
   formatDateToLocal,
 } from "./utils";
 import validator from "validator";
-
-// Initialize database connection pool
-let pool: mysql.Pool;
-
-export async function initDbConnection() {
-  if (!pool) {
-    pool = mysql.createPool({
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      port: 3306,
-      password: process.env.DB_PASSWORD,
-      user: process.env.DB_USER,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-    });
-  }
-  return pool;
-}
-
-export async function getConnection() {
-  if (!pool) initDbConnection();
-  return pool.getConnection();
-}
+import { getConnection } from "./db";
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();

@@ -8,6 +8,17 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProductData, CategoryData } from "@/lib/definitions";
 import Image from "next/image";
 
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 export default function CategoryList() {
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [productsByCategory, setProductsByCategory] = useState<{
@@ -101,29 +112,33 @@ export default function CategoryList() {
   }
 
   return (
-    <div className="container my-10">
+    <section className="flex min-h-screen w-full flex-col bg-muted/40">
       <Tabs defaultValue={categories[0]?.name}>
-        <TabsList className="grid grid-flow-col gap-4">
+        <TabsList className="grid grid-flow-col">
           {categories.map((category) => (
             <TabsTrigger key={category.id} value={category.name}>
               {category.name}
             </TabsTrigger>
           ))}
         </TabsList>
-        <div className="my-2">
-          {categories.map((category) => (
-            <TabsContent
-              key={category.id}
-              value={category.name}
-              className="grid grid-flow-row gap-5">
-              {productsByCategory[category.name]?.length > 0 ? (
-                productsByCategory[category.name].map((product) => (
-                  <Card key={product.id} className="mb-2">
-                    <CardHeader>
-                      <CardTitle>{product.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex justify-between">
-                      <div className="flex gap-2 w-full">
+        {categories.map((category) => (
+          <TabsContent key={category.id} value={category.name}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Image</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Stock</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="container">
+                {productsByCategory[category.name]?.length > 0 ? (
+                  productsByCategory[category.name].map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
                         <Image
                           loading="lazy"
                           className="h-14 w-14"
@@ -132,22 +147,26 @@ export default function CategoryList() {
                           height={100}
                           width={100}
                         />
-                      </div>
-                      <p className="">{product.description}</p>
-                      <p className="flex">Price: {product.price}</p>
-                      <p className="">Discount: {product.discount}</p>
-                      <p className="">Quantity: {product.quantity}</p>
-                      <p className="">Brand: {product.brand}</p>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <p>No products found in this category.</p>
-              )}
-            </TabsContent>
-          ))}
-        </div>
+                      </TableCell>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell>{product.status}</TableCell>
+                      <TableCell>{product.price}</TableCell>
+                      <TableCell>{product.brand}</TableCell>
+                      <TableCell>{product.quantity}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      No products found in this category.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TabsContent>
+        ))}
       </Tabs>
-    </div>
+    </section>
   );
 }

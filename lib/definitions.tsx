@@ -48,6 +48,11 @@ export interface CategoryData {
   name: string;
 }
 
+export interface BrandWithProducts {
+  brand: string;
+  products: ProductRow[];
+}
+
 export interface ProductRow {
   product_id: string;
   name: string;
@@ -61,12 +66,33 @@ export interface ProductRow {
   brand: string;
   createdAt: string;
   updatedAt: string;
-  main_image: Buffer;
+  main_image: Buffer | null;
   thumbnail1: Buffer | null;
   thumbnail2: Buffer | null;
   thumbnail3: Buffer | null;
   thumbnail4: Buffer | null;
   thumbnail5: Buffer | null;
+}
+
+export interface ProductsRow {
+  product_id: number;
+  name: string;
+  sku: string;
+  price: number;
+  discount: number;
+  quantity: number;
+  category: string;
+  status: string;
+  description: string;
+  brand: string;
+  createdAt: Date;
+  updatedAt: Date;
+  main_image: string | null; // Store as Base64 string
+  thumbnail1: string | null; // Store as Base64 string
+  thumbnail2: string | null; // Store as Base64 string
+  thumbnail3: string | null; // Store as Base64 string
+  thumbnail4: string | null; // Store as Base64 string
+  thumbnail5: string | null; // Store as Base64 string
 }
 
 export interface Product {
