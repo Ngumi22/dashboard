@@ -89,9 +89,16 @@ export async function GET(req: NextRequest) {
     } else if (status) {
       products = await fetchProductsByStatusFromDb(status);
     } else if (brands) {
-      products = await fetchBrandsFromDb();
+      const brandsWithProducts = await fetchBrandsFromDb();
+      const brandsData = await Promise.all(
+        brandsWithProducts.map(async (brand) => ({
+          brand,
+          products: await fetchProductsByBrandFromDb(brand),
+        }))
+      );
+      return NextResponse.json(brandsData);
     } else if (filter) {
-      const products = await fetchFilteredProductsFromDb(currentPage, filter);
+      products = await fetchFilteredProductsFromDb(currentPage, filter);
       return NextResponse.json(products);
     } else {
       products = await fetchAllProductsFromDb(currentPage);

@@ -2,7 +2,10 @@ import { query } from "@/lib/db";
 
 export async function GET(req: any, res: any) {
   try {
-    const categories = await query("SELECT * FROM categories", res);
+    const categories = await query(
+      "SELECT * FROM categories ORDER BY id ASC",
+      res
+    );
     return new Response(JSON.stringify(categories), { status: 200 });
   } catch (error) {
     return new Response(

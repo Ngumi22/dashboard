@@ -106,7 +106,7 @@ export async function searchProducts(
     return products;
   } catch (error) {
     console.error("Error searching products:", error);
-    throw error;
+    throw new Error(`Failed to fetch products`);
   } finally {
     connection.release();
   }
@@ -209,6 +209,10 @@ export async function fetchFilteredProductsFromDb(
 
     const [rows] = await connection.query<RowDataPacket[]>(query, queryParams);
     const products = (rows as ProductRow[]).map(mapProductRow);
+
+    if (products.length === 0) {
+      return []; // Return an empty array if no products match the criteria
+    }
 
     setCache(cacheKey, products);
     return products;
@@ -383,10 +387,10 @@ export async function fetchProductsByCategoryFromDb(
         p.price,
         p.discount,
         p.quantity,
-        p.brand,
         c.name AS category,
         p.status,
         p.description,
+        p.brand,
         p.createdAt,
         p.updatedAt,
         i.main_image,
@@ -400,8 +404,12 @@ export async function fetchProductsByCategoryFromDb(
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE c.name = ?
     `,
-      [sanitizeInput(name)]
+      [name]
     );
+
+    if (rows.length === 0) {
+      return [];
+    }
 
     const products = (rows as ProductRow[]).map(mapProductRow);
 
@@ -467,18 +475,17 @@ export async function fetchProductsByNameFromDb(
 }
 
 export async function fetchProductsByBrandFromDb(
-  brand: string,
-  currentPage: number = 1
+  brand: string
 ): Promise<Product[]> {
-  const cacheKey = `products_brand_${brand}_${currentPage}`;
+  const cacheKey = `products_brand_${brand}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   const connection = await getConnection();
   try {
-    const query = `
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `
       SELECT
         p.id AS product_id,
         p.name,
@@ -486,10 +493,10 @@ export async function fetchProductsByBrandFromDb(
         p.price,
         p.discount,
         p.quantity,
+        p.brand,
         c.name AS category,
         p.status,
         p.description,
-        p.brand,
         p.createdAt,
         p.updatedAt,
         i.main_image,
@@ -501,22 +508,68 @@ export async function fetchProductsByBrandFromDb(
       FROM product p
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.brand = ?
-      ORDER BY p.id ASC
-      LIMIT ? OFFSET ?
-    `;
+      WHERE p.brand LIKE ?
+    `,
+      [`%${sanitizeInput(brand)}%`]
+    );
 
-    const [rows] = await connection.execute(query, [
-      sanitizeInput(brand),
-      ITEMS_PER_PAGE,
-      offset,
-    ]);
     const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
   } catch (error) {
-    console.error("Error fetching products by brand:", error);
+    console.error("Error fetching products by name:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchProductsByStatusFromDb(
+  status: string
+): Promise<Product[]> {
+  const cacheKey = `products_status_${status}`;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
+  const connection = await getConnection();
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `
+      SELECT
+        p.id AS product_id,
+        p.name,
+        p.sku,
+        p.price,
+        p.discount,
+        p.quantity,
+        p.brand,
+        c.name AS category,
+        p.status,
+        p.description,
+        p.createdAt,
+        p.updatedAt,
+        i.main_image,
+        i.thumbnail1,
+        i.thumbnail2,
+        i.thumbnail3,
+        i.thumbnail4,
+        i.thumbnail5
+      FROM product p
+      LEFT JOIN images i ON p.image_id = i.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.status LIKE ?
+    `,
+      [`%${sanitizeInput(status)}%`]
+    );
+
+    const products = (rows as ProductRow[]).map(mapProductRow);
+
+    cache.set(cacheKey, products);
+    return products;
+  } catch (error) {
+    console.error("Error fetching products by status:", error);
     throw error;
   } finally {
     connection.release();
@@ -525,15 +578,13 @@ export async function fetchProductsByBrandFromDb(
 
 export async function fetchProductsByPriceRangeFromDb(
   minPrice: number,
-  maxPrice: number,
-  currentPage: number = 1
+  maxPrice: number
 ): Promise<Product[]> {
-  const cacheKey = `products_price_${minPrice}_${maxPrice}_${currentPage}`;
+  const cacheKey = `products_price_${minPrice}_${maxPrice}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   const connection = await getConnection();
   try {
     const query = `
@@ -561,15 +612,13 @@ export async function fetchProductsByPriceRangeFromDb(
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.price BETWEEN ? AND ?
       ORDER BY p.id ASC
-      LIMIT ? OFFSET ?
     `;
 
-    const [rows] = await connection.execute(query, [
-      minPrice,
-      maxPrice,
-      ITEMS_PER_PAGE,
-      offset,
-    ]);
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      query,
+      [minPrice, maxPrice]
+    );
+
     const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
@@ -584,15 +633,13 @@ export async function fetchProductsByPriceRangeFromDb(
 
 export async function fetchProductsByDiscountRangeFromDb(
   minDiscount: number,
-  maxDiscount: number,
-  currentPage: number = 1
+  maxDiscount: number
 ): Promise<Product[]> {
-  const cacheKey = `products_discount_${minDiscount}_${maxDiscount}_${currentPage}`;
+  const cacheKey = `products_discount_${minDiscount}_${maxDiscount}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   const connection = await getConnection();
   try {
     const query = `
@@ -620,78 +667,19 @@ export async function fetchProductsByDiscountRangeFromDb(
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.discount BETWEEN ? AND ?
       ORDER BY p.id ASC
-      LIMIT ? OFFSET ?
     `;
 
-    const [rows] = await connection.execute(query, [
-      minDiscount,
-      maxDiscount,
-      ITEMS_PER_PAGE,
-      offset,
-    ]);
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      query,
+      [minDiscount, maxDiscount]
+    );
+
     const products = (rows as ProductRow[]).map(mapProductRow);
 
     cache.set(cacheKey, products);
     return products;
   } catch (error) {
     console.error("Error fetching products by discount range:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-export async function fetchProductsByStatusFromDb(
-  status: string,
-  currentPage: number = 1
-): Promise<Product[]> {
-  const cacheKey = `products_status_${status}_${currentPage}`;
-  if (cache.has(cacheKey)) {
-    return cache.get(cacheKey);
-  }
-
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-  const connection = await getConnection();
-  try {
-    const query = `
-      SELECT
-        p.id AS product_id,
-        p.name,
-        p.sku,
-        p.price,
-        p.discount,
-        p.quantity,
-        c.name AS category,
-        p.status,
-        p.description,
-        p.brand,
-        p.createdAt,
-        p.updatedAt,
-        i.main_image,
-        i.thumbnail1,
-        i.thumbnail2,
-        i.thumbnail3,
-        i.thumbnail4,
-        i.thumbnail5
-      FROM product p
-      LEFT JOIN images i ON p.image_id = i.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE p.status = ?
-      ORDER BY p.id ASC
-      LIMIT ? OFFSET ?
-    `;
-
-    const [rows] = await connection.execute(query, [
-      status,
-      ITEMS_PER_PAGE,
-      offset,
-    ]);
-    const products = (rows as ProductRow[]).map(mapProductRow);
-
-    cache.set(cacheKey, products);
-    return products;
-  } catch (error) {
-    console.error("Error fetching products by status:", error);
     throw error;
   } finally {
     connection.release();
