@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
     } else if (minDiscount && maxDiscount) {
       products = await fetchProductsByDiscountRangeFromDb(
         Number(minDiscount),
-        Number(maxDiscount)
+        Number(maxDiscount),
+        Number(currentPage)
       );
     } else if (status) {
       products = await fetchProductsByStatusFromDb(status);

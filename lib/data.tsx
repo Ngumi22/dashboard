@@ -6,6 +6,7 @@ import { Product, ProductRow, ProductFilter } from "./definitions";
 import { getCache, setCache } from "./cache";
 
 const ITEMS_PER_PAGE = 10;
+const DISCOUNTED_ITEMS_PER_PAGE = 5;
 const cache = new Map<string, any>();
 
 export async function searchProducts(
@@ -633,13 +634,14 @@ export async function fetchProductsByPriceRangeFromDb(
 
 export async function fetchProductsByDiscountRangeFromDb(
   minDiscount: number,
-  maxDiscount: number
+  maxDiscount: number,
+  currentPage: number
 ): Promise<Product[]> {
   const cacheKey = `products_discount_${minDiscount}_${maxDiscount}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
-
+  const offset = (currentPage - 1) * DISCOUNTED_ITEMS_PER_PAGE;
   const connection = await getConnection();
   try {
     const query = `
@@ -666,7 +668,9 @@ export async function fetchProductsByDiscountRangeFromDb(
       LEFT JOIN images i ON p.image_id = i.id
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.discount BETWEEN ? AND ?
-      ORDER BY p.id ASC
+      ORDER BY p.id ASC LIMIT ${sanitizeInput(
+        DISCOUNTED_ITEMS_PER_PAGE
+      )} OFFSET ${sanitizeInput(offset)}
     `;
 
     const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
