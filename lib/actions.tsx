@@ -13,6 +13,71 @@ import {
 } from "./utils";
 import validator from "validator";
 import { getConnection } from "./db";
+import bcrypt from "bcrypt";
+
+export async function handleCreateUser(request: NextRequest) {
+  const connection = await getConnection();
+
+  const { username, password, role } = await request.json(); // Ensure body parsing
+
+  try {
+    await connection.beginTransaction();
+
+    // Ensure users table exists
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        role ENUM('admin', 'user') DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Check if the user already exists
+    const [existingUsers]: [any[], any] = await connection.query(
+      "SELECT id FROM users WHERE username = ? FOR UPDATE",
+      [username]
+    );
+
+    if (existingUsers.length > 0) {
+      await connection.rollback();
+      return NextResponse.json(
+        { success: false, message: "User already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert the new user into the database
+    await connection.query(
+      "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+      [username, hashedPassword, role]
+    );
+
+    await connection.commit();
+
+    // Revalidate necessary paths
+    // Assuming 'revalidatePath' and 'redirect' are utility functions
+    revalidatePath("/");
+    return NextResponse.redirect(new URL("/"));
+  } catch (error: any) {
+    await connection.rollback();
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
+  }
+}
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();

@@ -2,7 +2,7 @@ import { getConnection } from "./db";
 import { mapProductRow, sanitizeInput } from "./utils";
 import { NextResponse } from "next/server";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { Product, ProductRow, ProductFilter } from "./definitions";
+import { Product, ProductRow, ProductFilter, UserRow } from "./definitions";
 import { getCache, setCache } from "./cache";
 
 const ITEMS_PER_PAGE = 10;
