@@ -1,9 +1,11 @@
 import { getConnection } from "./db";
 import { mapProductRow, sanitizeInput } from "./utils";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { Product, ProductRow, ProductFilter, UserRow } from "./definitions";
 import { getCache, setCache } from "./cache";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const ITEMS_PER_PAGE = 10;
 const DISCOUNTED_ITEMS_PER_PAGE = 5;
@@ -710,6 +712,85 @@ export async function fetchBrandsFromDb(): Promise<string[]> {
   } catch (error) {
     console.error("Error fetching brands:", error);
     throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchUsers() {
+  const connection = await getConnection();
+
+  try {
+    const [rows]: [any[], any] = await connection.query(
+      "SELECT id, username, email, role FROM users"
+    );
+
+    return { success: true, users: rows };
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return { success: false, message: "Server error" };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchUserById(userId: string) {
+  const connection = await getConnection();
+
+  try {
+    const [rows]: [any[], any] = await connection.query(
+      "SELECT id, username, email, role FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return { success: false, message: "User not found" };
+    }
+
+    return { success: true, user: rows[0] };
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return { success: false, message: "Server error" };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function authenticateUser(email: string, password: string) {
+  const connection = await getConnection();
+  try {
+    const [users]: [any[], any] = await connection.query(
+      "SELECT id, username, email, password, role FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (users.length === 0) {
+      console.log("No user found with the provided email");
+      return { success: false, message: "Invalid credentials" };
+    }
+
+    const user = users[0];
+    console.log("User found:", user);
+
+    // Check password
+    const match = await bcrypt.compare(password, user.password);
+    console.log("Password match result:", match);
+
+    if (!match) {
+      return { success: false, message: "Invalid credentials" };
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1h" }
+    );
+
+    return { success: true, token };
+  } catch (error) {
+    console.error("Error logging in:", error);
+    return { success: false, message: "Server error" };
   } finally {
     connection.release();
   }

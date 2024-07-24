@@ -5,20 +5,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FileData } from "@/lib/definitions";
-import {
-  validateFiles,
-  convertToBase64,
-  formatCurrency,
-  formatDateToLocal,
-} from "./utils";
+import { validateFiles } from "./utils";
 import validator from "validator";
 import { getConnection } from "./db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function handleCreateUser(request: NextRequest) {
   const connection = await getConnection();
 
-  const { username, password, role } = await request.json(); // Ensure body parsing
+  // Parse request body
+  const { username, email, password, role } = await request.json();
 
   try {
     await connection.beginTransaction();
@@ -29,7 +25,7 @@ export async function handleCreateUser(request: NextRequest) {
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
         role ENUM('admin', 'user') DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -38,7 +34,7 @@ export async function handleCreateUser(request: NextRequest) {
 
     // Check if the user already exists
     const [existingUsers]: [any[], any] = await connection.query(
-      "SELECT id FROM users WHERE username = ? FOR UPDATE",
+      "SELECT id FROM users WHERE username = ?",
       [username]
     );
 
@@ -55,15 +51,12 @@ export async function handleCreateUser(request: NextRequest) {
 
     // Insert the new user into the database
     await connection.query(
-      "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-      [username, hashedPassword, role]
+      "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
+      [username, email, hashedPassword, role]
     );
 
     await connection.commit();
 
-    // Revalidate necessary paths
-    // Assuming 'revalidatePath' and 'redirect' are utility functions
-    revalidatePath("/");
     return NextResponse.redirect(new URL("/"));
   } catch (error: any) {
     await connection.rollback();

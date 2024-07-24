@@ -10,7 +10,7 @@ export function authmiddleware(request: NextRequest) {
 
   if (protectedRoutes.some((route) => url.pathname.startsWith(route))) {
     if (!token) {
-      url.pathname = "/";
+      url.pathname = "/login";
       return NextResponse.redirect(url);
     }
 
@@ -18,7 +18,7 @@ export function authmiddleware(request: NextRequest) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!);
       request.headers.set("user", JSON.stringify(decoded));
     } catch (error) {
-      url.pathname = "/";
+      url.pathname = "/login";
       return NextResponse.redirect(url);
     }
   }

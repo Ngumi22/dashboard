@@ -17,7 +17,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch("/api/users", {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -28,7 +28,7 @@ export default function LoginPage() {
     const data = await res.json();
 
     if (data.success) {
-      // Store the token in localStorage or sessionStorage
+      // Store the token in localStorage
       localStorage.setItem("token", data.token);
       router.push("/dashboard");
     } else {
