@@ -8,69 +8,6 @@ import { FileData } from "@/lib/definitions";
 import { validateFiles } from "./utils";
 import validator from "validator";
 import { getConnection } from "./db";
-import bcrypt from "bcryptjs";
-
-export async function handleCreateUser(request: NextRequest) {
-  const connection = await getConnection();
-
-  // Parse request body
-  const { username, email, password, role } = await request.json();
-
-  try {
-    await connection.beginTransaction();
-
-    // Ensure users table exists
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        role ENUM('admin', 'user') DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
-    `);
-
-    // Check if the user already exists
-    const [existingUsers]: [any[], any] = await connection.query(
-      "SELECT id FROM users WHERE username = ?",
-      [username]
-    );
-
-    if (existingUsers.length > 0) {
-      await connection.rollback();
-      return NextResponse.json(
-        { success: false, message: "User already exists" },
-        { status: 400 }
-      );
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert the new user into the database
-    await connection.query(
-      "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-      [username, email, hashedPassword, role]
-    );
-
-    await connection.commit();
-
-    return NextResponse.redirect(new URL("/"));
-  } catch (error: any) {
-    await connection.rollback();
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
-      { status: 500 }
-    );
-  } finally {
-    connection.release();
-  }
-}
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();

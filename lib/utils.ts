@@ -1,40 +1,7 @@
-"use client";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import { ProductData, Product, ProductRow } from "@/lib/definitions";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
-
-export const checkTokenExpiry = () => {
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("token="))
-      ?.split("=")[1];
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const decodedToken: any = jwtDecode(token);
-    const currentTime = Date.now() / 1000;
-
-    if (decodedToken.exp < currentTime) {
-      router.push("/login");
-    } else {
-      const timeout = (decodedToken.exp - currentTime) * 1000;
-      setTimeout(() => {
-        router.push("/login");
-      }, timeout);
-    }
-  }, [router]);
-};
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

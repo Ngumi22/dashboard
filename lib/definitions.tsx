@@ -125,18 +125,3 @@ export interface ProductFilter {
   status?: string;
   brands?: string;
 }
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-};
-
-export interface UserRow {
-  id: number;
-  username: string;
-  password: string;
-  role: "admin" | "user";
-  created_at: string;
-  updated_at: string;
-}
