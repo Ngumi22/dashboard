@@ -1,7 +1,14 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import * as z from "zod";
 
-import { ProductData, Product, ProductRow } from "@/lib/definitions";
+import {
+  ProductData,
+  Product,
+  ProductRow,
+  UserRow,
+  User,
+} from "@/lib/definitions";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -171,3 +178,30 @@ export function mapProductRow(row: ProductRow): Product {
     },
   };
 }
+
+export function mapUserRow(row: UserRow): User {
+  return {
+    id: row.id,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    email: row.email,
+    role: row.role,
+    password: row.password,
+  };
+}
+
+export const signUpSchema = z
+  .object({
+    first_name: z.string().min(2, "Name must be at least 2 characters long"),
+    last_name: z.string().min(2, "Name must be at least 2 characters long"),
+    role: z.enum(["Admin", "User"]),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters long"),
+    password1: z
+      .string()
+      .min(6, "Confirm password must be at least 6 characters long"),
+  })
+  .refine((data) => data.password === data.password1, {
+    message: "Passwords must match",
+    path: ["password1"],
+  });

@@ -1,87 +1,98 @@
 // "use client";
 
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
+// import Link from "next/link";
+
 // import { Button } from "@/components/ui/button";
+// import {
+//   Card,
+//   CardContent,
+//   CardDescription,
+//   CardHeader,
+//   CardTitle,
+// } from "@/components/ui/card";
 // import { Input } from "@/components/ui/input";
 // import { Label } from "@/components/ui/label";
+// import { signUpSchema } from "@/lib/utils";
+// import { zodResolver } from "@hookform/resolvers/zod";
+// import { useForm } from "react-hook-form";
 
-// export default function AddUserForm() {
-//   const [username, setUsername] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [role, setRole] = useState("user");
-//   const [error, setError] = useState("");
-//   const router = useRouter();
+// export default function SignUpForm(formData: FormData) {
+//   const {
+//     register,
+//     handleSubmit,
+//     reset,
+//     formState: { errors, isSubmitting, isValid },
+//   } = useForm({
+//     resolver: zodResolver(signUpSchema),
+//   });
 
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
+//   const first_name = formData.get("first_name");
+//   const last_name = formData.get("last_name");
+//   const email = formData.get("email");
+//   const role = formData.get("role");
+//   const password = formData.get("password");
+//   const password2 = formData.get("password2");
 
-//     const res = await fetch("/api/users", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ username, email, password, role }),
-//     });
-
-//     const data = await res.json();
-
-//     if (data.success) {
-//       router.push("/dashboard");
-//     } else {
-//       setError(data.message);
-//     }
-//   };
-
+//   function onSubmit(formData: FormData) {
+//     console.log(formData);
+//   }
 //   return (
-//     <div>
-//       <h1>Add User</h1>
-//       {error && <p className="text-red-500">{error}</p>}
-//       <form onSubmit={handleSubmit}>
-//         <div>
-//           <Label htmlFor="username">Username</Label>
-//           <Input
-//             id="username"
-//             type="text"
-//             value={username}
-//             onChange={(e) => setUsername(e.target.value)}
-//             required
-//           />
-//         </div>
-//         <div>
-//           <Label htmlFor="email">Email</Label>
-//           <Input
-//             id="email"
-//             type="email"
-//             value={email}
-//             onChange={(e) => setEmail(e.target.value)}
-//             required
-//           />
-//         </div>
-//         <div>
-//           <Label htmlFor="password">Password</Label>
-//           <Input
-//             id="password"
-//             type="password"
-//             value={password}
-//             onChange={(e) => setPassword(e.target.value)}
-//             required
-//           />
-//         </div>
-//         <div>
-//           <Label htmlFor="role">Role</Label>
-//           <select
-//             id="role"
-//             value={role}
-//             onChange={(e) => setRole(e.target.value)}
-//             required>
-//             <option value="user">User</option>
-//             <option value="admin">Admin</option>
-//           </select>
-//         </div>
-//         <Button type="submit">Create User</Button>
-//       </form>
-//     </div>
+//     <form action={onSubmit}>
+//       <Card className="mx-auto max-w-sm">
+//         <CardHeader>
+//           <CardTitle className="text-xl">Sign Up</CardTitle>
+//           <CardDescription>
+//             Enter your information to create an account
+//           </CardDescription>
+//         </CardHeader>
+//         <CardContent>
+//           <div className="grid gap-4">
+//             <div className="grid grid-cols-2 gap-4">
+//               <div className="grid gap-2">
+//                 <Label htmlFor="first_name">First name</Label>
+//                 <Input id="first_name" placeholder="Max" required />
+//               </div>
+//               <div className="grid gap-2">
+//                 <Label htmlFor="last_name">Last name</Label>
+//                 <Input id="last_name" placeholder="Robinson" required />
+//               </div>
+//             </div>
+//             <div className="grid gap-2">
+//               <Label htmlFor="email">Email</Label>
+//               <Input
+//                 id="email"
+//                 type="email"
+//                 placeholder="m@example.com"
+//                 required
+//               />
+//             </div>
+//             <div className="grid gap-2">
+//               <Label htmlFor="last_name">Role</Label>
+//               <Input id="user" placeholder="User" required />
+//             </div>
+//             <div className="grid gap-2">
+//               <Label htmlFor="password">Password</Label>
+//               <Input id="password" type="password" />
+//             </div>
+//             <div className="grid gap-2">
+//               <Label htmlFor="password2">Confirm Password</Label>
+//               <Input id="password2" type="password" />
+//             </div>
+//             <Button type="submit" className="w-full">
+//               Create an account
+//             </Button>
+//             <Button variant="outline" className="w-full">
+//               Sign up with GitHub
+//             </Button>
+//           </div>
+//           <div className="mt-4 text-center text-sm">
+//             Already have an account?{" "}
+//             <Link href="#" className="underline">
+//               Sign in
+//             </Link>
+//           </div>
+//         </CardContent>
+//       </Card>
+//     </form>
 //   );
 // }

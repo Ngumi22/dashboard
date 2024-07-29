@@ -125,3 +125,45 @@ export interface ProductFilter {
   status?: string;
   brands?: string;
 }
+
+export type SessionPayload = {
+  userId: string | number;
+  expiresAt: Date;
+};
+
+export type UserRow = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  password: string;
+};
+export type User = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  password: string;
+};
+
+export type SignUpResponseSuccess = {
+  success: true;
+  message: string;
+  userId: number;
+  sessionToken: string;
+};
+
+export type SignUpResponseError = {
+  success: false;
+  errors: {
+    first_name?: string[];
+    last_name?: string[];
+    role?: string[];
+    email?: string[];
+    password?: string[];
+    password1?: string[];
+  };
+};
+export type SignUpResponse = SignUpResponseSuccess | SignUpResponseError;

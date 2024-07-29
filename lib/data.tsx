@@ -1,11 +1,15 @@
 import { getConnection } from "./db";
-import { mapProductRow, sanitizeInput } from "./utils";
+import { mapProductRow, mapUserRow, sanitizeInput } from "./utils";
 import { NextRequest, NextResponse } from "next/server";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { Product, ProductRow, ProductFilter } from "./definitions";
+import {
+  Product,
+  ProductRow,
+  ProductFilter,
+  UserRow,
+  User,
+} from "./definitions";
 import { getCache, setCache } from "./cache";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 
 const ITEMS_PER_PAGE = 10;
 const DISCOUNTED_ITEMS_PER_PAGE = 5;
@@ -711,6 +715,45 @@ export async function fetchBrandsFromDb(): Promise<string[]> {
     return brands;
   } catch (error) {
     console.error("Error fetching brands:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchUsers(): Promise<User[]> {
+  const connection = await getConnection();
+
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT * FROM users`
+    );
+
+    // Map each row to a User object
+    const users = (rows as UserRow[]).map(mapUserRow);
+
+    return users;
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
+  } finally {
+    // Properly handle the connection release if using a pool
+    // If not using a pool, consider using connection.end() instead
+    connection.release();
+  }
+}
+
+export async function fetchUserByEmail(email: string): Promise<UserRow[]> {
+  const connection = await getConnection();
+
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT id, first_name, last_name, email, password FROM users WHERE email = ?`,
+      [email]
+    );
+    return rows as UserRow[];
+  } catch (error) {
+    console.error("Error fetching users:", error);
     throw error;
   } finally {
     connection.release();
