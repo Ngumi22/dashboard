@@ -737,8 +737,6 @@ export async function fetchUsers(): Promise<User[]> {
     console.error("Error fetching users:", error);
     throw error;
   } finally {
-    // Properly handle the connection release if using a pool
-    // If not using a pool, consider using connection.end() instead
     connection.release();
   }
 }

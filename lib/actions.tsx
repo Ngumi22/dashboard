@@ -1,153 +1,15 @@
 "use server";
 
-import mysql from "mysql2/promise";
+import mysql, { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { NextRequest, NextResponse } from "next/server";
 import { signUpSchema, validateFiles } from "./utils";
 import { getConnection } from "./db";
 import bcrypt from "bcryptjs";
-import { createSession } from "./sessions";
+import { createSession, deleteSession } from "./sessions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import validator from "validator";
-import { FileData } from "./definitions";
-
-import { fetchUserByEmail } from "./data"; // Adjust import path as necessary
-import { compare } from "bcryptjs";
-
-export async function login(email: string, password: string) {
-  try {
-    const users = await fetchUserByEmail(email);
-
-    if (users.length === 0) {
-      return { error: "No user found with that email" };
-    }
-
-    const user = users[0];
-    const passwordMatches = await compare(password, user.password); // Ensure password is hashed
-
-    if (!passwordMatches) {
-      return { error: "Incorrect password" };
-    }
-
-    // Create session
-    await createSession(user.id.toString());
-
-    return { success: true };
-  } catch (error) {
-    console.error("Login error:", error);
-    return { error: "An error occurred during login" };
-  }
-}
-
-export async function signUp(formData: FormData) {
-  const connection = await getConnection();
-
-  const validationResult = signUpSchema.safeParse({
-    first_name: formData.get("first_name"),
-    last_name: formData.get("last_name"),
-    role: formData.get("role"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    password1: formData.get("password1"),
-  });
-
-  if (!validationResult.success) {
-    return NextResponse.json(
-      { errors: validationResult.error.flatten().fieldErrors },
-      { status: 400 }
-    );
-  }
-
-  const { first_name, last_name, email, password, role } =
-    validationResult.data;
-
-  if (password !== formData.get("password1")) {
-    return NextResponse.json(
-      { errors: { password1: ["Passwords do not match."] } },
-      { status: 400 }
-    );
-  }
-
-  try {
-    await connection.beginTransaction();
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        first_name VARCHAR(255) NOT NULL,
-        last_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        role ENUM('Admin', 'User') DEFAULT 'User'
-      );
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        session_token VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-    `);
-
-    const [existingUser]: [any[], any] = await connection.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
-    );
-
-    if (existingUser.length > 0) {
-      await connection.rollback();
-      return { errors: { email: ["Email is already in use."] } };
-    }
-
-    // Check the number of admin users
-    const [adminCountResult]: [any[], any] = await connection.query(
-      "SELECT COUNT(*) as adminCount FROM users WHERE role = 'Admin'"
-    );
-    const adminCount = adminCountResult[0].adminCount;
-
-    if (role === "Admin" && adminCount >= 2) {
-      await connection.rollback();
-      return { errors: { role: ["Maximum admin accounts reached."] } };
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const [userResult] = await connection.query(
-      `INSERT INTO users (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)`,
-      [first_name, last_name, role, email, hashedPassword]
-    );
-
-    const userId = (userResult as any).insertId;
-
-    const sessionToken = await createSession(userId.toString());
-    await connection.query(
-      `INSERT INTO sessions (user_id, session_token) VALUES (?, ?)`,
-      [userId, sessionToken]
-    );
-
-    await connection.commit();
-
-    return {
-      success: true,
-      message: "User signed up successfully.",
-      userId,
-      sessionToken,
-    };
-  } catch (error: any) {
-    await connection.rollback();
-    console.error("Sign-up error:", error);
-    return {
-      errors: {
-        server: ["An error occurred while signing up. Please try again."],
-      },
-    };
-  } finally {
-    connection.release();
-  }
-}
+import { FileData, FormState, LoginFormSchema } from "./definitions";
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();
@@ -470,7 +332,6 @@ export async function handlePut(req: NextRequest, id: string) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error updating product:", error);
     await connection.rollback();
     return NextResponse.json(
       { error: "Failed to update product" },
@@ -530,7 +391,6 @@ export async function handleDelete(req: NextRequest, id: string) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error deleting product:", error);
     await connection.rollback();
     return NextResponse.json(
       { error: "Failed to delete product" },
@@ -563,7 +423,6 @@ export async function handleCategoryPut(req: NextRequest, id: string) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error updating category:", error);
     await connection.rollback();
     return NextResponse.json(
       { error: "Failed to update category" },
@@ -620,7 +479,6 @@ export async function handleCategoryDelete(req: NextRequest, name: string) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error deleting category:", error);
     await connection.rollback();
     return NextResponse.json(
       { error: "Failed to delete category" },
@@ -629,4 +487,186 @@ export async function handleCategoryDelete(req: NextRequest, name: string) {
   } finally {
     connection.release();
   }
+}
+
+export async function signUp(
+  state: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const connection = await getConnection();
+
+  // Validate form fields
+  const validatedFields = signUpSchema.safeParse({
+    first_name: formData.get("first_name")?.toString() ?? "",
+    last_name: formData.get("last_name")?.toString() ?? "",
+    role: formData.get("role")?.toString() ?? "",
+    email: formData.get("email")?.toString() ?? "",
+    password: formData.get("password")?.toString() ?? "",
+    password1: formData.get("password1")?.toString() ?? "",
+  });
+
+  // If any form fields are invalid, return early
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { first_name, last_name, role, email, password } = validatedFields.data;
+
+  try {
+    await connection.beginTransaction();
+
+    // Create tables if they don't exist
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('Admin', 'User') DEFAULT 'User'
+      );
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        session_token VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+    `);
+
+    // Check if the user's email already exists
+    const [existingUserRows]: [RowDataPacket[], FieldPacket[]] =
+      await connection.query("SELECT * FROM users WHERE email = ?", [email]);
+
+    if (existingUserRows.length > 0) {
+      await connection.rollback();
+      return {
+        errors: { email: ["Email is already in use."] },
+      };
+    }
+
+    // Check the number of admin users
+    const [adminCountResult]: [RowDataPacket[], FieldPacket[]] =
+      await connection.query(
+        "SELECT COUNT(*) as adminCount FROM users WHERE role = 'Admin'"
+      );
+    const adminCount = adminCountResult[0].adminCount;
+
+    if (role === "Admin" && adminCount >= 2) {
+      await connection.rollback();
+      return { errors: { role: ["Maximum admin accounts reached."] } };
+    }
+
+    // Hash the user's password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert the user into the database
+    const [userResult]: [RowDataPacket[], FieldPacket[]] =
+      await connection.query(
+        `INSERT INTO users (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)`,
+        [first_name, last_name, role, email, hashedPassword]
+      );
+
+    const userId = (userResult as any).insertId;
+
+    // Create a session for the user
+    const sessionToken = await createSession(userId.toString());
+    await connection.query(
+      `INSERT INTO sessions (user_id, session_token) VALUES (?, ?)`,
+      [userId, sessionToken]
+    );
+
+    await connection.commit();
+
+    return {
+      success: true,
+      message: "User signed up successfully.",
+      userId,
+      sessionToken,
+    };
+  } catch (error: any) {
+    await connection.rollback();
+    return {
+      errors: {
+        server: ["An error occurred while signing up. Please try again."],
+      },
+    };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function login(
+  state: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const connection = await getConnection();
+
+  // 1. Validate form fields
+  const validatedFields = LoginFormSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  const errorMessage = { errors: { server: ["Invalid login credentials."] } };
+  const userNotFoundError = { errors: { server: ["User not found."] } };
+
+  // If any form fields are invalid, return early
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const email = validatedFields.data.email;
+
+  try {
+    // 2. Query the database for the user with the given email
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT id, email, password FROM users WHERE email = ?`,
+      [email]
+    );
+
+    const user = rows[0]; // Extract the first row from the result
+
+    // If user is not found, return early
+    if (!user) {
+      return userNotFoundError;
+    }
+
+    // 3. Compare the user's password with the hashed password in the database
+    const passwordMatch = await bcrypt.compare(
+      validatedFields.data.password,
+      user.password
+    );
+
+    // If the password does not match, return early
+    if (!passwordMatch) {
+      return errorMessage;
+    }
+
+    // 4. If login is successful, create a session for the user
+    const userId = user.id.toString();
+    const sessionToken = await createSession(userId);
+
+    // Return success message with session token or any other relevant data
+    return {
+      success: true,
+      message: "Login successful!",
+      sessionToken,
+    };
+  } catch (error) {
+    return { errors: { server: ["An error occurred during login."] } };
+  } finally {
+    connection.release(); // Ensure the connection is released
+  }
+}
+
+export async function logout() {
+  deleteSession();
 }

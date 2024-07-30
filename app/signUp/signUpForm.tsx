@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter
-import Link from "next/link";
-import { z } from "zod";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useFormState, useFormStatus } from "react-dom";
+import { signUp } from "@/lib/actions";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -12,66 +15,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { signUp } from "@/lib/actions";
-import { signUpSchema } from "@/lib/utils";
 
-type ErrorType = {
-  first_name?: string[];
-  last_name?: string[];
-  role?: string[];
-  email?: string[];
-  password?: string[];
-  password1?: string[];
-  server?: string[];
-};
+export default function SignupForm() {
+  const router = useRouter();
+  const [state, action] = useFormState(signUp, undefined);
 
-const initialState = {
-  message: "",
-  errors: {} as ErrorType,
-};
-
-export default function SignUpForm() {
-  const [state, setState] = useState(initialState);
-  const [pending, setPending] = useState(false);
-  const router = useRouter(); // Initialize useRouter
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setPending(true);
-
-    const formData = new FormData(event.currentTarget);
-    const validationResult = signUpSchema.safeParse(
-      Object.fromEntries(formData)
-    );
-
-    if (!validationResult.success) {
-      setState({
-        message: "There was an error with your submission.",
-        errors: validationResult.error.flatten().fieldErrors,
-      });
-      setPending(false);
-      return;
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/login");
+    } else if (state?.errors?.email) {
+      console.error("Invalid email");
+    } else if (state?.errors?.password) {
+      console.error("Passwords does not match");
     }
-
-    const response = await signUp(formData);
-
-    if ("errors" in response) {
-      setState({
-        message: "There was an error with your submission.",
-        errors: response.errors as ErrorType,
-      });
-    } else {
-      setState({ message: "Successfully created", errors: {} });
-      router.push("/login"); // Redirect to login page
-    }
-
-    setPending(false);
-  };
+  }, [state, router]);
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form action={action}>
       <Card className="mx-auto max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign Up</CardTitle>
@@ -80,65 +40,64 @@ export default function SignUpForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
+          <div className="grid gap-2">
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="first_name">First name</Label>
-                <Input id="first_name" name="first_name" placeholder="Max" />
-                {state.errors.first_name && (
-                  <span className="text-red-500">
-                    {state.errors.first_name[0]}
-                  </span>
-                )}
+              <div>
+                <Label htmlFor="first_name">First Name</Label>
+                <Input id="first_name" name="first_name" placeholder="John" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="last_name">Last name</Label>
-                <Input id="last_name" name="last_name" placeholder="Robinson" />
-                {state.errors.last_name && (
-                  <span className="text-red-500">
-                    {state.errors.last_name[0]}
-                  </span>
-                )}
+              {state?.errors?.first_name && (
+                <p className="text-sm text-red-500">
+                  {state.errors.first_name}
+                </p>
+              )}
+              <div>
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input id="last_name" name="last_name" placeholder="Doe" />
               </div>
+              {state?.errors?.last_name && (
+                <p className="text-sm text-red-500">{state.errors.last_name}</p>
+              )}
             </div>
-            <div className="grid gap-2">
+            <div>
               <Label htmlFor="role">Role</Label>
               <Input id="role" name="role" placeholder="User" />
-              {state.errors.role && (
-                <span className="text-red-500">{state.errors.role[0]}</span>
-              )}
             </div>
-            <div className="grid gap-2">
+            {state?.errors?.role && (
+              <p className="text-sm text-red-500">{state.errors.role}</p>
+            )}
+            <div>
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="m@example.com"
-              />
-              {state.errors.email && (
-                <span className="text-red-500">{state.errors.email[0]}</span>
-              )}
+              <Input id="email" name="email" placeholder="john@example.com" />
             </div>
-            <div className="grid gap-2">
+            {state?.errors?.email && (
+              <p className="text-sm text-red-500">{state.errors.email}</p>
+            )}
+            <div>
               <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" />
-              {state.errors.password && (
-                <span className="text-red-500">{state.errors.password[0]}</span>
-              )}
             </div>
-            <div className="grid gap-2">
+            {state?.errors?.password && (
+              <div className="text-sm text-red-500">
+                <p>Password must:</p>
+                <ul>
+                  {state.errors.password.map((error) => (
+                    <li key={error}>- {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div>
               <Label htmlFor="password1">Confirm Password</Label>
               <Input id="password1" name="password1" type="password" />
-              {state.errors.password1 && (
-                <span className="text-red-500">
-                  {state.errors.password1[0]}
-                </span>
-              )}
             </div>
-            <SubmitButton pending={pending} />
-          </div>
 
+            {state?.errors?.server && (
+              <p className="text-sm text-red-500">{state.errors.server}</p>
+            )}
+
+            <SignupButton />
+          </div>
           <div className="mt-4 text-center text-sm">
             Already have an account?{" "}
             <Link href="/login" className="underline">
@@ -151,10 +110,12 @@ export default function SignUpForm() {
   );
 }
 
-function SubmitButton({ pending }: { pending: boolean }) {
+function SignupButton() {
+  const { pending } = useFormStatus();
+
   return (
-    <Button type="submit" aria-disabled={pending} className="w-full">
-      {pending ? "Creating account..." : "Create an account"}
+    <Button aria-disabled={pending} type="submit" className="mt-2 w-full">
+      {pending ? "Loading..." : "Sign Up"}
     </Button>
   );
 }

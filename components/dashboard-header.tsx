@@ -3,15 +3,6 @@ import { CircleUser, Menu, Package2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,52 +20,44 @@ export default function DashboardHeader() {
         <nav className="hidden flex-col gap-6 md:flex md:flex-row md:items-center justify-center md:gap-5 md:text-sm lg:gap-6">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 text-md font-semibold md:text-base"
-          >
+            className="flex items-center gap-2 text-md font-semibold md:text-base">
             <Package2 className="h-6 w-6" />
             <span className="sr-only">Bernzz</span>
           </Link>
 
           <Link
             href="/dashboard/products"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Products
           </Link>
           <Link
             href="/dashboard/categories"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Categories
           </Link>
           <Link
             href="/dashboard/customers"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Customers
           </Link>
           <Link
             href="/dashboard/invoices"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Invoices
           </Link>
           <Link
             href="/dashboard/orders"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Orders
           </Link>
           <Link
             href="/dashboard/blog"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Blog
           </Link>
           <Link
             href="/dashboard/settings"
-            className="text-foreground transition-colors hover:text-foreground text-md"
-          >
+            className="text-foreground transition-colors hover:text-foreground text-md">
             Settings
           </Link>
         </nav>
@@ -83,8 +66,7 @@ export default function DashboardHeader() {
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0 md:hidden"
-            >
+              className="shrink-0 md:hidden">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle navigation menu</span>
             </Button>
@@ -93,34 +75,29 @@ export default function DashboardHeader() {
             <nav className="grid gap-6 text-xl font-medium">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 text-md font-semibold"
-              >
+                className="flex items-center gap-2 text-md font-semibold">
                 <Package2 className="h-6 w-6" />
                 <span className="sr-only">Acme Inc</span>
               </Link>
 
               <Link
                 href="/dashboard/products"
-                className="text-muted-foreground hover:text-foreground"
-              >
+                className="text-muted-foreground hover:text-foreground">
                 Products
               </Link>
               <Link
                 href="/dashboard/categories"
-                className="text-muted-foreground hover:text-foreground"
-              >
+                className="text-muted-foreground hover:text-foreground">
                 Categories
               </Link>
               <Link
                 href="/dashboard/customers"
-                className="text-muted-foreground hover:text-foreground"
-              >
+                className="text-muted-foreground hover:text-foreground">
                 Customers
               </Link>
               <Link
                 href="/dashboard/invoices"
-                className="hover:text-foreground"
-              >
+                className="hover:text-foreground">
                 Invoices
               </Link>
               <Link href="/dashboard/orders" className="hover:text-foreground">
@@ -131,8 +108,7 @@ export default function DashboardHeader() {
               </Link>
               <Link
                 href="/dashboard/settings"
-                className="hover:text-foreground"
-              >
+                className="hover:text-foreground">
                 Settings
               </Link>
             </nav>

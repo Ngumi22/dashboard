@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface FileData {
   main_image: File;
   thumbnail1: File;
@@ -167,3 +169,25 @@ export type SignUpResponseError = {
   };
 };
 export type SignUpResponse = SignUpResponseSuccess | SignUpResponseError;
+
+export const LoginFormSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email." }),
+  password: z.string().min(1, { message: "Password field must not be empty." }),
+});
+
+export type FormState =
+  | {
+      errors?: {
+        first_name?: string[];
+        last_name?: string[];
+        role?: string[];
+        email?: string[];
+        password?: string[];
+        server?: string[];
+      };
+      success?: boolean;
+      message?: string;
+      userId?: number;
+      sessionToken?: string;
+    }
+  | undefined;

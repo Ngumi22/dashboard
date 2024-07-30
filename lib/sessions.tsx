@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { SessionPayload } from "./definitions";
 import { redirect } from "next/navigation";
 
-const secretKey = process.env.SECRET;
+const secretKey = process.env.JWT_SECRET;
 const key = new TextEncoder().encode(secretKey);
 
 export async function encrypt(payload: SessionPayload) {
