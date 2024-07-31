@@ -1,13 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFormState, useFormStatus } from "react-dom";
 import { signUp } from "@/lib/actions";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -16,9 +16,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+// Define password validation criteria
+const passwordCriteria = [
+  { regex: /.{8,}/, message: "At least 8 characters" },
+  { regex: /[A-Z]/, message: "At least one uppercase letter" },
+  { regex: /[a-z]/, message: "At least one lowercase letter" },
+  { regex: /[0-9]/, message: "At least one number" },
+  { regex: /[^A-Za-z0-9]/, message: "At least one special character" },
+];
+
 export default function SignupForm() {
   const router = useRouter();
   const [state, action] = useFormState(signUp, undefined);
+  const [password, setPassword] = useState("");
+  const [password1, setPassword1] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [passwordMatchError, setPasswordMatchError] = useState("");
 
   useEffect(() => {
     if (state?.success) {
@@ -26,9 +39,26 @@ export default function SignupForm() {
     } else if (state?.errors?.email) {
       console.error("Invalid email");
     } else if (state?.errors?.password) {
-      console.error("Passwords does not match");
+      console.error("Password does not meet criteria");
+    } else if (password !== password1) {
+      console.error("Passwords do not match");
     }
-  }, [state, router]);
+  }, [state, router, password, password1]);
+
+  useEffect(() => {
+    const errors = passwordCriteria
+      .filter((criteria) => !criteria.regex.test(password))
+      .map((criteria) => criteria.message);
+
+    setPasswordErrors(errors);
+
+    // Check if passwords match
+    if (password1 && password !== password1) {
+      setPasswordMatchError("Passwords do not match.");
+    } else {
+      setPasswordMatchError("");
+    }
+  }, [password, password1]);
 
   return (
     <form action={action}>
@@ -75,27 +105,46 @@ export default function SignupForm() {
             )}
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
-            {state?.errors?.password && (
-              <div className="text-sm text-red-500">
+            <div>
+              <Label htmlFor="password1">Confirm Password</Label>
+              <Input
+                id="password1"
+                name="password1"
+                type="password"
+                onChange={(e) => setPassword1(e.target.value)}
+              />
+            </div>
+            {passwordErrors.length > 0 && (
+              <div className="text-sm">
                 <p>Password must:</p>
                 <ul>
-                  {state.errors.password.map((error) => (
-                    <li key={error}>- {error}</li>
+                  {passwordCriteria.map((criteria) => (
+                    <li
+                      key={criteria.message}
+                      className={
+                        passwordErrors.includes(criteria.message)
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }>
+                      {criteria.message}
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
-            <div>
-              <Label htmlFor="password1">Confirm Password</Label>
-              <Input id="password1" name="password1" type="password" />
-            </div>
-
+            {passwordMatchError && (
+              <p className="text-sm text-red-500">{passwordMatchError}</p>
+            )}
             {state?.errors?.server && (
               <p className="text-sm text-red-500">{state.errors.server}</p>
             )}
-
             <SignupButton />
           </div>
           <div className="mt-4 text-center text-sm">

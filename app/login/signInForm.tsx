@@ -26,18 +26,6 @@ export default function LoginForm() {
     if (state?.success) {
       // Redirect to dashboard on successful login
       router.push("/dashboard");
-    } else if (state?.errors?.server) {
-      // Redirect to signup if user is not found
-      if (state.errors.server.includes("User not found.")) {
-        router.push("/signUp");
-      }
-      // Handle server-side errors (e.g., invalid credentials)
-      else if (state.errors.server.includes("Invalid login credentials.")) {
-        console.error("Invalid login credentials.");
-      } else {
-        // Handle general errors
-        console.error("An error occurred during login.");
-      }
     }
   }, [state, router]);
 
@@ -81,18 +69,9 @@ export default function LoginForm() {
                   </p>
                 )}
 
-                {state?.errors?.server?.includes(
-                  "Invalid login credentials."
-                ) && (
+                {state?.errors?.server && (
                   <p className="text-sm text-red-500">
-                    Invalid email or password
-                  </p>
-                )}
-                {state?.errors?.server?.includes(
-                  "An error occurred during login."
-                ) && (
-                  <p className="text-sm text-red-500">
-                    An error occurred during login.
+                    {state.errors.server.join(", ")}
                   </p>
                 )}
               </div>

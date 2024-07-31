@@ -1,28 +1,14 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { decrypt } from "./lib/sessions";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { decrypt } from "./lib/sessions";
 
-const protectedRoutes = ["/dashboard", "/dashboard/:path*"];
-const publicRoutes = ["/login", "/signUp"];
+// 1. Specify protected and public routes
+const protectedRoutes = ["/", "/dashboard", "/dashboard/:path*"];
+const publicRoutes = ["/login", "/signup"];
 
-export async function middleware(req: NextRequest) {
+export default async function middleware(req: NextRequest) {
+  // 2. Check if the current route is protected or public
   const path = req.nextUrl.pathname;
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    const res = NextResponse.next();
-    res.headers.set("Access-Control-Allow-Origin", "http://localhost:3001");
-    res.headers.set(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS"
-    );
-    res.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-    return res;
-  }
-
   const isProtectedRoute = protectedRoutes.some((route) =>
     new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
   );
@@ -30,27 +16,33 @@ export async function middleware(req: NextRequest) {
     new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
   );
 
+  // 3. Decrypt the session from the cookie
   const cookie = cookies().get("session")?.value;
-  const session = await decrypt(cookie);
+  let session;
 
+  try {
+    session = await decrypt(cookie); // Ensure decrypt handles errors gracefully
+  } catch (error) {
+    console.error("Error decrypting session:", error); // Log errors for debugging
+    return NextResponse.redirect(new URL("/login", req.nextUrl)); // Redirect on decryption failure
+  }
+
+  // 4. Redirect
   if (isProtectedRoute && !session?.userId) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    return NextResponse.redirect(new URL("/login", req.nextUrl)); // Redirect to login if not authenticated
   }
 
-  if (isPublicRoute && session?.userId && !path.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+  if (
+    isPublicRoute &&
+    session?.userId &&
+    !req.nextUrl.pathname.startsWith("/dashboard")
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl)); // Redirect to dashboard if authenticated and accessing public routes
   }
 
-  const res = NextResponse.next();
-  res.headers.set("Access-Control-Allow-Origin", "http://localhost:3001");
-  res.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-  res.headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
-  return res;
+  return NextResponse.next(); // Continue to requested path if no redirection is needed
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*"],
+  matcher: ["/", "/dashboard/:path*", "/api/:path*"],
 };

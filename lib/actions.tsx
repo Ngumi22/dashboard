@@ -505,7 +505,6 @@ export async function signUp(
     password1: formData.get("password1")?.toString() ?? "",
   });
 
-  // If any form fields are invalid, return early
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
@@ -585,12 +584,13 @@ export async function signUp(
 
     return {
       success: true,
-      message: "User signed up successfully.",
+      message: "User signed up successfully. Please log in.",
       userId,
       sessionToken,
     };
   } catch (error: any) {
     await connection.rollback();
+    console.error("Sign-up error:", error);
     return {
       errors: {
         server: ["An error occurred while signing up. Please try again."],

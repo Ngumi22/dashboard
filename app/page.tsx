@@ -1,7 +1,5 @@
-export default function LoginPage() {
-  return (
-    <main className="flex items-center justify-center md:h-screen">
-      <p>Home</p>
-    </main>
-  );
+import LoginForm from "./login/signInForm";
+
+export default function page() {
+  return <div>Home</div>;
 }

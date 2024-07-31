@@ -76,6 +76,8 @@
 
     "next-auth": "^5.0.0-beta.19",
 
+    "nodemailer": "^6.9.14",
+
     "react": "^18",
 
     "react-dom": "^18",
@@ -85,6 +87,8 @@
     "tailwind-merge": "^2.3.0",
 
     "tailwindcss-animate": "^1.0.7",
+
+    "uuid": "^10.0.0",
 
     "validator": "^13.12.0",
 
@@ -108,9 +112,13 @@
 
     "@types/node": "^20.12.12",
 
+    "@types/nodemailer": "^6.4.15",
+
     "@types/react": "18.3.3",
 
     "@types/react-dom": "^18",
+
+    "@types/uuid": "^10.0.0",
 
     "@types/validator": "^13.11.10",
 

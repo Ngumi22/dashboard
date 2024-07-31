@@ -190,16 +190,28 @@ export function mapUserRow(row: UserRow): User {
   };
 }
 
+const passwordSchema = z
+  .string()
+  .min(4, { message: "Password must be at least 4 characters long." })
+  .regex(/[a-z]/, {
+    message: "Password must contain at least one lowercase letter.",
+  })
+  .regex(/[A-Z]/, {
+    message: "Password must contain at least one uppercase letter.",
+  })
+  .regex(/\d/, { message: "Password must contain at least one number." })
+  .regex(/[@$!%*?&]/, {
+    message: "Password must contain at least one special character.",
+  });
+
 export const signUpSchema = z
   .object({
     first_name: z.string().min(2, "Name must be at least 2 characters long"),
     last_name: z.string().min(2, "Name must be at least 2 characters long"),
     role: z.enum(["Admin", "User"]),
     email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters long"),
-    password1: z
-      .string()
-      .min(6, "Confirm password must be at least 6 characters long"),
+    password: passwordSchema,
+    password1: passwordSchema,
   })
   .refine((data) => data.password === data.password1, {
     message: "Passwords must match",

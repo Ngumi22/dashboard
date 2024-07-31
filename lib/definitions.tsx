@@ -183,6 +183,7 @@ export type FormState =
         role?: string[];
         email?: string[];
         password?: string[];
+        password1?: string[];
         server?: string[];
       };
       success?: boolean;
