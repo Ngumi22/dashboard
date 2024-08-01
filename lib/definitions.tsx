@@ -128,11 +128,6 @@ export interface ProductFilter {
   brands?: string;
 }
 
-export type SessionPayload = {
-  userId: string | number;
-  expiresAt: Date;
-};
-
 export type UserRow = {
   id: number;
   first_name: string;
@@ -192,3 +187,8 @@ export type FormState =
       sessionToken?: string;
     }
   | undefined;
+
+export type SessionPayload = {
+  userId: string | number;
+  expiresAt: Date;
+};

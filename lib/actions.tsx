@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import validator from "validator";
 import { FileData, FormState, LoginFormSchema } from "./definitions";
+import { sendVerificationEmail } from "./emailVerification";
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();
@@ -524,7 +525,8 @@ export async function signUp(
         last_name VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        role ENUM('Admin', 'User') DEFAULT 'User'
+        role ENUM('Admin', 'User') DEFAULT 'User',
+        is_verified BOOLEAN DEFAULT FALSE
       );
     `);
 
@@ -579,6 +581,8 @@ export async function signUp(
       `INSERT INTO sessions (user_id, session_token) VALUES (?, ?)`,
       [userId, sessionToken]
     );
+
+    await sendVerificationEmail(email, sessionToken);
 
     await connection.commit();
 
