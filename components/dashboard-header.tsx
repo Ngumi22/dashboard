@@ -1,6 +1,8 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CircleUser, Menu, Package2, Search } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,8 +14,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { logout } from "@/lib/actions"; // Ensure this path is correct
 
 export default function DashboardHeader() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/login"); // Redirect to login page
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Optionally handle logout errors (e.g., show a notification)
+    }
+  };
   return (
     <div className="flex w-full flex-col">
       <header className="sticky top-0 flex h-24 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -135,10 +149,12 @@ export default function DashboardHeader() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem>
+                <Link href={"/dashboard/settings"}>Settings</Link>
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -16,6 +16,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+
 // Define password validation criteria
 const passwordCriteria = [
   { regex: /.{8,}/, message: "At least 8 characters" },
@@ -32,29 +35,38 @@ export default function SignupForm() {
   const [password1, setPassword1] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [passwordMatchError, setPasswordMatchError] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     if (state?.success) {
-      router.push("/login");
+      toast({
+        title: "Sign Up Successful",
+        description:
+          "A link has been sent to your email. Please verify your account.",
+      });
     } else if (state?.errors?.email) {
-      console.error("Invalid email");
-    } else if (state?.errors?.password) {
-      console.error("Password does not meet criteria");
-    } else if (password !== password1) {
-      console.error("Passwords do not match");
+      toast({
+        title: "Error",
+        description: state.errors.email.join(", "),
+      });
+    } else if (state?.errors?.server) {
+      toast({
+        title: "Error",
+        description: state.errors.server.join(", "),
+      });
     }
-  }, [state, router, password, password1]);
+  }, [state, router, toast]);
 
   useEffect(() => {
     const errors = passwordCriteria
       .filter((criteria) => !criteria.regex.test(password))
       .map((criteria) => criteria.message);
-
     setPasswordErrors(errors);
+  }, [password]);
 
-    // Check if passwords match
-    if (password1 && password !== password1) {
-      setPasswordMatchError("Passwords do not match.");
+  useEffect(() => {
+    if (password !== password1) {
+      setPasswordMatchError("Passwords do not match");
     } else {
       setPasswordMatchError("");
     }

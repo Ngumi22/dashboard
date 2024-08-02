@@ -496,7 +496,6 @@ export async function signUp(
 ): Promise<FormState> {
   const connection = await getConnection();
 
-  // Validate form fields
   const validatedFields = signUpSchema.safeParse({
     first_name: formData.get("first_name")?.toString() ?? "",
     last_name: formData.get("last_name")?.toString() ?? "",
@@ -517,7 +516,6 @@ export async function signUp(
   try {
     await connection.beginTransaction();
 
-    // Create tables if they don't exist
     await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -540,7 +538,6 @@ export async function signUp(
       );
     `);
 
-    // Check if the user's email already exists
     const [existingUserRows]: [RowDataPacket[], FieldPacket[]] =
       await connection.query("SELECT * FROM users WHERE email = ?", [email]);
 
@@ -551,7 +548,6 @@ export async function signUp(
       };
     }
 
-    // Check the number of admin users
     const [adminCountResult]: [RowDataPacket[], FieldPacket[]] =
       await connection.query(
         "SELECT COUNT(*) as adminCount FROM users WHERE role = 'Admin'"
@@ -563,10 +559,8 @@ export async function signUp(
       return { errors: { role: ["Maximum admin accounts reached."] } };
     }
 
-    // Hash the user's password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert the user into the database
     const [userResult]: [RowDataPacket[], FieldPacket[]] =
       await connection.query(
         `INSERT INTO users (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)`,
@@ -575,12 +569,7 @@ export async function signUp(
 
     const userId = (userResult as any).insertId;
 
-    // Create a session for the user
     const sessionToken = await createSession(userId.toString());
-    await connection.query(
-      `INSERT INTO sessions (user_id, session_token) VALUES (?, ?)`,
-      [userId, sessionToken]
-    );
 
     await sendVerificationEmail(email, sessionToken);
 
@@ -588,9 +577,9 @@ export async function signUp(
 
     return {
       success: true,
-      message: "User signed up successfully. Please log in.",
+      message:
+        "User signed up successfully. A verification email has been sent.",
       userId,
-      sessionToken,
     };
   } catch (error: any) {
     await connection.rollback();
@@ -611,7 +600,6 @@ export async function login(
 ): Promise<FormState> {
   const connection = await getConnection();
 
-  // 1. Validate form fields
   const validatedFields = LoginFormSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -620,7 +608,6 @@ export async function login(
   const errorMessage = { errors: { server: ["Invalid login credentials."] } };
   const userNotFoundError = { errors: { server: ["User not found."] } };
 
-  // If any form fields are invalid, return early
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
@@ -630,35 +617,35 @@ export async function login(
   const email = validatedFields.data.email;
 
   try {
-    // 2. Query the database for the user with the given email
     const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      `SELECT id, email, password FROM users WHERE email = ?`,
+      `SELECT id, email, password, is_verified FROM users WHERE email = ?`,
       [email]
     );
 
-    const user = rows[0]; // Extract the first row from the result
+    const user = rows[0];
 
-    // If user is not found, return early
     if (!user) {
       return userNotFoundError;
     }
 
-    // 3. Compare the user's password with the hashed password in the database
+    if (!user.is_verified) {
+      return {
+        errors: { server: ["Please verify your email before logging in."] },
+      };
+    }
+
     const passwordMatch = await bcrypt.compare(
       validatedFields.data.password,
       user.password
     );
 
-    // If the password does not match, return early
     if (!passwordMatch) {
       return errorMessage;
     }
 
-    // 4. If login is successful, create a session for the user
     const userId = user.id.toString();
     const sessionToken = await createSession(userId);
 
-    // Return success message with session token or any other relevant data
     return {
       success: true,
       message: "Login successful!",
@@ -667,7 +654,7 @@ export async function login(
   } catch (error) {
     return { errors: { server: ["An error occurred during login."] } };
   } finally {
-    connection.release(); // Ensure the connection is released
+    connection.release();
   }
 }
 

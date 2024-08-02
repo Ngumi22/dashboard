@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConnection } from "../../../lib/db"; // Adjust path as needed
+import { getConnection } from "@/lib/db"; // Adjust path as needed
 import { decrypt } from "@/lib/sessions";
 
 export async function GET(req: NextRequest) {
@@ -22,10 +22,7 @@ export async function GET(req: NextRequest) {
     ]);
     connection.release();
 
-    return NextResponse.json(
-      { message: "Email verified successfully." },
-      { status: 200 }
-    );
+    return NextResponse.redirect(new URL(`/verify?token=${token}`, req.url));
   } catch (error) {
     console.error("Email verification error:", error);
     return NextResponse.json(
