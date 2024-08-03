@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchProductByIdFromDb } from "@/lib/data";
 import { handleDelete, handlePut } from "@/lib/actions";
+import { authMiddleware } from "@/lib/auth-middleware";
 
 export async function GET(
   req: NextRequest,
@@ -28,45 +29,46 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  await authMiddleware(req);
 
-  // Check if ID is provided
-  if (!id) {
-    return NextResponse.json({ error: "ID not provided" }, { status: 400 });
+  const user = (req as any).user;
+  const isAdmin = user.role === "Admin";
+
+  const response = await handlePut(req, params.id);
+
+  if (!isAdmin) {
+    if (response.body) {
+      const reader = response.body.getReader();
+      const { value } = await reader.read();
+      const decodedValue = new TextDecoder().decode(value);
+      const responseBody = JSON.parse(decodedValue);
+
+      responseBody.status = "draft";
+      const updatedResponse = NextResponse.json(responseBody, {
+        status: response.status,
+      });
+      return updatedResponse;
+    } else {
+      const responseBody = await response.json();
+      responseBody.status = "draft";
+      return NextResponse.json(responseBody, { status: response.status });
+    }
   }
 
-  try {
-    // Call handlePut function to update the product
-    const product = await handlePut(req, id);
-    return product;
-  } catch (error) {
-    console.error("Error Updating product:", error);
-    // Return 500 Internal Server Error if there's an error
-    return NextResponse.json(
-      { error: "Failed to update product" },
-      { status: 500 }
-    );
-  }
+  return response;
 }
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
-  if (!id) {
-    return NextResponse.json({ error: "ID is required" }, { status: 400 });
+  await authMiddleware(req);
+
+  const user = (req as any).user;
+  if (user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  try {
-    // Call handleDelete with the id parameter
-    const product = await handleDelete(req, id);
-    return product;
-  } catch (error) {
-    console.error("Error deleting product:", error);
-    return NextResponse.json(
-      { error: "Failed to delete product" },
-      { status: 500 }
-    );
-  }
+  const response = await handleDelete(req, params.id);
+  return response;
 }

@@ -14,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { UploadFormProps } from "@/lib/definitions";
+import { useRouter } from "next/navigation";
 
 export default function UploadForm({
   initialData,
@@ -23,6 +23,7 @@ export default function UploadForm({
   isEdit,
 }: UploadFormProps & { isEdit: boolean }) {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [mainImage, setMainImage] = useState<File | null>(null);
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(
@@ -43,7 +44,7 @@ export default function UploadForm({
     initialData?.quantity || ""
   );
   const [productDiscount, setProductDiscount] = useState<string>(
-    initialData?.discount || 0
+    initialData?.discount || ""
   );
   const [productDescription, setProductDescription] = useState<string>(
     initialData?.description || ""
@@ -137,6 +138,8 @@ export default function UploadForm({
           ? "Product Successfully updated"
           : `Product ${productName} successfully added`,
       });
+
+      router.push("/dashboard/products");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -152,17 +155,28 @@ export default function UploadForm({
     e: React.ChangeEvent<HTMLInputElement>,
     index: number
   ) => {
-    const files = Array.from(e.target.files || []);
-    setThumbnails((prev) => {
-      const newThumbnails = [...prev];
-      newThumbnails[index] = files[0];
-      return newThumbnails;
-    });
+    const file = e.target.files ? e.target.files[0] : null;
+    if (file) {
+      const newThumbnails = [...thumbnails];
+      newThumbnails[index] = file;
+      setThumbnails(newThumbnails);
 
-    const newPreviews = [...thumbnailPreviews];
-    newPreviews[index] = URL.createObjectURL(files[0]);
-    setThumbnailPreviews(newPreviews);
+      const newPreviews = [...thumbnailPreviews];
+      newPreviews[index] = URL.createObjectURL(file);
+      setThumbnailPreviews(newPreviews);
+
+      // Reset file input value to allow reselecting the same file
+      e.target.value = "";
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      // Revoke object URLs on component unmount
+      if (mainImagePreview) URL.revokeObjectURL(mainImagePreview);
+      thumbnailPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, [mainImagePreview, thumbnailPreviews]);
 
   return (
     <section className="container my-8">
@@ -251,97 +265,118 @@ export default function UploadForm({
                 <SelectTrigger className="w-60">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
-
                 <SelectContent>
-                  {uniqueCategories.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
+                  {uniqueCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="my-2">Or create new category</p>
-              <Label htmlFor="category">Category</Label>
+              <p className="my-2">or Create New Category</p>
               <Input
                 className="w-60"
+                type="text"
                 value={productCategory}
                 onChange={(e) => {
                   setProductCategory(e.target.value);
-                  setSelectedCategory(""); // Clear selected category when typing new category
+                  setSelectedCategory(""); // Clear selected category when entering a new category
+                }}
+                placeholder="Enter new category"
+              />
+            </div>
+            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+              <Label>Status</Label>
+              <Select
+                value={productStatus}
+                onValueChange={(value) =>
+                  setProductStatus(value as "Archived" | "Active" | "Draft")
+                }>
+                <SelectTrigger className="w-60">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Archived">Archived</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex flex-col items-center">
+              <Label htmlFor="main_image">Main Image</Label>
+              {mainImagePreview && (
+                <img
+                  className="w-40 h-40 rounded-lg mb-2"
+                  src={mainImagePreview}
+                  alt="Main Image Preview"
+                />
+              )}
+              <Input
+                className="hidden"
+                id="main_image"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files ? e.target.files[0] : null;
+                  if (file) {
+                    setMainImage(file);
+                    setMainImagePreview(URL.createObjectURL(file));
+
+                    // Clean up URL object URL
+                    URL.revokeObjectURL(mainImagePreview!);
+
+                    // Reset file input value to allow reselecting the same file
+                    e.target.value = "";
+                  }
                 }}
               />
+              <Button
+                type="button"
+                onClick={() => document.getElementById("main_image")?.click()}>
+                Upload Main Image
+              </Button>
             </div>
 
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="status">Status</Label>
-              <select
-                className="w-60"
-                value={productStatus}
-                onChange={(e) =>
-                  setProductStatus(
-                    e.target.value as "Archived" | "Active" | "Draft"
-                  )
-                }>
-                <option value="Draft">Draft</option>
-                <option value="Active">Active</option>
-                <option value="Archived">Archived</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="">
-            <div className="flex w-full max-w-sm items-center gap-1">
-              <div className="flex w-full max-w-sm items-center gap-1">
-                <Label htmlFor="picture">Main Image</Label>
-                <Input
-                  className="w-60"
-                  id="picture"
-                  type="file"
-                  name="main_image"
-                  onChange={(e) => {
-                    const file = e.target.files ? e.target.files[0] : null;
-                    setMainImage(file);
-                    if (file) {
-                      setMainImagePreview(URL.createObjectURL(file));
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            {[...Array(5)].map((_, index) => (
-              <div
-                key={index}
-                className="flex w-full max-w-sm items-center gap-1 my-4">
-                <Label htmlFor={`thumbnail${index}`}>
-                  Thumbnail {index + 1}
-                </Label>
-                <Input
-                  className="w-60"
-                  id={`thumbnail${index}`}
-                  type="file"
-                  name={`thumbnail${index + 1}`}
-                  onChange={(e) => handleThumbnailChange(e, index)}
-                />
-                {thumbnailPreviews[index] && (
-                  <img
-                    src={thumbnailPreviews[index]}
-                    alt={`Thumbnail ${index + 1} Preview`}
-                    className="w-12 h-12 object-contain"
+            <div className="flex flex-wrap gap-4 justify-center mt-4">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <Label htmlFor={`thumbnail${index + 1}`}>
+                    Thumbnail {index + 1}
+                  </Label>
+                  {thumbnailPreviews[index] && (
+                    <img
+                      className="w-20 h-20 rounded-lg mb-2"
+                      src={thumbnailPreviews[index]}
+                      alt={`Thumbnail ${index + 1} Preview`}
+                    />
+                  )}
+                  <Input
+                    className="hidden"
+                    id={`thumbnail${index + 1}`}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleThumbnailChange(e, index)}
                   />
-                )}
-              </div>
-            ))}
-
-            {mainImagePreview && (
-              <img
-                src={mainImagePreview}
-                alt="Main Image Preview"
-                className="w-12 h-12 object-contain"
-              />
-            )}
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById(`thumbnail${index + 1}`)?.click()
+                    }>
+                    Upload Thumbnail {index + 1}
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <Button type="submit">Submit</Button>
+        <div className="flex justify-center my-4">
+          <Button type="submit" variant="outline">
+            {isEdit ? "Update Product" : "Submit"}
+          </Button>
+        </div>
       </form>
     </section>
   );

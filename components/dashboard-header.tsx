@@ -35,7 +35,7 @@ export default function DashboardHeader() {
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-md font-semibold md:text-base">
-            <Package2 className="h-6 w-6" />
+            <span>Bernzz</span>
             <span className="sr-only">Bernzz</span>
           </Link>
 

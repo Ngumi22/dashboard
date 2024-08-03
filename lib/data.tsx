@@ -757,3 +757,14 @@ export async function fetchUserByEmail(email: string): Promise<UserRow[]> {
     connection.release();
   }
 }
+export async function getUserById(userId: any) {
+  const connection = await getConnection();
+  const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+    "SELECT * FROM users WHERE id = ?",
+    [userId]
+  );
+  connection.release();
+
+  if (rows.length === 0) return null;
+  return rows[0];
+}
