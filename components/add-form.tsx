@@ -116,6 +116,7 @@ export default function UploadForm({
     thumbnails.forEach((thumbnail, index) =>
       data.append(`thumbnail${index + 1}`, thumbnail)
     );
+
     data.append("name", productName);
     data.append("sku", productSKU);
     data.append("price", productPrice);
@@ -179,9 +180,9 @@ export default function UploadForm({
   }, [mainImagePreview, thumbnailPreviews]);
 
   return (
-    <section className="container my-8">
+    <section className="my-8">
       <form onSubmit={handleSubmit}>
-        <div className="flex justify-center gap-40">
+        <div className="flex">
           <div>
             <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
               <Label htmlFor="name">Product Name</Label>
@@ -305,71 +306,44 @@ export default function UploadForm({
           </div>
 
           <div>
-            <div className="flex flex-col items-center">
-              <Label htmlFor="main_image">Main Image</Label>
-              {mainImagePreview && (
-                <img
-                  className="w-40 h-40 rounded-lg mb-2"
-                  src={mainImagePreview}
-                  alt="Main Image Preview"
-                />
-              )}
-              <Input
-                className="hidden"
-                id="main_image"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files ? e.target.files[0] : null;
-                  if (file) {
-                    setMainImage(file);
-                    setMainImagePreview(URL.createObjectURL(file));
-
-                    // Clean up URL object URL
-                    URL.revokeObjectURL(mainImagePreview!);
-
-                    // Reset file input value to allow reselecting the same file
-                    e.target.value = "";
-                  }
-                }}
+            <Label>Upload Main Image</Label>
+            <Input
+              className="w-60"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files ? e.target.files[0] : null;
+                if (file) {
+                  setMainImage(file);
+                  setMainImagePreview(URL.createObjectURL(file));
+                }
+              }}
+            />
+            {mainImagePreview && (
+              <img
+                src={mainImagePreview}
+                alt="Main Image Preview"
+                className="w-16 h-auto mt-2"
               />
-              <Button
-                type="button"
-                onClick={() => document.getElementById("main_image")?.click()}>
-                Upload Main Image
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-4 justify-center mt-4">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="flex flex-col items-center">
-                  <Label htmlFor={`thumbnail${index + 1}`}>
-                    Thumbnail {index + 1}
-                  </Label>
-                  {thumbnailPreviews[index] && (
-                    <img
-                      className="w-20 h-20 rounded-lg mb-2"
-                      src={thumbnailPreviews[index]}
-                      alt={`Thumbnail ${index + 1} Preview`}
-                    />
-                  )}
-                  <Input
-                    className="hidden"
-                    id={`thumbnail${index + 1}`}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleThumbnailChange(e, index)}
+            )}
+            <Label className="mt-4">Upload Thumbnails</Label>
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="mb-4">
+                <Input
+                  className="w-60"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleThumbnailChange(e, index)}
+                />
+                {thumbnailPreviews[index] && (
+                  <img
+                    src={thumbnailPreviews[index]}
+                    alt={`Thumbnail ${index + 1} Preview`}
+                    className="w-16 h-auto mt-2"
                   />
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      document.getElementById(`thumbnail${index + 1}`)?.click()
-                    }>
-                    Upload Thumbnail {index + 1}
-                  </Button>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
         <div className="flex justify-center my-4">

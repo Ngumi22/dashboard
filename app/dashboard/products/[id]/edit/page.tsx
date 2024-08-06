@@ -21,24 +21,10 @@ export default function EditPage({ params }: { params: { id: string } }) {
           const res = await fetch(`/api/products/${id}`);
           if (res.ok) {
             const product = await res.json();
-            // Convert image data to URLs if needed
-            product.main_image = `data:image/jpeg;base64,${product.images.main_image}`;
-
-            product.thumbnail1 = product.thumbnail1
-              ? `data:image/jpeg;base64,${product.thumbnail1}
-              `
-              : null;
-            product.thumbnail2 = product.thumbnail2
-              ? `data:image/jpeg;base64,${product.thumbnail2}`
-              : null;
-
-            product.thumbnail3 = product.thumbnail3
-              ? `data:image/jpeg;base64,${product.thumbnail3}`
-              : null;
-            product.thumbnail4 = product.thumbnail4
-              ? `data:image/jpeg;base64,${product.thumbnail4}`
-              : null;
-            // Repeat for other thumbnails
+            product.main_image = `data:image/jpeg;base64,${product.images.main}`;
+            product.thumbnails = product.images.thumbnails.map(
+              (thumb: string) => `data:image/jpeg;base64,${thumb}`
+            );
             setProductData(product);
           } else {
             const errorText = await res.text();

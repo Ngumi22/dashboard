@@ -26,8 +26,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -41,7 +39,6 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductData } from "@/lib/definitions";
-import { filterProducts, searchProducts } from "@/lib/utils";
 
 export default function ProductList() {
   const [products, setProducts] = useState<ProductData[]>([]);
@@ -233,8 +230,7 @@ export default function ProductList() {
                   offset: prev.offset - prev.limit,
                 }))
               }
-              className="px-3 py-1 mr-2 bg-green-400 hover:bg-gray-300 rounded-md"
-            >
+              className="px-3 py-1 mr-2 bg-green-400 hover:bg-gray-300 rounded-md">
               Previous
             </button>
           )}
@@ -246,8 +242,7 @@ export default function ProductList() {
                   offset: prev.offset + prev.limit,
                 }))
               }
-              className="px-3 py-1 bg-green-400 hover:bg-gray-300 rounded-md"
-            >
+              className="px-3 py-1 bg-green-400 hover:bg-gray-300 rounded-md">
               Next
             </button>
           )}
@@ -334,8 +329,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     : product.status === "draft"
                     ? "secondary"
                     : "outline"
-                }
-              >
+                }>
                 {product.status}
               </Badge>
             </TableCell>

@@ -28,17 +28,17 @@ export default function DashboardHeader() {
       // Optionally handle logout errors (e.g., show a notification)
     }
   };
+
   return (
     <div className="flex w-full flex-col">
       <header className="sticky top-0 flex h-24 items-center gap-4 border-b bg-background px-4 md:px-6">
-        <nav className="hidden flex-col gap-6 md:flex md:flex-row md:items-center justify-center md:gap-5 md:text-sm lg:gap-6">
+        <nav className="hidden flex-col gap-6 md:flex md:flex-row md:items-center justify-between md:gap-5 md:text-md lg:gap-6">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-md font-semibold md:text-base">
             <span>Bernzz</span>
             <span className="sr-only">Bernzz</span>
           </Link>
-
           <Link
             href="/dashboard/products"
             className="text-foreground transition-colors hover:text-foreground text-md">
@@ -90,7 +90,7 @@ export default function DashboardHeader() {
               <Link
                 href="/dashboard"
                 className="flex items-center gap-2 text-md font-semibold">
-                <Package2 className="h-6 w-6" />
+                <span>Bernzz</span>
                 <span className="sr-only">Acme Inc</span>
               </Link>
 

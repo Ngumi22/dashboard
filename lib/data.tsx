@@ -759,12 +759,17 @@ export async function fetchUserByEmail(email: string): Promise<UserRow[]> {
 }
 export async function getUserById(userId: any) {
   const connection = await getConnection();
-  const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-    "SELECT * FROM users WHERE id = ?",
-    [userId]
-  );
-  connection.release();
-
-  if (rows.length === 0) return null;
-  return rows[0];
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      "SELECT * FROM users WHERE id = ?",
+      [userId]
+    );
+    if (rows.length === 0) return null;
+    return rows[0];
+  } catch (error) {
+    console.error("Error fetching user by Id:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
