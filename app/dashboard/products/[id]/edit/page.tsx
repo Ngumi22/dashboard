@@ -92,7 +92,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      <h1>Edit Product</h1>
       {productData ? (
         <ProductForm
           initialData={productData}

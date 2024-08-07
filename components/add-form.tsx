@@ -16,6 +16,14 @@ import {
 } from "@/components/ui/select";
 import { UploadFormProps } from "@/lib/definitions";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 
 export default function UploadForm({
   initialData,
@@ -180,171 +188,237 @@ export default function UploadForm({
   }, [mainImagePreview, thumbnailPreviews]);
 
   return (
-    <section className="my-8">
+    <section className="container my-8">
       <form onSubmit={handleSubmit}>
-        <div className="flex">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="name">Product Name</Label>
-              <Input
-                className="w-60"
-                type="text"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-              />
-            </div>
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="brand">Product Brand</Label>
-              <Input
-                className="w-60"
-                type="text"
-                value={productBrand}
-                onChange={(e) => setProductBrand(e.target.value)}
-              />
-            </div>
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="sku">SKU</Label>
-              <Input
-                className="w-60"
-                type="text"
-                value={productSKU}
-                onChange={(e) => setProductSKU(e.target.value)}
-              />
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Details</CardTitle>
+                <CardDescription>
+                  Lipsum dolor sit amet, consectetur adipiscing elit
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="name">Product Name</Label>
+                  <Input
+                    className=""
+                    type="text"
+                    value={productName}
+                    onChange={(e) => setProductName(e.target.value)}
+                  />
+                </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="sku">SKU</Label>
+                  <Input
+                    className=""
+                    type="text"
+                    value={productSKU}
+                    onChange={(e) => setProductSKU(e.target.value)}
+                  />
+                </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label>Product Description</Label>
+                  <Textarea
+                    className=""
+                    value={productDescription}
+                    onChange={(e) => setProductDescription(e.target.value)}
+                  />
+                </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="brand">Product Brand</Label>
+                  <Input
+                    className=""
+                    type="text"
+                    value={productBrand}
+                    onChange={(e) => setProductBrand(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="price">Price</Label>
-              <Input
-                className="w-60"
-                id="price"
-                type="number"
-                value={productPrice}
-                onChange={(e) => setProductPrice(e.target.value)}
-              />
-            </div>
+            <Card className="my-4">
+              <CardHeader>
+                <CardTitle>Product Pricing</CardTitle>
+                <CardDescription>
+                  Lipsum dolor sit amet, consectetur adipiscing elit
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="price">Price</Label>
+                  <Input
+                    className=""
+                    id="price"
+                    type="number"
+                    value={productPrice}
+                    onChange={(e) => setProductPrice(e.target.value)}
+                  />
+                </div>
 
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                className="w-60"
-                id="quantity"
-                type="number"
-                value={productQuantity}
-                onChange={(e) => setProductQuantity(e.target.value)}
-              />
-            </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    className=""
+                    id="quantity"
+                    type="number"
+                    value={productQuantity}
+                    onChange={(e) => setProductQuantity(e.target.value)}
+                  />
+                </div>
 
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label htmlFor="discount">Discount</Label>
-              <Input
-                className="w-60"
-                id="discount"
-                type="number"
-                value={productDiscount}
-                onChange={(e) => setProductDiscount(e.target.value)}
-              />
-            </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="discount">Discount</Label>
+                  <Input
+                    className=""
+                    id="discount"
+                    type="number"
+                    value={productDiscount}
+                    onChange={(e) => setProductDiscount(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label>Product Description</Label>
-              <Textarea
-                className="w-60"
-                value={productDescription}
-                onChange={(e) => setProductDescription(e.target.value)}
-              />
-            </div>
+            <Card className="grid w-full max-w-sm items-center gap-1.5 my-4">
+              <CardHeader>
+                <CardTitle>Product Category</CardTitle>
+              </CardHeader>
 
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <p className="my-2">Category</p>
-              <p>Select Existing Category</p>
-              <Select
-                value={selectedCategory}
-                onValueChange={(value) => {
-                  setSelectedCategory(value);
-                  setProductCategory(""); // Clear new category input when selecting existing category
-                }}>
-                <SelectTrigger className="w-60">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="my-2">or Create New Category</p>
-              <Input
-                className="w-60"
-                type="text"
-                value={productCategory}
-                onChange={(e) => {
-                  setProductCategory(e.target.value);
-                  setSelectedCategory(""); // Clear selected category when entering a new category
-                }}
-                placeholder="Enter new category"
-              />
-            </div>
-            <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
-              <Label>Status</Label>
-              <Select
-                value={productStatus}
-                onValueChange={(value) =>
-                  setProductStatus(value as "Archived" | "Active" | "Draft")
-                }>
-                <SelectTrigger className="w-60">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Archived">Archived</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Draft">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <CardContent>
+                <div className="grid gap-3">
+                  <Label htmlFor="category">Select Category</Label>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={(value) => {
+                      setSelectedCategory(value);
+                      setProductCategory(""); // Clear new category input when selecting existing category
+                    }}>
+                    <SelectTrigger className="">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+
+              <CardContent>
+                <Label htmlFor="subcategory">New Category</Label>
+                <Input
+                  className=""
+                  type="text"
+                  value={productCategory}
+                  onChange={(e) => {
+                    setProductCategory(e.target.value);
+                    setSelectedCategory(""); // Clear selected category when entering a new category
+                  }}
+                  placeholder="Enter new category"
+                />
+              </CardContent>
+            </Card>
+            <Card x-chunk="dashboard-07-chunk-3">
+              <CardHeader>
+                <CardTitle>Product Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6">
+                  <div className="grid gap-3">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={productStatus}
+                      onValueChange={(value) =>
+                        setProductStatus(
+                          value as "Archived" | "Active" | "Draft"
+                        )
+                      }>
+                      <SelectTrigger className="">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Archived">Archived</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <div>
-            <Label>Upload Main Image</Label>
-            <Input
-              className="w-60"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files ? e.target.files[0] : null;
-                if (file) {
-                  setMainImage(file);
-                  setMainImagePreview(URL.createObjectURL(file));
-                }
-              }}
-            />
-            {mainImagePreview && (
-              <img
-                src={mainImagePreview}
-                alt="Main Image Preview"
-                className="w-16 h-auto mt-2"
-              />
-            )}
-            <Label className="mt-4">Upload Thumbnails</Label>
-            {[...Array(5)].map((_, index) => (
-              <div key={index} className="mb-4">
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <CardTitle>Product Images</CardTitle>
+              <CardDescription>
+                Lipsum dolor sit amet, consectetur adipiscing elit
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label>Upload Main Image</Label>
                 <Input
-                  className="w-60"
+                  className=""
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleThumbnailChange(e, index)}
+                  onChange={(e) => {
+                    const file = e.target.files ? e.target.files[0] : null;
+                    if (file) {
+                      setMainImage(file);
+                      setMainImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
                 />
-                {thumbnailPreviews[index] && (
-                  <img
-                    src={thumbnailPreviews[index]}
-                    alt={`Thumbnail ${index + 1} Preview`}
-                    className="w-16 h-auto mt-2"
-                  />
-                )}
+                <div className="my-2 h-40">
+                  {mainImagePreview && (
+                    <Image
+                      src={mainImagePreview}
+                      alt="Main Image Preview"
+                      className="aspect-video w-full h-full rounded-md object-contain"
+                      height="10"
+                      width="10"
+                    />
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
+            </CardContent>
+
+            <CardContent>
+              <Label>Upload Thumbnails</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[...Array(5)].map((_, index) => (
+                  <div key={index} className="mb-2">
+                    <Input
+                      className=""
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleThumbnailChange(e, index)}
+                    />
+
+                    <div>
+                      {thumbnailPreviews[index] && (
+                        <div className="my-2 h-24">
+                          <Image
+                            src={thumbnailPreviews[index]}
+                            alt={`Thumbnail ${index + 1} Preview`}
+                            className="w-full rounded-md object-contain aspect-video h-full"
+                            height="20"
+                            width="20"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
         <div className="flex justify-center my-4">
           <Button type="submit" variant="outline">

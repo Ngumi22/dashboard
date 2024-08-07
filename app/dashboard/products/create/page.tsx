@@ -23,7 +23,6 @@ export default function CreatePage() {
 
   return (
     <>
-      <div>Add Product</div>
       <UploadForm onSubmit={handleSubmit} isEdit={false} />
     </>
   );
