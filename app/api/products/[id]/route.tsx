@@ -65,7 +65,7 @@ export async function DELETE(
   await authMiddleware(req);
 
   const user = (req as any).user;
-  if (user.role !== "admin") {
+  if (user.role !== "Admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

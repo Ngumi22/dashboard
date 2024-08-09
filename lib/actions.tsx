@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import validator from "validator";
 import { FileData, FormState, LoginFormSchema } from "./definitions";
 import { sendVerificationEmail } from "./emailVerification";
+import { setupTables } from "./dbTables";
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();
@@ -19,44 +20,7 @@ export async function handlePost(request: NextRequest) {
     await connection.beginTransaction();
 
     // Ensure tables exist
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL UNIQUE
-      );
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS images (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        main_image MEDIUMBLOB,
-        thumbnail1 MEDIUMBLOB,
-        thumbnail2 MEDIUMBLOB,
-        thumbnail3 MEDIUMBLOB,
-        thumbnail4 MEDIUMBLOB,
-        thumbnail5 MEDIUMBLOB
-      )
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS product (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        sku VARCHAR(255) NOT NULL UNIQUE,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        category_id INT,
-        status ENUM('Archived', 'Active', 'Draft') DEFAULT 'Draft',
-        image_id INT,
-        price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-        discount INT NOT NULL DEFAULT 0,
-        brand VARCHAR(255) NOT NULL,
-        quantity INT NOT NULL DEFAULT 0,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (image_id) REFERENCES images(id),
-        FOREIGN KEY (category_id) REFERENCES categories(id)
-      )
-    `);
+    await setupTables();
 
     const formData = await request.formData();
     const fields = Object.fromEntries(formData.entries());
@@ -104,11 +68,7 @@ export async function handlePost(request: NextRequest) {
     const { valid, message } = validateFiles(filesToValidate);
     if (!valid) {
       await connection.rollback();
-      const response = NextResponse.json(
-        { success: false, message },
-        { status: 400 }
-      );
-      return response;
+      return NextResponse.json({ success: false, message }, { status: 400 });
     }
 
     // Check image size and type
@@ -157,6 +117,14 @@ export async function handlePost(request: NextRequest) {
 
     const { sku, name, description, category, status, brand } = fileData.fields;
 
+    // Handle product tags
+    let tags: string[] = [];
+    if (fields.tags) {
+      tags = Array.isArray(fields.tags)
+        ? fields.tags
+        : (fields.tags as string).split(",").map((tag) => tag.trim());
+    }
+
     // Check if a product with the same sku already exists
     const [existingProducts]: [any[], any] = await connection.query(
       "SELECT id FROM product WHERE sku = ? FOR UPDATE",
@@ -165,11 +133,10 @@ export async function handlePost(request: NextRequest) {
 
     if (existingProducts.length > 0) {
       await connection.rollback();
-      const response = NextResponse.json(
+      return NextResponse.json(
         { success: false, message: "Product with this SKU already exists" },
         { status: 400 }
       );
-      return response;
     }
 
     // Check if the category exists, if not, insert it
@@ -189,6 +156,7 @@ export async function handlePost(request: NextRequest) {
       categoryId = categoryRows[0].id;
     }
 
+    // Insert images
     const mainImageBuffer = main_image
       ? Buffer.from(await main_image.arrayBuffer())
       : null;
@@ -215,12 +183,13 @@ export async function handlePost(request: NextRequest) {
 
     const imageId = result.insertId;
 
+    // Insert product
     const productQuery = `
       INSERT INTO product (sku, name, description, category_id, status, image_id, price, discount, brand, quantity)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await connection.query(productQuery, [
+    const [productResult]: [any, any] = await connection.query(productQuery, [
       sku,
       name,
       description,
@@ -233,6 +202,32 @@ export async function handlePost(request: NextRequest) {
       quantity,
     ]);
 
+    const productId = productResult.insertId;
+
+    // Insert tags
+    for (const tag of tags) {
+      let [tagRows]: [any[], any] = await connection.query(
+        "SELECT id FROM tags WHERE name = ? FOR UPDATE",
+        [tag]
+      );
+
+      let tagId: number;
+      if (tagRows.length === 0) {
+        const [tagResult]: [any, any] = await connection.query(
+          "INSERT INTO tags (name) VALUES (?)",
+          [tag]
+        );
+        tagId = tagResult.insertId;
+      } else {
+        tagId = tagRows[0].id;
+      }
+
+      await connection.query(
+        "INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)",
+        [productId, tagId]
+      );
+    }
+
     await connection.commit();
 
     // Revalidate the necessary paths
@@ -241,12 +236,10 @@ export async function handlePost(request: NextRequest) {
     redirect(`/dashboard/products`);
   } catch (error: any) {
     await connection.rollback();
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: false,
       message: error.message,
     });
-    response.headers.set("Cache-Control", "no-store");
-    return response;
   } finally {
     connection.release();
   }

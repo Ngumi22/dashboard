@@ -72,7 +72,6 @@ export default function UploadForm({
   );
 
   const [categories, setCategories] = useState<any[]>([]);
-
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -92,6 +91,29 @@ export default function UploadForm({
     new Set(categories.map((category) => category.name))
   );
 
+  const [productTags, setProductTags] = useState<string[]>(
+    initialData?.tags || []
+  );
+
+  const [currentTag, setCurrentTag] = useState<string>("");
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      e.key === "Enter" &&
+      currentTag.trim() !== "" &&
+      !productTags.includes(currentTag.trim())
+    ) {
+      e.preventDefault();
+      setProductTags([...productTags, currentTag.trim()]);
+      setCurrentTag("");
+    }
+  };
+
+  const removeTag = (index: number) => {
+    const newTags = productTags.filter((_, i) => i !== index);
+    setProductTags(newTags);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (
@@ -105,7 +127,8 @@ export default function UploadForm({
       !productDescription ||
       (!productCategory && !selectedCategory) ||
       !productStatus ||
-      !productBrand
+      !productBrand ||
+      !productTags
     ) {
       toast({
         variant: "destructive",
@@ -134,6 +157,9 @@ export default function UploadForm({
     data.append("category", productCategory || selectedCategory);
     data.append("status", productStatus);
     data.append("brand", productBrand);
+    productTags.forEach((tag, index) => {
+      data.append(`tags[${index}]`, tag);
+    });
 
     try {
       await onSubmit(data);
@@ -148,7 +174,7 @@ export default function UploadForm({
           : `Product ${productName} successfully added`,
       });
 
-      router.push("/dashboard/products");
+      // router.push("/dashboard/products");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -190,8 +216,8 @@ export default function UploadForm({
   return (
     <section className="container my-8">
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="max-w-xl">
             <Card>
               <CardHeader>
                 <CardTitle>Product Details</CardTitle>
@@ -281,7 +307,7 @@ export default function UploadForm({
               </CardContent>
             </Card>
 
-            <Card className="grid w-full max-w-sm items-center gap-1.5 my-4">
+            <Card className="grid w-full items-center gap-1.5 my-4">
               <CardHeader>
                 <CardTitle>Product Category</CardTitle>
               </CardHeader>
@@ -323,7 +349,10 @@ export default function UploadForm({
                 />
               </CardContent>
             </Card>
-            <Card x-chunk="dashboard-07-chunk-3">
+          </div>
+
+          <div className="max-w-sm">
+            <Card className="">
               <CardHeader>
                 <CardTitle>Product Status</CardTitle>
               </CardHeader>
@@ -351,17 +380,14 @@ export default function UploadForm({
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          <Card className="overflow-hidden">
-            <CardHeader>
-              <CardTitle>Product Images</CardTitle>
-              <CardDescription>
-                Lipsum dolor sit amet, consectetur adipiscing elit
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div>
+            <Card className="my-4">
+              <CardHeader>
+                <CardTitle>Product Images</CardTitle>
+                <CardDescription>
+                  Lipsum dolor sit amet, consectetur adipiscing elit
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <Label>Upload Main Image</Label>
                 <Input
                   className=""
@@ -386,44 +412,81 @@ export default function UploadForm({
                     />
                   )}
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
 
-            <CardContent>
-              <Label>Upload Thumbnails</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {[...Array(5)].map((_, index) => (
-                  <div key={index} className="mb-2">
-                    <Input
-                      className=""
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleThumbnailChange(e, index)}
-                    />
+              <CardContent>
+                <Label>Upload Thumbnails</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[...Array(5)].map((_, index) => (
+                    <div key={index} className="mb-2">
+                      <Input
+                        className=""
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleThumbnailChange(e, index)}
+                      />
 
-                    <div>
-                      {thumbnailPreviews[index] && (
-                        <div className="my-2 h-24">
-                          <Image
-                            src={thumbnailPreviews[index]}
-                            alt={`Thumbnail ${index + 1} Preview`}
-                            className="w-full rounded-md object-contain aspect-video h-full"
-                            height="20"
-                            width="20"
-                          />
-                        </div>
-                      )}
+                      <div>
+                        {thumbnailPreviews[index] && (
+                          <div className="my-2 h-24">
+                            <Image
+                              src={thumbnailPreviews[index]}
+                              alt={`Thumbnail ${index + 1} Preview`}
+                              className="w-full rounded-md object-contain aspect-video h-full"
+                              height="20"
+                              width="20"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Tags</CardTitle>
+                <CardDescription>
+                  Lipsum dolor sit amet, consectetur adipiscing elit
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+                  <Label htmlFor="tags">Tags</Label>
+                  <Input
+                    type="text"
+                    id="tags"
+                    value={currentTag}
+                    onChange={(e) => setCurrentTag(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    placeholder="Press Enter to add tag"
+                  />
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {productTags.map((tag, index) => (
+                      <div
+                        key={index}
+                        className="bg-gray-200 px-2 py-1 rounded-md flex items-center">
+                        <span>{tag}</span>
+                        <button
+                          onClick={() => removeTag(index)}
+                          className="ml-2 text-red-600 hover:text-red-800 focus:outline-none">
+                          x
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="flex justify-center my-4">
-          <Button type="submit" variant="outline">
-            {isEdit ? "Update Product" : "Submit"}
-          </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <div className="flex justify-center my-4">
+              <Button type="submit">
+                {isEdit ? "Update Product" : "Submit"}
+              </Button>
+            </div>
+          </div>
         </div>
       </form>
     </section>
