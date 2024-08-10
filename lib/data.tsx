@@ -282,58 +282,80 @@ export async function fetchAllProductsFromDb(
   }
 }
 
-export async function fetchProductByIdFromDb(
-  id: string
-): Promise<NextResponse> {
+export async function fetchProductByIdFromDb(id: string) {
   const cacheKey = `product_${id}`;
   if (cache.has(cacheKey)) {
     return NextResponse.json(cache.get(cacheKey), { status: 200 });
   }
-
   const connection = await getConnection();
+
   try {
     const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
       SELECT
-        p.id AS product_id,
-        p.name,
-        p.sku,
-        p.price,
-        p.discount,
-        p.quantity,
-        c.name AS category,
-        p.status,
-        p.description,
-        p.brand,
-        p.createdAt,
-        p.updatedAt,
-        i.main_image,
-        i.thumbnail1,
-        i.thumbnail2,
-        i.thumbnail3,
-        i.thumbnail4,
-        i.thumbnail5
+        p.id as productId,
+        p.name as productName,
+        p.sku as sku,
+        p.price as price,
+        p.quantity as quantity,
+        p.discount as discount,
+        p.description as description,
+        p.category_id as categoryId,
+        p.status as status,
+        p.brand as brand,
+        t.id as tagId,
+        t.name as tagName,
+        i.main_image as mainImage,
+        i.thumbnail1 as thumbnail1,
+        i.thumbnail2 as thumbnail2,
+        i.thumbnail3 as thumbnail3,
+        i.thumbnail4 as thumbnail4,
+        i.thumbnail5 as thumbnail5
       FROM product p
+      LEFT JOIN product_tags pt ON pt.product_id = p.id
+      LEFT JOIN tags t ON t.id = pt.tag_id
       LEFT JOIN images i ON p.image_id = i.id
-      LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.id = ?
-    `,
+      `,
       [id]
     );
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      return { error: "Product not found" };
     }
 
-    const product = mapProductRow(rows[0] as ProductRow);
+    // Organize data into a structured response
+    const product = {
+      id: rows[0].productId,
+      name: rows[0].productName,
+      sku: rows[0].sku,
+      price: rows[0].price,
+      quantity: rows[0].quantity,
+      discount: rows[0].discount,
+      description: rows[0].description,
+      categoryId: rows[0].categoryId,
+      status: rows[0].status,
+      brand: rows[0].brand,
+      tags: rows
+        .filter((row) => row.tagId !== null)
+        .map((row) => ({ id: row.tagId, name: row.tagName })),
+      images: {
+        main: rows[0].mainImage,
+        thumbnails: [
+          rows[0].thumbnail1,
+          rows[0].thumbnail2,
+          rows[0].thumbnail3,
+          rows[0].thumbnail4,
+          rows[0].thumbnail5,
+        ].filter(Boolean), // Filter out any null or undefined thumbnails
+      },
+    };
 
     cache.set(cacheKey, product);
     return NextResponse.json(product, { status: 200 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch product" },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("Error fetching product:", error.message);
+    throw new Error("Failed to fetch product");
   } finally {
     connection.release();
   }

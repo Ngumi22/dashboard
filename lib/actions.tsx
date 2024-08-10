@@ -17,13 +17,18 @@ export async function handlePost(request: NextRequest) {
   const connection = await getConnection();
 
   try {
+    console.log("Starting transaction...");
     await connection.beginTransaction();
 
     // Ensure tables exist
     await setupTables();
+    console.log("Tables checked/created.");
 
     const formData = await request.formData();
+    console.log(`FormData entries: ${JSON.stringify([formData.entries()])}`); // Debugging: Log all FormData entries
+
     const fields = Object.fromEntries(formData.entries());
+    console.log(`Form fields: ${JSON.stringify(fields)}`); // Debugging: Log form fields
 
     // Extract and validate numeric fields
     const price = parseFloat(fields.price as string);
@@ -39,10 +44,12 @@ export async function handlePost(request: NextRequest) {
       quantity < 0
     ) {
       await connection.rollback();
+      console.log("Invalid numeric fields.");
       return NextResponse.json(
         {
           success: false,
-          message: "Price, discount, and quantity cannot be less than zero",
+          message:
+            "Price, discount, and quantity must be valid numbers and not less than zero",
         },
         { status: 400 }
       );
@@ -65,9 +72,11 @@ export async function handlePost(request: NextRequest) {
       thumbnail4,
       thumbnail5,
     ].filter(Boolean);
+
     const { valid, message } = validateFiles(filesToValidate);
     if (!valid) {
       await connection.rollback();
+      console.log("File validation failed.");
       return NextResponse.json({ success: false, message }, { status: 400 });
     }
 
@@ -75,19 +84,26 @@ export async function handlePost(request: NextRequest) {
     const checkImage = (file: File) =>
       file.size <= 100 * 1024 &&
       ["image/jpeg", "image/png"].includes(file.type);
-    if (
-      !checkImage(main_image) ||
-      !checkImage(thumbnail1) ||
-      !checkImage(thumbnail2) ||
-      !checkImage(thumbnail3) ||
-      !checkImage(thumbnail4) ||
-      !checkImage(thumbnail5)
-    ) {
+
+    const allImagesValid = [
+      main_image,
+      thumbnail1,
+      thumbnail2,
+      thumbnail3,
+      thumbnail4,
+      thumbnail5,
+    ]
+      .filter(Boolean)
+      .every(checkImage);
+
+    if (!allImagesValid) {
       await connection.rollback();
+      console.log("Image validation failed.");
       return NextResponse.json(
         {
           success: false,
-          message: "Images must be less than 100KB and in JPEG or PNG format.",
+          message:
+            "All images must be less than 100KB and in JPEG or PNG format.",
         },
         { status: 400 }
       );
@@ -119,20 +135,26 @@ export async function handlePost(request: NextRequest) {
 
     // Handle product tags
     let tags: string[] = [];
-    if (fields.tags) {
-      tags = Array.isArray(fields.tags)
-        ? fields.tags
-        : (fields.tags as string).split(",").map((tag) => tag.trim());
+    for (let i = 0; i < 10; i++) {
+      // Assume a maximum of 10 tags
+      const tag = fields[`tags[${i}]`];
+      if (tag) {
+        tags.push((tag as string).trim());
+      }
     }
 
+    console.log(`Tags extracted: ${JSON.stringify(tags)}`); // Debugging: Log the tags array
+
     // Check if a product with the same sku already exists
-    const [existingProducts]: [any[], any] = await connection.query(
-      "SELECT id FROM product WHERE sku = ? FOR UPDATE",
-      [sku]
-    );
+    const [existingProducts]: [RowDataPacket[], FieldPacket[]] =
+      await connection.query(
+        "SELECT id FROM product WHERE sku = ? FOR UPDATE",
+        [sku]
+      );
 
     if (existingProducts.length > 0) {
       await connection.rollback();
+      console.log("Product with this SKU already exists.");
       return NextResponse.json(
         { success: false, message: "Product with this SKU already exists" },
         { status: 400 }
@@ -140,10 +162,11 @@ export async function handlePost(request: NextRequest) {
     }
 
     // Check if the category exists, if not, insert it
-    let [categoryRows]: [any[], any] = await connection.query(
-      "SELECT id FROM categories WHERE name = ? FOR UPDATE",
-      [category]
-    );
+    let [categoryRows]: [RowDataPacket[], FieldPacket[]] =
+      await connection.query(
+        "SELECT id FROM categories WHERE name = ? FOR UPDATE",
+        [category]
+      );
 
     let categoryId: number;
     if (categoryRows.length === 0) {
@@ -152,8 +175,10 @@ export async function handlePost(request: NextRequest) {
         [category]
       );
       categoryId = categoryResult.insertId;
+      console.log(`Inserted new category with ID: ${categoryId}`);
     } else {
       categoryId = categoryRows[0].id;
+      console.log(`Found existing category with ID: ${categoryId}`);
     }
 
     // Insert images
@@ -182,6 +207,7 @@ export async function handlePost(request: NextRequest) {
     }
 
     const imageId = result.insertId;
+    console.log(`Inserted images with ID: ${imageId}`);
 
     // Insert product
     const productQuery = `
@@ -203,13 +229,18 @@ export async function handlePost(request: NextRequest) {
     ]);
 
     const productId = productResult.insertId;
+    console.log(`Inserted product with ID: ${productId}`);
 
     // Insert tags
     for (const tag of tags) {
-      let [tagRows]: [any[], any] = await connection.query(
+      console.log(`Processing tag: ${tag}`); // Debugging: Log each tag being processed
+
+      let [tagRows]: [RowDataPacket[], FieldPacket[]] = await connection.query(
         "SELECT id FROM tags WHERE name = ? FOR UPDATE",
         [tag]
       );
+
+      console.log(`Tag query result: ${JSON.stringify(tagRows)}`); // Debugging: Log query result
 
       let tagId: number;
       if (tagRows.length === 0) {
@@ -218,30 +249,41 @@ export async function handlePost(request: NextRequest) {
           [tag]
         );
         tagId = tagResult.insertId;
+        console.log(`Inserted new tag with ID: ${tagId}`); // Debugging: Log new tag ID
       } else {
         tagId = tagRows[0].id;
+        console.log(`Found existing tag with ID: ${tagId}`); // Debugging: Log existing tag ID
       }
 
       await connection.query(
         "INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)",
         [productId, tagId]
       );
+
+      console.log(
+        `Inserted product-tag relation for product ${productId} and tag ${tagId}`
+      ); // Debugging: Log relation
     }
 
     await connection.commit();
+    console.log("Transaction committed.");
 
     // Revalidate the necessary paths
-    revalidatePath("/dashboard/products");
+    await revalidatePath(`http://localhost:3000/dashboard/products`);
+    console.log("Path revalidation triggered.");
+
     // Redirect to the product detail page
-    redirect(`/dashboard/products`);
+    return NextResponse.redirect(`/dashboard/products/${productId}`);
   } catch (error: any) {
     await connection.rollback();
+    console.error("Error in handlePost:", error.message);
     return NextResponse.json({
       success: false,
-      message: error.message,
+      message: error.message || "An unexpected error occurred.",
     });
   } finally {
     connection.release();
+    console.log("Connection released.");
   }
 }
 
@@ -336,6 +378,7 @@ export async function handlePut(req: NextRequest, id: string) {
   }
 }
 // Function to delete a product and its associated images and categories
+// Function to delete a product and its associated images and categories
 export async function handleDelete(req: NextRequest, id: string) {
   const connection = await getConnection();
   try {
@@ -343,7 +386,7 @@ export async function handleDelete(req: NextRequest, id: string) {
 
     // First, retrieve the category and image IDs associated with the product
     const [relatedData]: [any[], any] = await connection.execute(
-      "SELECT category_id, image_id FROM product WHERE id = ?",
+      "SELECT category_id FROM product WHERE id = ?",
       [id]
     );
 
@@ -351,7 +394,12 @@ export async function handleDelete(req: NextRequest, id: string) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const { category_id, image_id } = relatedData[0];
+    const { category_id } = relatedData[0];
+
+    // Delete associated product-tag relations
+    await connection.execute("DELETE FROM product_tags WHERE product_id = ?", [
+      id,
+    ]);
 
     // Delete the product
     await connection.execute("DELETE FROM product WHERE id = ?", [id]);
@@ -369,14 +417,16 @@ export async function handleDelete(req: NextRequest, id: string) {
       ]);
     }
 
+    // No need to delete tags, as they remain in the database and could be associated with other products
+
     // Delete associated images if they are not used by any other products
     const [usedImages]: [any[], any] = await connection.execute(
       "SELECT id FROM product WHERE image_id = ?",
-      [image_id]
+      [id]
     );
 
     if (usedImages.length === 0) {
-      await connection.execute("DELETE FROM images WHERE id = ?", [image_id]);
+      await connection.execute("DELETE FROM images WHERE id = ?", [id]);
     }
 
     await connection.commit();
@@ -386,6 +436,7 @@ export async function handleDelete(req: NextRequest, id: string) {
     );
   } catch (error) {
     await connection.rollback();
+    console.error("Error deleting product:", error);
     return NextResponse.json(
       { error: "Failed to delete product" },
       { status: 500 }
