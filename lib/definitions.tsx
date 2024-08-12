@@ -116,7 +116,7 @@ export interface Product {
   };
 }
 
-export interface ProductFilter {
+export interface SearchParams {
   minPrice?: number;
   maxPrice?: number;
   minDiscount?: number;

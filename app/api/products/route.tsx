@@ -13,7 +13,7 @@ import {
 } from "@/lib/data";
 
 import validateParams from "@/lib/utils";
-import { ProductFilter } from "@/lib/definitions";
+import { SearchParams } from "@/lib/definitions";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const currentPage = Number(url.searchParams.get("page")) || 1;
   const brands = url.searchParams.get("brands"); // Add this line
 
-  const filter: ProductFilter = {
+  const filter: SearchParams = {
     minPrice: url.searchParams.has("minPrice")
       ? parseFloat(url.searchParams.get("minPrice") as string)
       : undefined,

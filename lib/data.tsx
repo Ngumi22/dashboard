@@ -5,7 +5,7 @@ import { FieldPacket, RowDataPacket } from "mysql2/promise";
 import {
   Product,
   ProductRow,
-  ProductFilter,
+  SearchParams,
   UserRow,
   User,
 } from "./definitions";
@@ -15,9 +15,7 @@ const ITEMS_PER_PAGE = 10;
 const DISCOUNTED_ITEMS_PER_PAGE = 5;
 const cache = new Map<string, any>();
 
-export async function searchProducts(
-  filter: ProductFilter
-): Promise<Product[]> {
+export async function searchProducts(filter: SearchParams): Promise<Product[]> {
   const {
     minPrice,
     maxPrice,
@@ -121,7 +119,7 @@ export async function searchProducts(
 
 export async function fetchFilteredProductsFromDb(
   currentPage: number,
-  filter: ProductFilter
+  filter: SearchParams
 ): Promise<Product[]> {
   const {
     minPrice,
