@@ -342,27 +342,132 @@ export async function handlePut(req: NextRequest, id: string) {
 
     const categoryId = categoryRows[0].id;
 
-    // Update product details using parameterized query
-    await connection.execute(
-      "UPDATE product SET sku = ?, name = ?, description = ?, brand = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
-      [
-        sku,
-        name,
-        description,
-        brand,
-        categoryId,
-        status,
-        price,
-        discount,
-        quantity,
-        id,
-      ]
-    );
+    // Start transaction
+    await connection.beginTransaction();
 
-    // Handle file uploads
-    // Separate logic for updating images
+    try {
+      // Update product details using parameterized query
+      await connection.execute(
+        "UPDATE product SET sku = ?, name = ?, description = ?, brand = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
+        [
+          sku,
+          name,
+          description,
+          brand,
+          categoryId,
+          status,
+          price,
+          discount,
+          quantity,
+          id,
+        ]
+      );
 
-    await connection.commit();
+      // Handle image updates
+      const main_image = formData.get("main_image") as File;
+      const thumbnail1 = formData.get("thumbnail1") as File;
+      const thumbnail2 = formData.get("thumbnail2") as File;
+      const thumbnail3 = formData.get("thumbnail3") as File;
+      const thumbnail4 = formData.get("thumbnail4") as File;
+      const thumbnail5 = formData.get("thumbnail5") as File;
+
+      if (main_image) {
+        const mainImageBuffer = Buffer.from(await main_image.arrayBuffer());
+
+        await connection.execute(
+          "UPDATE images SET main_image = ? WHERE id = (SELECT image_id FROM product WHERE id = ?)",
+          [mainImageBuffer, id]
+        );
+      }
+
+      const thumbnails = [
+        thumbnail1,
+        thumbnail2,
+        thumbnail3,
+        thumbnail4,
+        thumbnail5,
+      ];
+      if (thumbnails.some((thumbnail) => thumbnail)) {
+        const thumbnailBuffers = await Promise.all(
+          thumbnails.map(async (thumbnail) =>
+            thumbnail ? Buffer.from(await thumbnail.arrayBuffer()) : null
+          )
+        );
+
+        await connection.execute(
+          "UPDATE images SET thumbnail1 = ?, thumbnail2 = ?, thumbnail3 = ?, thumbnail4 = ?, thumbnail5 = ? WHERE id = (SELECT image_id FROM product WHERE id = ?)",
+          [...thumbnailBuffers, id]
+        );
+      }
+
+      // Handle tag updates
+      const newTags: string[] = [];
+      formData.forEach((value, key) => {
+        if (key.startsWith("tags[")) {
+          newTags.push(value as string);
+        }
+      });
+
+      // Fetch existing tags
+      const [existingTagsRows] = await connection.execute(
+        "SELECT t.id, t.name FROM tags t JOIN product_tags pt ON t.id = pt.tag_id WHERE pt.product_id = ?",
+        [id]
+      );
+
+      const existingTags = existingTagsRows as { id: number; name: string }[];
+      const existingTagNames = existingTags.map((tag) => tag.name);
+
+      // Determine tags to add and remove
+      const tagsToAdd = newTags.filter(
+        (tag) => !existingTagNames.includes(tag.trim())
+      );
+      const tagsToRemove = existingTags.filter(
+        (tag) => !newTags.includes(tag.name)
+      );
+
+      // Remove old tags
+      for (const tag of tagsToRemove) {
+        await connection.execute(
+          "DELETE FROM product_tags WHERE product_id = ? AND tag_id = ?",
+          [id, tag.id]
+        );
+      }
+
+      // Add new tags
+      for (const tagName of tagsToAdd) {
+        const trimmedTagName = tagName.trim();
+
+        const [tagRows]: [RowDataPacket[], FieldPacket[]] =
+          await connection.execute("SELECT id FROM tags WHERE name = ?", [
+            trimmedTagName,
+          ]);
+
+        let tagId: number;
+
+        if (tagRows.length === 0) {
+          const [tagResult]: [any, any] = await connection.execute(
+            "INSERT INTO tags (name) VALUES (?)",
+            [trimmedTagName]
+          );
+          tagId = tagResult.insertId;
+        } else {
+          tagId = tagRows[0].id;
+        }
+
+        await connection.execute(
+          "INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)",
+          [id, tagId]
+        );
+      }
+
+      // Commit the transaction
+      await connection.commit();
+    } catch (tagError) {
+      // Rollback transaction if tag update fails
+      await connection.rollback();
+      throw tagError;
+    }
+
     return NextResponse.json(
       { message: "Product updated successfully" },
       { status: 200 }
@@ -377,6 +482,7 @@ export async function handlePut(req: NextRequest, id: string) {
     connection.release();
   }
 }
+
 // Function to delete a product and its associated images and categories
 // Function to delete a product and its associated images and categories
 export async function handleDelete(req: NextRequest, id: string) {

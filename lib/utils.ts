@@ -28,19 +28,14 @@ export function sanitizeInput(input: string | number): string | number {
   return input;
 }
 
-export const formatDateToLocal = (
-  dateStr: string,
-  locale: string = "en-KE"
-) => {
-  const date = new Date(dateStr);
-  const options: Intl.DateTimeFormatOptions = {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  };
-  const formatter = new Intl.DateTimeFormat(locale, options);
-  return formatter.format(date);
-};
+function formatDateToLocal(dateString: string): string {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    console.error(`Invalid date value: ${dateString}`);
+    return "";
+  }
+  return date.toLocaleDateString(); // Adjust as needed
+}
 
 export function validateFiles(files: File[]): {
   valid: boolean;
@@ -176,6 +171,8 @@ export function mapProductRow(row: ProductRow): Product {
         .filter(Boolean)
         .map(convertToBase64),
     },
+    tags:
+      row.tagId && row.tagName ? [{ id: row.tagId, name: row.tagName }] : [],
   };
 }
 
@@ -186,7 +183,6 @@ export function mapUserRow(row: UserRow): User {
     last_name: row.last_name,
     email: row.email,
     role: row.role,
-    password: row.password,
   };
 }
 

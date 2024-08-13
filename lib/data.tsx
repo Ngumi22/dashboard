@@ -290,64 +290,64 @@ export async function fetchProductByIdFromDb(id: string) {
   try {
     const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
       `
-      SELECT
-        p.id as productId,
-        p.name as productName,
-        p.sku as sku,
-        p.price as price,
-        p.quantity as quantity,
-        p.discount as discount,
-        p.description as description,
-        p.category_id as categoryId,
-        p.status as status,
-        p.brand as brand,
-        t.id as tagId,
-        t.name as tagName,
-        i.main_image as mainImage,
-        i.thumbnail1 as thumbnail1,
-        i.thumbnail2 as thumbnail2,
-        i.thumbnail3 as thumbnail3,
-        i.thumbnail4 as thumbnail4,
-        i.thumbnail5 as thumbnail5
-      FROM product p
-      LEFT JOIN product_tags pt ON pt.product_id = p.id
-      LEFT JOIN tags t ON t.id = pt.tag_id
-      LEFT JOIN images i ON p.image_id = i.id
-      WHERE p.id = ?
-      `,
+            SELECT
+                p.id as product_id,
+                p.name as name,
+                p.sku as sku,
+                p.price as price,
+                p.quantity as quantity,
+                p.discount as discount,
+                p.description as description,
+                c.name as category,
+                p.status as status,
+                p.brand as brand,
+                t.id as tagId,
+                t.name as tagName,
+                i.main_image as main_image,
+                i.thumbnail1 as thumbnail1,
+                i.thumbnail2 as thumbnail2,
+                i.thumbnail3 as thumbnail3,
+                i.thumbnail4 as thumbnail4,
+                i.thumbnail5 as thumbnail5
+            FROM product p
+            LEFT JOIN product_tags pt ON pt.product_id = p.id
+            LEFT JOIN tags t ON t.id = pt.tag_id
+            LEFT JOIN images i ON p.image_id = i.id
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.id = ?
+            `,
       [id]
     );
 
     if (rows.length === 0) {
+      console.error(`Product with ID ${id} not found`);
       return { error: "Product not found" };
     }
 
-    // Organize data into a structured response
-    const product = {
-      id: rows[0].productId,
-      name: rows[0].productName,
-      sku: rows[0].sku,
-      price: rows[0].price,
-      quantity: rows[0].quantity,
-      discount: rows[0].discount,
-      description: rows[0].description,
-      categoryId: rows[0].categoryId,
-      status: rows[0].status,
-      brand: rows[0].brand,
-      tags: rows
-        .filter((row) => row.tagId !== null)
-        .map((row) => ({ id: row.tagId, name: row.tagName })),
-      images: {
-        main: rows[0].mainImage,
-        thumbnails: [
-          rows[0].thumbnail1,
-          rows[0].thumbnail2,
-          rows[0].thumbnail3,
-          rows[0].thumbnail4,
-          rows[0].thumbnail5,
-        ].filter(Boolean), // Filter out any null or undefined thumbnails
-      },
-    };
+    const productRows = rows as ProductRow[];
+
+    // Debug log the fetched rows
+    console.log("Fetched rows:", productRows);
+
+    const productMap = new Map<string, Product>();
+
+    productRows.forEach((row: ProductRow) => {
+      const existingProduct = productMap.get(row.product_id);
+
+      if (existingProduct) {
+        if (row.tagId && row.tagName) {
+          existingProduct.tags.push({ id: row.tagId, name: row.tagName });
+        }
+      } else {
+        const product = mapProductRow(row);
+        productMap.set(row.product_id, product);
+      }
+    });
+
+    const product = Array.from(productMap.values())[0];
+
+    // Debug log the final product object
+    console.log("Mapped product:", product);
 
     cache.set(cacheKey, product);
     return NextResponse.json(product, { status: 200 });

@@ -20,12 +20,6 @@ export interface FileData {
   };
 }
 
-export interface UploadFormProps {
-  initialData?: any;
-  onSubmit: (data: FormData) => Promise<void>;
-  isEdit: boolean;
-}
-
 export interface ProductData {
   id: number;
   sku: string;
@@ -43,6 +37,13 @@ export interface ProductData {
     main: string; // Base64 string of main image
     thumbnails: string[]; // Array of Base64 strings of thumbnails
   };
+  tags?: string[];
+}
+
+export interface UploadFormProps {
+  initialData?: any;
+  onSubmit: (data: FormData) => Promise<void>;
+  isEdit: boolean;
 }
 
 export interface CategoryData {
@@ -74,27 +75,8 @@ export interface ProductRow {
   thumbnail3: Buffer | null;
   thumbnail4: Buffer | null;
   thumbnail5: Buffer | null;
-}
-
-export interface ProductsRow {
-  product_id: number;
-  name: string;
-  sku: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  category: string;
-  status: string;
-  description: string;
-  brand: string;
-  createdAt: Date;
-  updatedAt: Date;
-  main_image: string | null; // Store as Base64 string
-  thumbnail1: string | null; // Store as Base64 string
-  thumbnail2: string | null; // Store as Base64 string
-  thumbnail3: string | null; // Store as Base64 string
-  thumbnail4: string | null; // Store as Base64 string
-  thumbnail5: string | null; // Store as Base64 string
+  tagId: string | null;
+  tagName: string | null;
 }
 
 export interface Product {
@@ -114,6 +96,7 @@ export interface Product {
     main: string;
     thumbnails: string[];
   };
+  tags: { id: string; name: string }[];
 }
 
 export interface SearchParams {
@@ -126,6 +109,8 @@ export interface SearchParams {
   category?: string;
   status?: string;
   brands?: string;
+  tagId?: string | null;
+  tagName?: string | null;
 }
 
 export type UserRow = {
@@ -134,7 +119,6 @@ export type UserRow = {
   last_name: string;
   email: string;
   role: string;
-  password: string;
 };
 export type User = {
   id: number;
@@ -142,7 +126,6 @@ export type User = {
   last_name: string;
   email: string;
   role: string;
-  password: string;
 };
 
 export type SignUpResponseSuccess = {

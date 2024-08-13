@@ -25,6 +25,11 @@ import {
   CardTitle,
 } from "./ui/card";
 
+type Tag = {
+  id: number;
+  name: string;
+};
+
 export default function UploadForm({
   initialData,
   onSubmit,
@@ -91,26 +96,36 @@ export default function UploadForm({
     new Set(categories.map((category) => category.name))
   );
 
-  const [productTags, setProductTags] = useState<string[]>(
+  const [productTags, setProductTags] = useState<Tag[]>(
     initialData?.tags || []
   );
 
   const [currentTag, setCurrentTag] = useState<string>("");
 
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-      e.key === "Enter" &&
-      currentTag.trim() !== "" &&
-      !productTags.includes(currentTag.trim())
-    ) {
+    if (e.key === "Enter" && currentTag.trim() !== "") {
       e.preventDefault();
-      setProductTags([...productTags, currentTag.trim()]);
+      const tagName = currentTag.trim();
+
+      // Check if the tag already exists in the current list
+      if (productTags.some((tag) => tag.name === tagName)) {
+        toast({
+          variant: "destructive",
+          title: "Duplicate Tag",
+          description: "This tag already exists.",
+        });
+        return;
+      }
+
+      // Add new tag with a unique ID for UI purposes only
+      const newTag = { id: Date.now(), name: tagName };
+      setProductTags([...productTags, newTag]);
       setCurrentTag("");
     }
   };
 
-  const removeTag = (index: number) => {
-    const newTags = productTags.filter((_, i) => i !== index);
+  const removeTag = (id: number) => {
+    const newTags = productTags.filter((tag) => tag.id !== id);
     setProductTags(newTags);
   };
 
@@ -128,7 +143,7 @@ export default function UploadForm({
       (!productCategory && !selectedCategory) ||
       !productStatus ||
       !productBrand ||
-      !productTags
+      !productTags.length
     ) {
       toast({
         variant: "destructive",
@@ -158,7 +173,8 @@ export default function UploadForm({
     data.append("status", productStatus);
     data.append("brand", productBrand);
     productTags.forEach((tag, index) => {
-      data.append(`tags[${index}]`, tag);
+      // Send only the tag name, not the entire object
+      data.append(`tags[${index}]`, tag.name);
     });
 
     try {
@@ -174,7 +190,7 @@ export default function UploadForm({
           : `Product ${productName} successfully added`,
       });
 
-      // router.push("/dashboard/products");
+      router.push("/dashboard/products");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -465,13 +481,13 @@ export default function UploadForm({
                   />
 
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {productTags.map((tag, index) => (
+                    {productTags.map((tag) => (
                       <div
-                        key={index}
+                        key={tag.id}
                         className="bg-gray-200 px-2 py-1 rounded-md flex items-center">
-                        <span>{tag}</span>
+                        <span>{tag.name}</span> {/* Display tag name */}
                         <button
-                          onClick={() => removeTag(index)}
+                          onClick={() => removeTag(tag.id)}
                           className="ml-2 text-red-600 hover:text-red-800 focus:outline-none">
                           x
                         </button>
