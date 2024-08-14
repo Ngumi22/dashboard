@@ -12,6 +12,7 @@ import validator from "validator";
 import { FileData, FormState, LoginFormSchema } from "./definitions";
 import { sendVerificationEmail } from "./emailVerification";
 import { setupTables } from "./dbTables";
+import { cache } from "./cache";
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();
@@ -483,8 +484,7 @@ export async function handlePut(req: NextRequest, id: string) {
   }
 }
 
-// Function to delete a product and its associated images and categories
-// Function to delete a product and its associated images and categories
+// Function to delete a product and its associated images,tags and categories
 export async function handleDelete(req: NextRequest, id: string) {
   const connection = await getConnection();
   try {
@@ -536,6 +536,11 @@ export async function handleDelete(req: NextRequest, id: string) {
     }
 
     await connection.commit();
+
+    // Invalidate the cache after deletion
+    const cacheKey = `product_${id}`;
+    cache.delete(cacheKey);
+
     return NextResponse.json(
       { message: "Product deleted successfully" },
       { status: 200 }
