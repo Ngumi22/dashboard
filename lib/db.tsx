@@ -1,5 +1,8 @@
 import mysql from "mysql2/promise";
 import { performance } from "perf_hooks";
+import { setupTables } from "./dbTables";
+import { createIndexes } from "./indexdb";
+
 let slowQueryThreshold = 1000; // in ms, adjust as needed
 
 let pool: mysql.Pool | null = null;
@@ -20,6 +23,7 @@ export async function initDbConnection(): Promise<void> {
 
     // Check if pool and config are accessible
     if (pool && pool.pool && pool.pool.config) {
+      console.log("Database pool initialized successfully.");
     } else {
       console.error("Error: Pool initialized, but config is not accessible.");
     }
@@ -40,6 +44,25 @@ export async function initDbConnection(): Promise<void> {
       activeConnections--;
       console.log(`Active connections: ${activeConnections}`);
     });
+
+    // Setup tables and indexes
+    try {
+      const connection = await pool.getConnection();
+      try {
+        console.log("Setting up tables...");
+        await setupTables();
+        console.log("Tables setup complete.");
+
+        console.log("Creating indexes...");
+        await createIndexes();
+        console.log("Indexes creation complete.");
+      } finally {
+        connection.release(); // Ensure connection is released
+      }
+    } catch (error) {
+      console.error("Error setting up tables and indexes:", error);
+      throw error; // Re-throw to handle it elsewhere
+    }
   } else {
     console.log("Database pool is already initialized.");
   }

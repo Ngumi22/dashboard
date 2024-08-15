@@ -274,7 +274,9 @@ export async function handlePost(request: NextRequest) {
     console.log("Path revalidation triggered.");
 
     // Redirect to the product detail page
-    return NextResponse.redirect(`/dashboard/products/${productId}`);
+    return NextResponse.redirect(
+      `http://localhost:3000/dashboard/products/${productId}`
+    );
   } catch (error: any) {
     await connection.rollback();
     console.error("Error in handlePost:", error.message);
@@ -671,27 +673,7 @@ export async function signUp(
   try {
     await connection.beginTransaction();
 
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        first_name VARCHAR(255) NOT NULL,
-        last_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        role ENUM('Admin', 'User') DEFAULT 'User',
-        is_verified BOOLEAN DEFAULT FALSE
-      );
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        session_token VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-    `);
+    await setupTables();
 
     const [existingUserRows]: [RowDataPacket[], FieldPacket[]] =
       await connection.query("SELECT * FROM users WHERE email = ?", [email]);

@@ -326,9 +326,6 @@ export async function fetchProductByIdFromDb(id: string) {
 
     const productRows = rows as ProductRow[];
 
-    // Debug log the fetched rows
-    console.log("Fetched rows:", productRows);
-
     const productMap = new Map<string, Product>();
 
     productRows.forEach((row: ProductRow) => {
@@ -345,9 +342,6 @@ export async function fetchProductByIdFromDb(id: string) {
     });
 
     const product = Array.from(productMap.values())[0];
-
-    // Debug log the final product object
-    console.log("Mapped product:", product);
 
     cache.set(cacheKey, product);
     return NextResponse.json(product, { status: 200 });
