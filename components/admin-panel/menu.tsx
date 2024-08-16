@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Ellipsis, LogOut } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { getMenuList } from "@/lib/menu-list";
+import { logout } from "@/lib/actions";
 
 interface MenuProps {
   isOpen: boolean | undefined;
@@ -23,6 +24,17 @@ interface MenuProps {
 export function Menu({ isOpen }: MenuProps) {
   const pathname = usePathname();
   const menuList = getMenuList(pathname);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/login"); // Redirect to login page
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Optionally handle logout errors (e.g., show a notification)
+    }
+  };
 
   return (
     <ScrollArea className="[&>div>div[style]]:!block">
@@ -107,7 +119,7 @@ export function Menu({ isOpen }: MenuProps) {
               <Tooltip delayDuration={100}>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={() => {}}
+                    onClick={handleLogout}
                     variant="outline"
                     className="w-full justify-center h-10 mt-5">
                     <span className={cn(isOpen === false ? "" : "mr-4")}>

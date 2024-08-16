@@ -70,7 +70,18 @@ export function getMenuList(pathname: string): Group[] {
           label: "Blog",
           active: pathname.includes("/dashboard/blog"),
           icon: Tag,
-          submenus: [],
+          submenus: [
+            {
+              href: "/posts",
+              label: "All Posts",
+              active: pathname === "/posts",
+            },
+            {
+              href: "/posts/new",
+              label: "New Post",
+              active: pathname === "/posts/new",
+            },
+          ],
         },
       ],
     },

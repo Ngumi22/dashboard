@@ -1,7 +1,7 @@
 import mysql from "mysql2/promise";
 import { performance } from "perf_hooks";
-import { setupTables } from "./dbTables";
-import { createIndexes } from "./indexdb";
+
+// This module initializes the database pool and provides utility functions for querying the database.
 
 let slowQueryThreshold = 1000; // in ms, adjust as needed
 
@@ -44,25 +44,6 @@ export async function initDbConnection(): Promise<void> {
       activeConnections--;
       console.log(`Active connections: ${activeConnections}`);
     });
-
-    // Setup tables and indexes
-    try {
-      const connection = await pool.getConnection();
-      try {
-        console.log("Setting up tables...");
-        await setupTables();
-        console.log("Tables setup complete.");
-
-        console.log("Creating indexes...");
-        await createIndexes();
-        console.log("Indexes creation complete.");
-      } finally {
-        connection.release(); // Ensure connection is released
-      }
-    } catch (error) {
-      console.error("Error setting up tables and indexes:", error);
-      throw error; // Re-throw to handle it elsewhere
-    }
   } else {
     console.log("Database pool is already initialized.");
   }

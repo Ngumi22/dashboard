@@ -112,7 +112,7 @@ export default function CategoryList() {
   }
 
   return (
-    <section className="flex min-h-screen w-full flex-col bg-muted/40">
+    <section className="py-8 sm:px-8 flex min-h-screen w-full flex-col bg-muted/40">
       <Tabs defaultValue={categories[0]?.name}>
         <TabsList className="grid grid-flow-col">
           {categories.map((category) => (

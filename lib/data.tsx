@@ -11,6 +11,10 @@ import {
 } from "./definitions";
 import { getCache, setCache } from "./cache";
 
+import { initialize } from "./main";
+
+initialize();
+
 const ITEMS_PER_PAGE = 10;
 const DISCOUNTED_ITEMS_PER_PAGE = 5;
 const cache = new Map<string, any>();

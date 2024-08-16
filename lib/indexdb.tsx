@@ -1,6 +1,8 @@
 import { getConnection } from "./db";
 import { FieldPacket, PoolConnection, RowDataPacket } from "mysql2/promise";
 
+// This module is responsible for creating indexes. It also imports the getConnection function from db.ts
+
 async function indexExists(
   connection: PoolConnection,
   tableName: string,
@@ -20,7 +22,7 @@ async function indexExists(
   return rows[0].count > 0;
 }
 
-export async function createIndexes() {
+export async function createIndexes(): Promise<void> {
   const connection = await getConnection();
   try {
     const indexes = [
@@ -82,7 +84,3 @@ export async function createIndexes() {
     connection.release();
   }
 }
-
-createIndexes().catch((err) => {
-  console.error("Failed to create indexes:", err);
-});

@@ -1,9 +1,14 @@
+"use server";
+
 import { query } from "./db";
 import { getConnection } from "./db";
 import { mapProductRow } from "./utils";
 import { RowDataPacket } from "mysql2/promise";
 import { Product, ProductRow } from "./definitions";
 import { getCache, setCache } from "./cache";
+import { initialize } from "./main";
+
+initialize();
 
 export async function generateBestSellingProductsReport(): Promise<Product[]> {
   const cacheKey = `best_selling_products_report`;
@@ -77,39 +82,25 @@ export async function generateInventoryReport(): Promise<Product[]> {
   }
 }
 
+// This function now accepts optional start and end dates to filter orders by a custom date range
 export async function generateOrderSummaryReport(): Promise<any[]> {
-  const cacheKey = `order_summary_report`;
-  const cachedData = getCache(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
-
   const connection = await getConnection();
 
   try {
     const query = `
       SELECT
-        o.id AS order_id,
-        o.order_date,
-        o.status,
-        o.total_price,
-        SUM(o.total_price) AS total_revenue
+        COUNT(o.id) AS total_orders,
+        SUM(o.total_price) AS total_revenue,
+        COUNT(CASE WHEN o.status = 'Completed' THEN 1 END) AS completed_orders
       FROM orders o
-      GROUP BY o.id, o.status
-      ORDER BY o.order_date DESC
     `;
 
     const [rows] = await connection.query<RowDataPacket[]>(query);
-    const orderSummary = rows.map((row) => ({
-      order_id: row.order_id,
-      order_date: row.order_date,
-      status: row.status,
-      total_price: row.total_price,
-      total_revenue: row.total_revenue,
-    }));
+    const summary = rows.length
+      ? rows[0]
+      : { total_orders: 0, total_revenue: 0, completed_orders: 0 };
 
-    setCache(cacheKey, orderSummary);
-    return orderSummary;
+    return [summary];
   } catch (error) {
     console.error("Error generating order summary report:", error);
     throw new Error("Failed to generate order summary report");

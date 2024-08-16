@@ -55,7 +55,7 @@ export function CollapseMenuButton({
     <Collapsible
       open={isCollapsed}
       onOpenChange={setIsCollapsed}
-      className="w-full">
+      className="w-full z-40">
       <CollapsibleTrigger
         className="[&[data-state=open]>div>div>svg]:rotate-180 mb-1"
         asChild>
