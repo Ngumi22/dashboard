@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { initialize } from "@/lib/main";
+
+initialize();
 
 const roboto = Roboto({
   subsets: ["latin"],

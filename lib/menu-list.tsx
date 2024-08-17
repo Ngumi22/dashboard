@@ -6,6 +6,8 @@ import {
   SquarePen,
   LayoutGrid,
   LucideIcon,
+  UsersRound,
+  Book,
 } from "lucide-react";
 
 type Submenu = {
@@ -62,24 +64,24 @@ export function getMenuList(pathname: string): Group[] {
           href: "/dashboard/customers",
           label: "Customers",
           active: pathname.includes("/customers"),
-          icon: Tag,
+          icon: UsersRound,
           submenus: [],
         },
         {
           href: "/dashboard/blog",
           label: "Blog",
           active: pathname.includes("/dashboard/blog"),
-          icon: Tag,
+          icon: Book,
           submenus: [
             {
-              href: "/posts",
+              href: "/dashboard/blog/posts",
               label: "All Posts",
-              active: pathname === "/posts",
+              active: pathname === "/dashboard/blog/posts",
             },
             {
-              href: "/posts/new",
+              href: "/dashboard/blog/posts/new",
               label: "New Post",
-              active: pathname === "/posts/new",
+              active: pathname === "/dashboard/blog/posts/new",
             },
           ],
         },

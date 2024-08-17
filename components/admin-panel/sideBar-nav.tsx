@@ -28,10 +28,9 @@ export default function SideBar() {
           variant="link"
           asChild>
           <Link href="/dashboard" className="flex items-center gap-2">
-            <PanelsTopLeft className="w-6 h-6 mr-1" />
             <h1
               className={cn(
-                "font-bold text-lg whitespace-nowrap transition-[transform,opacity,display] ease-in-out duration-300",
+                "font-bold text-4xl whitespace-nowrap transition-[transform,opacity,display] ease-in-out duration-300",
                 isOpen === false
                   ? "-translate-x-96 opacity-0 hidden"
                   : "translate-x-0 opacity-100"
