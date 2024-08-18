@@ -43,7 +43,7 @@ export default function OrdersCard() {
         <CreditCard className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{`$${orderSummary.total_revenue.toLocaleString()}`}</div>
+        <div className="text-2xl font-bold">{`$${orderSummary.total_revenue}`}</div>
         <p className="text-xs text-muted-foreground">Total Revenue</p>
       </CardContent>
     </Card>

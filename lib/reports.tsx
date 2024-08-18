@@ -9,7 +9,7 @@ import { getCache, setCache } from "./cache";
 import { initialize } from "./main";
 
 initialize();
-
+// BestSellingProductsReport
 export async function generateBestSellingProductsReport(): Promise<Product[]> {
   const cacheKey = `best_selling_products_report`;
   const cachedData = getCache(cacheKey);
@@ -30,7 +30,7 @@ export async function generateBestSellingProductsReport(): Promise<Product[]> {
         SUM(oi.quantity) AS total_sold
       FROM product p
       JOIN order_items oi ON p.id = oi.product_id
-      GROUP BY p.id
+      GROUP BY p.id, p.name, p.sku, p.price, p.brand
       ORDER BY total_sold DESC
     `;
 
@@ -46,6 +46,8 @@ export async function generateBestSellingProductsReport(): Promise<Product[]> {
     connection.release();
   }
 }
+
+// Inventory Report
 
 export async function generateInventoryReport(): Promise<Product[]> {
   const cacheKey = `inventory_report`;
@@ -82,12 +84,16 @@ export async function generateInventoryReport(): Promise<Product[]> {
   }
 }
 
-// This function now accepts optional start and end dates to filter orders by a custom date range
-export async function generateOrderSummaryReport(): Promise<any[]> {
+// Order summary report
+
+export async function generateOrderSummaryReport(
+  startDate?: string,
+  endDate?: string
+): Promise<any[]> {
   const connection = await getConnection();
 
   try {
-    const query = `
+    let query = `
       SELECT
         COUNT(o.id) AS total_orders,
         SUM(o.total_price) AS total_revenue,
@@ -95,7 +101,14 @@ export async function generateOrderSummaryReport(): Promise<any[]> {
       FROM orders o
     `;
 
-    const [rows] = await connection.query<RowDataPacket[]>(query);
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      query += ` WHERE o.order_date BETWEEN ? AND ?`;
+      params.push(startDate, endDate);
+    }
+
+    const [rows] = await connection.query<RowDataPacket[]>(query, params);
     const summary = rows.length
       ? rows[0]
       : { total_orders: 0, total_revenue: 0, completed_orders: 0 };
@@ -108,6 +121,8 @@ export async function generateOrderSummaryReport(): Promise<any[]> {
     connection.release();
   }
 }
+
+// Web traffic
 
 export async function generateWebTrafficReport(): Promise<any[]> {
   const cacheKey = `web_traffic_report`;
@@ -122,21 +137,21 @@ export async function generateWebTrafficReport(): Promise<any[]> {
     const query = `
       SELECT
         wt.id AS traffic_id,
-        wt.date,
-        wt.visitors,
-        wt.page_views,
-        wt.bounce_rate
+        wt.visitDate AS date,
+        wt.pageViews AS page_views,
+        wt.sessions,
+        wt.uniqueVisitors AS unique_visitors
       FROM website_traffic wt
-      ORDER BY wt.date DESC
+      ORDER BY wt.visitDate DESC
     `;
 
     const [rows] = await connection.query<RowDataPacket[]>(query);
     const webTrafficReport = rows.map((row) => ({
       traffic_id: row.traffic_id,
       date: row.date,
-      visitors: row.visitors,
       page_views: row.page_views,
-      bounce_rate: row.bounce_rate,
+      sessions: row.sessions,
+      unique_visitors: row.unique_visitors,
     }));
 
     setCache(cacheKey, webTrafficReport);
@@ -149,6 +164,80 @@ export async function generateWebTrafficReport(): Promise<any[]> {
   }
 }
 
+// Campaign
+export async function generateCampaignPerformanceReport(): Promise<any[]> {
+  const connection = await getConnection();
+
+  try {
+    const query = `
+      SELECT
+        c.name,
+        c.startDate,
+        c.endDate,
+        c.budget,
+        c.revenue,
+        (c.revenue - c.budget) AS profit
+      FROM Campaigns c
+      ORDER BY c.startDate DESC
+    `;
+
+    const [rows] = await connection.query<RowDataPacket[]>(query);
+    const campaignPerformanceReport = rows.map((row) => ({
+      name: row.name,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      budget: row.budget,
+      revenue: row.revenue,
+      profit: row.profit,
+    }));
+
+    return campaignPerformanceReport;
+  } catch (error) {
+    console.error("Error generating campaign performance report:", error);
+    throw new Error("Failed to generate campaign performance report");
+  } finally {
+    connection.release();
+  }
+}
+
+//Customers
+
+export async function generateCustomerReport(): Promise<any[]> {
+  const connection = await getConnection();
+
+  try {
+    const query = `
+      SELECT
+        u.id AS user_id,
+        CONCAT(u.first_name, ' ', u.last_name) AS name,
+        u.email,
+        SUM(o.total_price) AS total_spent,
+        COUNT(o.id) AS total_orders
+      FROM users u
+      JOIN orders o ON u.id = o.user_id
+      GROUP BY u.id, u.first_name, u.last_name, u.email
+      ORDER BY total_spent DESC
+    `;
+
+    const [rows] = await connection.query<RowDataPacket[]>(query);
+    const customerReport = rows.map((row) => ({
+      user_id: row.user_id,
+      name: row.name,
+      email: row.email,
+      total_spent: row.total_spent,
+      total_orders: row.total_orders,
+    }));
+
+    return customerReport;
+  } catch (error) {
+    console.error("Error generating customer report:", error);
+    throw new Error("Failed to generate customer report");
+  } finally {
+    connection.release();
+  }
+}
+
+// reviews
 export async function generateReviewsReport(): Promise<any[]> {
   const cacheKey = `reviews_report`;
   const cachedData = getCache(cacheKey);
@@ -188,6 +277,47 @@ export async function generateReviewsReport(): Promise<any[]> {
   } catch (error) {
     console.error("Error generating reviews report:", error);
     throw new Error("Failed to generate reviews report");
+  } finally {
+    connection.release();
+  }
+}
+
+//profit
+
+export async function generateRevenueAndProfitReport(
+  startDate?: string,
+  endDate?: string
+): Promise<any[]> {
+  const connection = await getConnection();
+
+  try {
+    let query = `
+      SELECT
+        SUM(o.total_price) AS total_revenue,
+        SUM(c.cogs) AS total_cogs,
+        (SUM(o.total_price) - SUM(c.cogs)) AS total_profit,
+        ((SUM(o.total_price) - SUM(c.cogs)) / SUM(o.total_price)) * 100 AS profit_margin
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN costs c ON oi.product_id = c.product_id
+    `;
+
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      query += ` WHERE o.order_date BETWEEN ? AND ?`;
+      params.push(startDate, endDate);
+    }
+
+    const [rows] = await connection.query<RowDataPacket[]>(query, params);
+    const revenueAndProfitReport = rows.length
+      ? rows[0]
+      : { total_revenue: 0, total_cogs: 0, total_profit: 0, profit_margin: 0 };
+
+    return [revenueAndProfitReport];
+  } catch (error) {
+    console.error("Error generating revenue and profit report:", error);
+    throw new Error("Failed to generate revenue and profit report");
   } finally {
     connection.release();
   }

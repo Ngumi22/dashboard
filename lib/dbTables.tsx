@@ -172,6 +172,49 @@ export async function setupTables() {
       ) ENGINE=InnoDB CHARSET=utf8mb4;
     `);
 
+    await connection.query(
+      `CREATE TABLE IF NOT EXISTS Campaigns (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        startDate DATE,
+        endDate DATE,
+        budget DECIMAL(10, 2),
+        revenue DECIMAL(10, 2),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `
+    );
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS admin_activity (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        adminId INT,
+        action VARCHAR(255),
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (adminId) REFERENCES users(id)
+      );
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS website_traffic (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        visitDate DATE,
+        pageViews INT,
+        sessions INT,
+        uniqueVisitors INT
+      );
+    `);
+
+    // Financials Table (for tracking income and expenses)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS financials (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        date DATE,
+        income DECIMAL(10, 2),
+        expenses DECIMAL(10, 2)
+      );
+    `);
+
     await connection.commit();
   } catch (error) {
     await connection.rollback();
