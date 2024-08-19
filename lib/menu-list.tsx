@@ -8,6 +8,8 @@ import {
   LucideIcon,
   UsersRound,
   Book,
+  ShoppingCart,
+  BookOpen,
 } from "lucide-react";
 
 type Submenu = {
@@ -58,6 +60,20 @@ export function getMenuList(pathname: string): Group[] {
           label: "Categories",
           active: pathname.includes("/categories"),
           icon: Bookmark,
+          submenus: [],
+        },
+        {
+          href: "/dashboard/orders",
+          label: "Orders",
+          active: pathname.includes("/orders"),
+          icon: ShoppingCart,
+          submenus: [],
+        },
+        {
+          href: "/dashboard/invoices",
+          label: "Invoices",
+          active: pathname.includes("/invoices"),
+          icon: BookOpen,
           submenus: [],
         },
         {

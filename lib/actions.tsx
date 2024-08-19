@@ -13,9 +13,6 @@ import { FileData, FormState, LoginFormSchema } from "./definitions";
 import { sendVerificationEmail } from "./emailVerification";
 import { setupTables } from "./dbTables";
 import { cache } from "./cache";
-import { initialize } from "./main";
-
-initialize();
 
 export async function handlePost(request: NextRequest) {
   const connection = await getConnection();

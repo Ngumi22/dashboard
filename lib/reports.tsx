@@ -6,17 +6,9 @@ import { mapProductRow } from "./utils";
 import { RowDataPacket } from "mysql2/promise";
 import { Product, ProductRow } from "./definitions";
 import { getCache, setCache } from "./cache";
-import { initialize } from "./main";
 
-initialize();
 // BestSellingProductsReport
 export async function generateBestSellingProductsReport(): Promise<Product[]> {
-  const cacheKey = `best_selling_products_report`;
-  const cachedData = getCache(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
-
   const connection = await getConnection();
 
   try {
@@ -37,7 +29,6 @@ export async function generateBestSellingProductsReport(): Promise<Product[]> {
     const [rows] = await connection.query<RowDataPacket[]>(query);
     const bestSellingProducts = (rows as ProductRow[]).map(mapProductRow);
 
-    setCache(cacheKey, bestSellingProducts);
     return bestSellingProducts;
   } catch (error) {
     console.error("Error generating best-selling products report:", error);
@@ -50,12 +41,6 @@ export async function generateBestSellingProductsReport(): Promise<Product[]> {
 // Inventory Report
 
 export async function generateInventoryReport(): Promise<Product[]> {
-  const cacheKey = `inventory_report`;
-  const cachedData = getCache(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
-
   const connection = await getConnection();
 
   try {
@@ -74,7 +59,6 @@ export async function generateInventoryReport(): Promise<Product[]> {
     const [rows] = await connection.query<RowDataPacket[]>(query);
     const inventoryReport = (rows as ProductRow[]).map(mapProductRow);
 
-    setCache(cacheKey, inventoryReport);
     return inventoryReport;
   } catch (error) {
     console.error("Error generating inventory report:", error);
@@ -125,12 +109,6 @@ export async function generateOrderSummaryReport(
 // Web traffic
 
 export async function generateWebTrafficReport(): Promise<any[]> {
-  const cacheKey = `web_traffic_report`;
-  const cachedData = getCache(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
-
   const connection = await getConnection();
 
   try {
@@ -154,7 +132,6 @@ export async function generateWebTrafficReport(): Promise<any[]> {
       unique_visitors: row.unique_visitors,
     }));
 
-    setCache(cacheKey, webTrafficReport);
     return webTrafficReport;
   } catch (error) {
     console.error("Error generating web traffic report:", error);
@@ -239,12 +216,6 @@ export async function generateCustomerReport(): Promise<any[]> {
 
 // reviews
 export async function generateReviewsReport(): Promise<any[]> {
-  const cacheKey = `reviews_report`;
-  const cachedData = getCache(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
-
   const connection = await getConnection();
 
   try {
@@ -272,7 +243,6 @@ export async function generateReviewsReport(): Promise<any[]> {
       product_name: row.product_name,
     }));
 
-    setCache(cacheKey, reviewsReport);
     return reviewsReport;
   } catch (error) {
     console.error("Error generating reviews report:", error);
