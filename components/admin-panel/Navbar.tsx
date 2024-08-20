@@ -1,4 +1,5 @@
 import { ModeToggle } from "../mode-toggle";
+import Notifications from "./notifications";
 import { SheetMenu } from "./sheet-menu";
 import { UserNav } from "./user-nav";
 
@@ -16,6 +17,7 @@ export function Navbar({ title }: NavbarProps) {
         </div>
         <div className="flex flex-1 items-center space-x-2 justify-end">
           <ModeToggle />
+          <Notifications />
           <UserNav />
         </div>
       </div>

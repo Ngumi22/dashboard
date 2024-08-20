@@ -1,24 +1,21 @@
-import OrdersCard from "@/components/reports/Orders";
-import SalesCard from "@/components/reports/SalesCard";
-import BestSellingProductsReport from "@/components/reports/best-selling";
+import OrdersChart from "@/components/reports/Orders_Chart";
+import CurrentCustomers from "@/components/reports/Web_Traffic";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface ContentLayoutProps {
-  orderSummary: any;
-  bestSellingProducts: any[];
-  salesReport: any;
-}
-
-export default function ContentLayout({
-  orderSummary,
-  bestSellingProducts,
-  salesReport,
-}: ContentLayoutProps) {
+export default function ContentLayout() {
   return (
-    <div className="container pt-8 pb-8 px-4 sm:px-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <BestSellingProductsReport products={bestSellingProducts} />
-        <SalesCard />
-      </div>
-    </div>
+    <section className="container pt-8 pb-8 px-4 sm:px-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <OrdersChart />
+
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Customers</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <CurrentCustomers />
+        </CardContent>
+      </Card>
+    </section>
   );
 }
