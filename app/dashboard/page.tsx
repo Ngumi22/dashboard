@@ -12,7 +12,8 @@ export default function ContentLayout() {
           <CardTitle>Customers</CardTitle>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CurrentCustomers />
           <CurrentCustomers />
         </CardContent>
       </Card>
