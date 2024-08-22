@@ -77,7 +77,7 @@ export async function createIndexes(): Promise<void> {
       }
     }
 
-    console.log("Indexes created successfully");
+    // console.log("Indexes created successfully");
   } catch (error) {
     console.error("Error creating indexes:", error);
     throw error;

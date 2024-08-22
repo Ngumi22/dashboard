@@ -31,18 +31,18 @@ export async function initDbConnection(): Promise<void> {
     // Track total connections created
     pool.on("connection", () => {
       totalConnectionsCreated++;
-      console.log(`Total connections created: ${totalConnectionsCreated}`);
+      // console.log(`Total connections created: ${totalConnectionsCreated}`);
     });
 
     // Track active connections
     pool.on("acquire", () => {
       activeConnections++;
-      console.log(`Active connections: ${activeConnections}`);
+      // console.log(`Active connections: ${activeConnections}`);
     });
 
     pool.on("release", () => {
       activeConnections--;
-      console.log(`Active connections: ${activeConnections}`);
+      // console.log(`Active connections: ${activeConnections}`);
     });
   } else {
     console.log("Database pool is already initialized.");
@@ -59,7 +59,7 @@ export function getConnectionPoolMetrics() {
     };
   }
 
-  console.log("Fetching connection pool metrics...");
+  // console.log("Fetching connection pool metrics...");
 
   return {
     activeConnections,
