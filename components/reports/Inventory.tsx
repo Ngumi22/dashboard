@@ -1,6 +1,7 @@
 import React from "react";
 import { GetServerSideProps } from "next";
 import { generateInventoryReport } from "@/lib/reports";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface InventoryProduct {
   product_id: number;
@@ -16,29 +17,21 @@ interface InventoryReportProps {
 
 export default function InventoryReport({ products }: InventoryReportProps) {
   return (
-    <div>
-      <h2>Inventory Report</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>SKU</th>
-            <th>Quantity</th>
-            <th>Stock Level</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => (
-            <tr key={product.product_id}>
-              <td>{product.name}</td>
-              <td>{product.sku}</td>
-              <td>{product.quantity}</td>
-              <td>{product.stock_level}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Inventory</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {products.map((product) => (
+          <div key={product.product_id}>
+            <div>{product.name}</div>
+            <div>{product.sku}</div>
+            <div>{product.quantity}</div>
+            <div>{product.stock_level}</div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 

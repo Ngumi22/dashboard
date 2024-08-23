@@ -270,7 +270,7 @@ export async function handlePost(request: NextRequest) {
     console.log("Transaction committed.");
 
     // Revalidate the necessary paths
-    await revalidatePath(`http://localhost:3000/dashboard/products`);
+    revalidatePath(`http://localhost:3000/dashboard/products`);
     console.log("Path revalidation triggered.");
 
     // Redirect to the product detail page

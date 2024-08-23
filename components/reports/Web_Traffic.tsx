@@ -91,10 +91,10 @@ export default function CurrentCustomers() {
   const months = React.useMemo(() => desktopData.map((item) => item.month), []);
 
   return (
-    <Card data-chart={id} className="flex flex-col w-full">
+    <Card data-chart={id} className="flex flex-col p-2 w-full">
       <ChartStyle id={id} config={chartConfig} />
       <CardHeader className="flex-col items-start pb-0">
-        <CardDescription className="grid gap-1 m-auto text-xs">
+        <CardDescription className="grid m-auto text-xs">
           January - June 2024
         </CardDescription>
         <Select value={activeMonth} onValueChange={setActiveMonth}>
@@ -116,9 +116,9 @@ export default function CurrentCustomers() {
                   key={key}
                   value={key}
                   className="rounded-lg [&_span]:flex">
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-1 text-xs">
                     <span
-                      className="flex h-4 w-4 shrink-0 rounded-sm"
+                      className="flex h-3 w-4 shrink-0 rounded-sm"
                       style={{
                         backgroundColor: `var(--color-${key})`,
                       }}

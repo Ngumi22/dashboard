@@ -92,7 +92,7 @@ export default function OrdersChart() {
 
       <ChartContainer
         config={chartConfig}
-        className="w-full max-h-[16rem] h-auto">
+        className="w-full max-h-[13.5rem] h-auto">
         <BarChart accessibilityLayer data={data}>
           <CartesianGrid vertical={false} />
           <XAxis

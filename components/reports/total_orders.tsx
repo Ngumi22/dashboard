@@ -1,11 +1,11 @@
 import { CreditCard } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 
-export default function SalesCard() {
+export default function TotalOrders() {
   return (
     <Card x-chunk="dashboard-01-chunk-2" className="h-fit">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+        <CardTitle className="text-sm font-medium">Orders Completed</CardTitle>
         <CreditCard className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
