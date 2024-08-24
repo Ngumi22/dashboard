@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(
   req: NextRequest,
   { params }: { params: { email: string } }
-) {
+): Promise<NextResponse> {
   const { email } = params;
 
   if (!email) {
@@ -13,9 +13,8 @@ export async function GET(
 
   try {
     const user = await fetchUserByEmail(email);
-    return user;
+    return NextResponse.json(user, { status: 200 });
   } catch (error) {
-    console.error("Error fetching user:", error);
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 }

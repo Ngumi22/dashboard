@@ -1,12 +1,31 @@
-import "server only";
+"use server";
 
 import { signUp } from "@/lib/actions";
 import { fetchUserByEmail, fetchUsers } from "@/lib/data";
 import { NextRequest, NextResponse } from "next/server";
 import { FormState } from "@/lib/definitions";
 
-export async function POST(state: FormState, formData: FormData) {
-  return signUp(state, formData);
+// Updated to use `NextRequest` and extract `FormState` and `FormData` from it
+export async function POST(req: NextRequest) {
+  try {
+    const formData = await req.formData(); // Extract FormData from NextRequest
+
+    const state: FormState = {
+      errors: {},
+      success: false,
+      message: "",
+    };
+
+    const result = await signUp(state, formData);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Error during sign-up:", error);
+    return NextResponse.json(
+      { error: "Failed to sign up user." },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: NextRequest) {

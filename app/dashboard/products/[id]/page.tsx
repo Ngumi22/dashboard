@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { ProductData } from "@/lib/definitions";
+import Image from "next/image";
 
 export default function ProductPage() {
   const [product, setProduct] = useState<ProductData | null>(null);
@@ -48,20 +49,24 @@ export default function ProductPage() {
       <section className="container flex-grow mx-auto max-w-[1200px] border-b py-5 lg:grid lg:grid-cols-2 lg:py-10">
         <div className="container mx-auto px-4">
           {product.images.main && (
-            <img
+            <Image
               className="w-full"
               src={`data:image/jpeg;base64,${product.images.main}`}
               alt="Main Image"
+              height={100}
+              width={100}
             />
           )}
 
           <div className="mt-3 grid grid-cols-5 gap-4">
             {product.images.thumbnails.map((thumbnail, index) => (
-              <img
+              <Image
                 className="cursor-pointer"
                 key={index}
                 src={`data:image/jpeg;base64,${thumbnail}`}
                 alt={`Thumbnail ${index + 1}`}
+                height={100}
+                width={100}
               />
             ))}
           </div>
@@ -290,10 +295,12 @@ export default function ProductPage() {
               </svg>
             </span>
           </div>
-          <img
+          <Image
             className=""
             src="./assets/images/product-chair.png"
             alt="sofa image"
+            height={100}
+            width={100}
           />
 
           <div>
@@ -377,10 +384,12 @@ export default function ProductPage() {
         </div>
 
         <div className="flex flex-col">
-          <img
+          <Image
             className=""
             src="./assets/images/product-sofa.png"
             alt="sofa image"
+            height={100}
+            width={100}
           />
 
           <div>
@@ -464,10 +473,12 @@ export default function ProductPage() {
         </div>
 
         <div className="flex flex-col">
-          <img
+          <Image
             className=""
             src="./assets/images/kitchen.png"
             alt="sofa image"
+            height={100}
+            width={100}
           />
 
           <div>
@@ -551,10 +562,12 @@ export default function ProductPage() {
         </div>
 
         <div className="flex flex-col">
-          <img
+          <Image
             className=""
             src="./assets/images/living-room.png"
             alt="sofa image"
+            height={100}
+            width={100}
           />
 
           <div>
