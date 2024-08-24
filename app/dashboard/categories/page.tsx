@@ -29,40 +29,6 @@ export default function CategoryList() {
   const { toast } = useToast();
   const fetchedCategories = useRef(new Set<string>());
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const resCategories = await fetch("/api/categories");
-
-        if (!resCategories.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-
-        const categoriesData = await resCategories.json();
-        setCategories(categoriesData);
-
-        categoriesData.forEach((category: CategoryData) => {
-          fetchProducts(category.name);
-        });
-      } catch (err) {
-        console.error(err);
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage,
-          action: <ToastAction altText="Try again">Try again</ToastAction>,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [toast]);
-
   const fetchProducts = useCallback(
     async (categoryName: string) => {
       if (fetchedCategories.current.has(categoryName)) {
@@ -102,6 +68,40 @@ export default function CategoryList() {
     },
     [toast]
   );
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const resCategories = await fetch("/api/categories");
+
+        if (!resCategories.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+
+        const categoriesData = await resCategories.json();
+        setCategories(categoriesData);
+
+        categoriesData.forEach((category: CategoryData) => {
+          fetchProducts(category.name);
+        });
+      } catch (err) {
+        console.error(err);
+        const errorMessage =
+          err instanceof Error ? err.message : "An unknown error occurred";
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+          action: <ToastAction altText="Try again">Try again</ToastAction>,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast, fetchProducts]);
 
   if (loading) {
     return <div>Loading...</div>;
