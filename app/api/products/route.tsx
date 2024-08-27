@@ -1,66 +1,32 @@
 import { handlePost } from "@/lib/actions";
 import { NextRequest, NextResponse } from "next/server";
 import {
-  fetchProductsByCategoryFromDb,
-  fetchAllProductsFromDb,
-  fetchProductsByNameFromDb,
   fetchProductsByBrandFromDb,
-  fetchProductsByPriceRangeFromDb,
-  fetchProductsByDiscountRangeFromDb,
-  fetchProductsByStatusFromDb,
   fetchFilteredProductsFromDb,
-  fetchBrandsFromDb, // Import the new function
+  fetchUniqueBrands,
 } from "@/lib/data";
-
 import validateParams from "@/lib/utils";
-import { SearchParams } from "@/lib/definitions";
+import { Product } from "@/lib/definitions";
+
+export async function POST(request: NextRequest) {
+  return handlePost(request);
+}
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const category = url.searchParams.get("category");
-  const name = url.searchParams.get("name");
-  const brand = url.searchParams.get("brand");
-  const minPrice = url.searchParams.get("minPrice");
-  const maxPrice = url.searchParams.get("maxPrice");
-  const minDiscount = url.searchParams.get("minDiscount");
-  const maxDiscount = url.searchParams.get("maxDiscount");
-  const status = url.searchParams.get("status");
   const currentPage = Number(url.searchParams.get("page")) || 1;
-  const brands = url.searchParams.get("brands"); // Add this line
+  const brandsParam = url.searchParams.get("brands");
 
-  const filter: SearchParams = {
-    minPrice: url.searchParams.has("minPrice")
-      ? parseFloat(url.searchParams.get("minPrice") as string)
-      : undefined,
-    maxPrice: url.searchParams.has("maxPrice")
-      ? parseFloat(url.searchParams.get("maxPrice") as string)
-      : undefined,
-    minDiscount: url.searchParams.has("minDiscount")
-      ? parseFloat(url.searchParams.get("minDiscount") as string)
-      : undefined,
-    maxDiscount: url.searchParams.has("maxDiscount")
-      ? parseFloat(url.searchParams.get("maxDiscount") as string)
-      : undefined,
-    name: url.searchParams.get("name") || undefined,
-    brand: url.searchParams.get("brand") || undefined,
-    category: url.searchParams.get("category") || undefined,
-    status: url.searchParams.get("status") || undefined,
-    brands: url.searchParams.get("brands") || undefined,
-  };
+  // Convert SearchParams to Record
+  const filter: Record<string, string | null> = {};
+  url.searchParams.forEach((value, key) => {
+    if (key !== "brands") {
+      filter[key] = value;
+    }
+  });
 
-  const params = {
-    category,
-    name,
-    brand,
-    minPrice,
-    maxPrice,
-    minDiscount,
-    maxDiscount,
-    status,
-    brands,
-  };
-
-  if (!validateParams(params)) {
+  // Validate filter parameters
+  if (!validateParams(filter)) {
     return NextResponse.json(
       { error: "Invalid query parameters" },
       { status: 400 }
@@ -68,44 +34,37 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    let products;
+    if (brandsParam === "all") {
+      // Fetch all unique brands
+      const uniqueBrands = await fetchUniqueBrands();
 
-    if (name) {
-      products = await fetchProductsByNameFromDb(name);
-    } else if (category) {
-      products = await fetchProductsByCategoryFromDb(category);
-    } else if (brand) {
-      products = await fetchProductsByBrandFromDb(brand);
-    } else if (minPrice && maxPrice) {
-      products = await fetchProductsByPriceRangeFromDb(
-        Number(minPrice),
-        Number(maxPrice)
+      // Fetch products for each brand
+      const productsByBrand = await Promise.all(
+        uniqueBrands.map(async (brand) => {
+          const products = await fetchProductsByBrandFromDb(brand);
+          return { brand, products };
+        })
       );
-    } else if (minDiscount && maxDiscount) {
-      products = await fetchProductsByDiscountRangeFromDb(
-        Number(minDiscount),
-        Number(maxDiscount),
-        Number(currentPage)
+
+      // Set Cache-Control header
+      const response = NextResponse.json(productsByBrand);
+      response.headers.set(
+        "Cache-Control",
+        "s-maxage=3600, stale-while-revalidate"
       );
-    } else if (status) {
-      products = await fetchProductsByStatusFromDb(status);
-    } else if (brands) {
-      const brandsWithProducts = await fetchBrandsFromDb();
-      const brandsData = await Promise.all(
-        brandsWithProducts.map(async (brand) => ({
-          brand,
-          products: await fetchProductsByBrandFromDb(brand),
-        }))
-      );
-      return NextResponse.json(brandsData);
-    } else if (filter) {
-      products = await fetchFilteredProductsFromDb(currentPage, filter);
-      return NextResponse.json(products);
+      return response;
     } else {
-      products = await fetchAllProductsFromDb(currentPage);
-    }
+      // Fetch filtered products based on other parameters
+      const products = await fetchFilteredProductsFromDb(currentPage, filter);
 
-    return NextResponse.json(products);
+      // Set Cache-Control header
+      const response = NextResponse.json(products);
+      response.headers.set(
+        "Cache-Control",
+        "s-maxage=3600, stale-while-revalidate"
+      );
+      return response;
+    }
   } catch (error) {
     console.error("Error fetching products:", error);
     return NextResponse.json(
@@ -113,8 +72,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-export async function POST(request: NextRequest) {
-  return handlePost(request);
 }

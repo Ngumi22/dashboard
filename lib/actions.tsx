@@ -290,7 +290,6 @@ export async function handlePost(request: NextRequest) {
   }
 }
 
-// Function to update a product
 export async function handlePut(req: NextRequest, id: string) {
   const connection = await getConnection();
 
@@ -330,13 +329,11 @@ export async function handlePut(req: NextRequest, id: string) {
       [category]
     );
 
-    // Ensure categoryRows is an array of objects with an 'id' property
     if (
       !Array.isArray(categoryRows) ||
       categoryRows.length === 0 ||
       !("id" in categoryRows[0])
     ) {
-      // Category not found
       return NextResponse.json(
         { error: "Category not found" },
         { status: 404 }
@@ -349,7 +346,7 @@ export async function handlePut(req: NextRequest, id: string) {
     await connection.beginTransaction();
 
     try {
-      // Update product details using parameterized query
+      // Update product details
       await connection.execute(
         "UPDATE product SET sku = ?, name = ?, description = ?, brand = ?, category_id = ?, status = ?, price = ?, discount = ?, quantity = ? WHERE id = ?",
         [
@@ -376,7 +373,6 @@ export async function handlePut(req: NextRequest, id: string) {
 
       if (main_image) {
         const mainImageBuffer = Buffer.from(await main_image.arrayBuffer());
-
         await connection.execute(
           "UPDATE images SET main_image = ? WHERE id = (SELECT image_id FROM product WHERE id = ?)",
           [mainImageBuffer, id]
@@ -465,16 +461,19 @@ export async function handlePut(req: NextRequest, id: string) {
 
       // Commit the transaction
       await connection.commit();
+
+      return NextResponse.json(
+        { message: "Product updated successfully" },
+        { status: 200 }
+      );
     } catch (tagError) {
       // Rollback transaction if tag update fails
       await connection.rollback();
-      throw tagError;
+      return NextResponse.json(
+        { error: "Failed to update tags" },
+        { status: 500 }
+      );
     }
-
-    return NextResponse.json(
-      { message: "Product updated successfully" },
-      { status: 200 }
-    );
   } catch (error) {
     await connection.rollback();
     return NextResponse.json(

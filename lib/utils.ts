@@ -171,8 +171,7 @@ export function mapProductRow(row: ProductRow): Product {
         .filter(Boolean)
         .map(convertToBase64),
     },
-    tags:
-      row.tagId && row.tagName ? [{ id: row.tagId, name: row.tagName }] : [],
+    tags: row.tags ? row.tags.split(",") : [], // Convert comma-separated tags to an array of strings
   };
 }
 

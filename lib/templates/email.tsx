@@ -40,9 +40,9 @@ export default function VerifyEmail({ url }: VerifyEmailProps) {
               <Heading style={h1}>Verify your email address</Heading>
               <Text style={mainText}>
                 Thanks for starting the new Bernzz account creation process. We
-                want to make sure it's really you. Please click the following
-                verification link when prompted. If you don&apos;t want to
-                create an account, you can ignore this message.
+                want to make sure it is really you. Please click the following
+                verification link when prompted. If you do not want to create an
+                account, you can ignore this message.
               </Text>
               <Section style={verificationSection}>
                 <Button style={ButtonStyle} href={url}>

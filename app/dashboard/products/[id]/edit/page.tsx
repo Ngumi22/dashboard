@@ -5,10 +5,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import ProductForm from "@/components/add-form";
 import { useRouter } from "next/navigation";
+import { Product } from "@/lib/definitions";
 
 export default function EditPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
-  const [productData, setProductData] = useState<any>(null);
+  const [productData, setProductData] = useState<Product>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const id = params.id;
@@ -21,10 +22,12 @@ export default function EditPage({ params }: { params: { id: string } }) {
           const res = await fetch(`/api/products/${id}`);
           if (res.ok) {
             const product = await res.json();
+            console.log(product.tags);
             product.main_image = `data:image/jpeg;base64,${product.images.main}`;
             product.thumbnails = product.images.thumbnails.map(
               (thumb: string) => `data:image/jpeg;base64,${thumb}`
             );
+
             setProductData(product);
           } else {
             const errorText = await res.text();

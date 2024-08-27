@@ -77,6 +77,7 @@ export interface ProductRow {
   thumbnail5: Buffer | null;
   tagId: string | null;
   tagName: string | null;
+  tags: string;
 }
 
 export interface Product {
@@ -96,10 +97,11 @@ export interface Product {
     main: string;
     thumbnails: string[];
   };
-  tags: { id: string; name: string }[];
+  tags: string[];
 }
 
 export interface SearchParams {
+  id?: number;
   minPrice?: number;
   maxPrice?: number;
   minDiscount?: number;
@@ -109,8 +111,7 @@ export interface SearchParams {
   category?: string;
   status?: string;
   brands?: string;
-  tagId?: string | null;
-  tagName?: string | null;
+  tags?: string;
 }
 
 export type UserRow = {
