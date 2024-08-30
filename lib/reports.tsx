@@ -5,7 +5,6 @@ import { getConnection } from "./db";
 import { mapProductRow } from "./utils";
 import { RowDataPacket } from "mysql2/promise";
 import { Product, ProductRow } from "./definitions";
-import { getCache, setCache } from "./cache";
 
 // BestSellingProductsReport
 export async function generateBestSellingProductsReport(): Promise<Product[]> {
