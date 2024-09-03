@@ -85,6 +85,7 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS categories (
         id CHAR(36) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        image MEDIUMBLOB,
         description TEXT DEFAULT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -100,6 +101,7 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS brands (
         id CHAR(36) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        brand_logo MEDIUMBLOB NOT NULL,
         description TEXT DEFAULT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -131,7 +133,7 @@ export async function dbsetupTables() {
         id CHAR(36) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         description TEXT DEFAULT NULL,
-        image BLOB DEFAULT NULL COMMENT 'Binary image data',
+        image MEDIUMBLOB DEFAULT NULL COMMENT 'Binary image data',
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         created_by CHAR(36),
@@ -147,6 +149,7 @@ export async function dbsetupTables() {
         id CHAR(36) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         description TEXT DEFAULT NULL,
+        short_description TEXT DEFAULT NULL,
         price DECIMAL(10, 2) NOT NULL,
         discount DECIMAL(10, 2) DEFAULT 0.00,
         quantity INT DEFAULT 0,
@@ -198,7 +201,91 @@ export async function dbsetupTables() {
         FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
         FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
         INDEX idx_name (name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags for filtering';
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Tags for products';
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_tags (
+        product_id CHAR(36),
+        tag_id CHAR(36),
+        PRIMARY KEY (product_id, tag_id),
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+        INDEX idx_product_id (product_id),
+        INDEX idx_tag_id (tag_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags relationship';
+    `);
+
+    // Variant-related tables
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS variant_types (
+        id CHAR(36) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_by CHAR(36),
+        updated_by CHAR(36),
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        INDEX idx_name (name)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Types of product variants (e.g., size, color)';
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS variant_options (
+        id CHAR(36) PRIMARY KEY,
+        variant_type_id CHAR(36) NOT NULL,
+        value VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_by CHAR(36),
+        updated_by CHAR(36),
+        FOREIGN KEY (variant_type_id) REFERENCES variant_types(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        INDEX idx_variant_type_id (variant_type_id),
+        INDEX idx_value (value)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Available options for product variants';
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_variants (
+        id CHAR(36) PRIMARY KEY,
+        product_id CHAR(36) NOT NULL,
+        variant_option_id CHAR(36) NOT NULL,
+        additional_price DECIMAL(10, 2) DEFAULT 0.00,
+        quantity INT DEFAULT 0,
+        status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_by CHAR(36),
+        updated_by CHAR(36),
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (variant_option_id) REFERENCES variant_options(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        INDEX idx_product_id (product_id),
+        INDEX idx_variant_option_id (variant_option_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants and their additional pricing';
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS variant_images (
+        id CHAR(36) PRIMARY KEY,
+        variant_id CHAR(36) NOT NULL,
+        image BLOB DEFAULT NULL COMMENT 'Binary image data',
+        main_image BOOLEAN DEFAULT FALSE,
+        thumbnail_image BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_by CHAR(36),
+        updated_by CHAR(36),
+        FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
+        INDEX idx_variant_id (variant_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images for product variants';
     `);
 
     // Create users with specific permissions
@@ -213,13 +300,10 @@ export async function dbsetupTables() {
 
     await connection.commit();
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error during database setup:", error.message);
-      console.error("Error stack:", error.stack);
-    } else {
-      console.error("Unknown error occurred:", error);
+    if (connection) {
+      await connection.rollback();
     }
-    await connection.rollback();
+    throw error;
   } finally {
     connection.release();
   }
