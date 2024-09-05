@@ -15,6 +15,13 @@ const ITEMS_PER_PAGE = 10;
 const DISCOUNTED_ITEMS_PER_PAGE = 5;
 const cache = new Map<string, any>();
 
+interface CachedData {
+  data: Product[];
+  timestamp: number;
+}
+
+const CACHE_TTL = 60 * 60 * 1000;
+
 export async function fetchFilteredProductsFromDb(
   currentPage: number,
   filter: SearchParams
@@ -307,6 +314,77 @@ export async function fetchProductsByBrandFromDb(
   } catch (error) {
     console.error("Error fetching products by name:", error);
     throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchUniqueTags(): Promise<string[]> {
+  const connection = await getConnection();
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      `SELECT DISTINCT name FROM tags`
+    );
+    return rows.map((row: any) => row.name);
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchByTag(tag: string): Promise<Product[]> {
+  const cacheKey = `products_tag_${tag}`;
+
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
+  const connection = await getConnection();
+
+  try {
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `
+      SELECT
+        p.id AS product_id,
+        p.name,
+        p.sku,
+        p.price,
+        p.discount,
+        p.quantity,
+        c.name AS category,
+        p.status,
+        p.description,
+        p.brand,
+        p.createdAt,
+        p.updatedAt,
+        i.main_image,
+        i.thumbnail1,
+        i.thumbnail2,
+        i.thumbnail3,
+        i.thumbnail4,
+        i.thumbnail5,
+        COALESCE(GROUP_CONCAT(t.name SEPARATOR ','), '') AS tags
+      FROM product p
+      LEFT JOIN images i ON p.image_id = i.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_tags pt ON p.id = pt.product_id
+      LEFT JOIN tags t ON pt.tag_id = t.id
+      WHERE t.name = ?
+      GROUP BY p.id
+      `,
+      [tag]
+    );
+
+    const products = (rows as ProductRow[]).map((row) => {
+      const product = mapProductRow(row);
+      product.tags = row.tags ? row.tags.split(",") : []; // Convert tags string to array
+      return product;
+    });
+
+    cache.set(cacheKey, products);
+    return products;
+  } catch (error) {
+    console.error("Error fetching products by tag:", error);
+    throw new Error("Failed to fetch products from the database.");
   } finally {
     connection.release();
   }

@@ -4,9 +4,9 @@ import {
   fetchProductsByBrandFromDb,
   fetchFilteredProductsFromDb,
   fetchUniqueBrands,
+  fetchByTag,
 } from "@/lib/data";
 import validateParams from "@/lib/utils";
-import { Product } from "@/lib/definitions";
 
 export async function POST(request: NextRequest) {
   return handlePost(request);
@@ -16,11 +16,12 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const currentPage = Number(url.searchParams.get("page")) || 1;
   const brandsParam = url.searchParams.get("brands");
+  const tag = url.searchParams.get("tag"); // Get "tag" from query parameters
 
-  // Convert SearchParams to Record
+  // Convert other query parameters to filters
   const filter: Record<string, string | null> = {};
   url.searchParams.forEach((value, key) => {
-    if (key !== "brands") {
+    if (key !== "brands" && key !== "tag") {
       filter[key] = value;
     }
   });
@@ -34,41 +35,45 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    if (brandsParam === "all") {
-      // Fetch all unique brands
-      const uniqueBrands = await fetchUniqueBrands();
+    let products;
 
-      // Fetch products for each brand
+    if (tag) {
+      // Fetch products by tag if provided
+      products = await fetchByTag(tag);
+
+      // If no products found for the tag, return 404
+      if (products.length === 0) {
+        return NextResponse.json(
+          { error: "No products found for this tag" },
+          { status: 404 }
+        );
+      }
+    } else if (brandsParam === "all") {
+      // Fetch products by all brands if "brands=all" is provided
+      const uniqueBrands = await fetchUniqueBrands();
       const productsByBrand = await Promise.all(
         uniqueBrands.map(async (brand) => {
-          const products = await fetchProductsByBrandFromDb(brand);
-          return { brand, products };
+          const brandProducts = await fetchProductsByBrandFromDb(brand);
+          return { brand, products: brandProducts };
         })
       );
-
-      // Set Cache-Control header
-      const response = NextResponse.json(productsByBrand);
-      response.headers.set(
-        "Cache-Control",
-        "s-maxage=3600, stale-while-revalidate"
-      );
-      return response;
+      products = productsByBrand;
     } else {
-      // Fetch filtered products based on other parameters
-      const products = await fetchFilteredProductsFromDb(currentPage, filter);
-
-      // Set Cache-Control header
-      const response = NextResponse.json(products);
-      response.headers.set(
-        "Cache-Control",
-        "s-maxage=3600, stale-while-revalidate"
-      );
-      return response;
+      // Fetch filtered products if no tag or brand is provided
+      products = await fetchFilteredProductsFromDb(currentPage, filter);
     }
+
+    // Set cache-control header and return the response
+    const response = NextResponse.json(products);
+    response.headers.set(
+      "Cache-Control",
+      "s-maxage=3600, stale-while-revalidate"
+    );
+    return response;
   } catch (error) {
     console.error("Error fetching products:", error);
     return NextResponse.json(
-      { error: "Failed to get products" },
+      { error: "Failed to fetch products" },
       { status: 500 }
     );
   }
