@@ -22,6 +22,10 @@ export async function GET(
 
     const response = NextResponse.json(product, { status: 200 });
     response.headers.set(
+      "Cache-Control",
+      "s-maxage=3600, stale-while-revalidate"
+    );
+    response.headers.set(
       "Access-Control-Allow-Origin",
       "http://localhost:3001"
     ); // Allow requests from your frontend
