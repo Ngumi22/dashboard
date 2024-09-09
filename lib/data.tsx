@@ -11,7 +11,7 @@ import {
 } from "./definitions";
 import { getCache, setCache } from "./cache";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 9;
 const DISCOUNTED_ITEMS_PER_PAGE = 5;
 const cache = new Map<string, any>();
 
