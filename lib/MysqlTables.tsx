@@ -7,298 +7,468 @@ export async function dbsetupTables() {
 
     // Create the database if it doesn't exist
     await connection.query(`CREATE DATABASE IF NOT EXISTS Bernzz;`);
-    await connection.query(`USE Bernzz;`); // Switch to the Bernzz database
+    await connection.query(`USE Bernzz;`);
 
     // Create the tables
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS roles (
-        id CHAR(36) PRIMARY KEY,
-        role_name VARCHAR(255) NOT NULL,
-        role_level INT NOT NULL COMMENT '1: Super Admin, 2: Admin, 3: User',
-        privileges JSON NOT NULL COMMENT 'Permissions assigned to the role'
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Roles and permissions';
-    `);
-
-    await connection.query(`
-      INSERT IGNORE INTO roles (role_name, role_level, privileges)
-      VALUES
-        ('Super Admin', 1, '{"manage_users": true, "crud_operations": true, "role_management": true}'),
-        ('Admin', 2, '{"crud_operations": true, "approve_operations": true}'),
-        ('User', 3, '{"crud_operations": true, "pending_approval": true}');
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS staff_accounts (
-        id CHAR(36) PRIMARY KEY,
-        role_id CHAR(36),
-        first_name VARCHAR(100) NOT NULL,
-        last_name VARCHAR(100) NOT NULL,
-        phone_number VARCHAR(20) DEFAULT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        active BOOLEAN DEFAULT TRUE,
-        image TEXT DEFAULT NULL,
-        is_verified BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE SET NULL,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_email (email),
-        INDEX idx_role_id (role_id)
+      CREATE TABLE staff_accounts (
+          staff_id INT AUTO_INCREMENT PRIMARY KEY,
+          role_name ENUM('super_admin', 'admin', 'user') NOT NULL,
+          first_name VARCHAR(100) NOT NULL,
+          last_name VARCHAR(100) NOT NULL,
+          phone_number VARCHAR(20),
+          email VARCHAR(255) NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          active BOOLEAN DEFAULT TRUE,
+          image MEDIUMBLOB,
+          is_verified BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          INDEX idx_email (email),
+          INDEX idx_role_name (role_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Staff accounts and user information';
+
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id CHAR(36) PRIMARY KEY,
-        staff_id CHAR(36) NOT NULL,
-        session_token VARCHAR(255) NOT NULL UNIQUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (staff_id) REFERENCES staff_accounts(id) ON DELETE CASCADE,
-        INDEX idx_session_token (session_token),
-        INDEX idx_staff_id (staff_id)
+      CREATE TABLE sessions (
+          session_id INT AUTO_INCREMENT PRIMARY KEY,
+          staff_id INT NOT NULL,
+          session_token VARCHAR(255) NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (staff_id) REFERENCES staff_accounts(staff_id) ON DELETE CASCADE,
+          INDEX idx_session_token (session_token),
+          INDEX idx_staff_id (staff_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Session management and tracking';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS notifications (
-        id CHAR(36) PRIMARY KEY,
-        recipient_id CHAR(36) NOT NULL,
-        action_by CHAR(36) NOT NULL,
+    CREATE TABLE notifications (
+        notification_id INT AUTO_INCREMENT PRIMARY KEY,
+        recipient_id INT NOT NULL,
+        action_by INT NOT NULL,
         notification_type ENUM('add', 'update', 'delete') NOT NULL,
-        entity_type ENUM('product', 'category', 'slide', 'tag', 'supplier') NOT NULL,
-        entity_id CHAR(36) NOT NULL,
+        entity_type ENUM('product', 'category', 'slide', 'tag', 'supplier', 'banner') NOT NULL,
+        entity_id INT NOT NULL,
         status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
         message TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (recipient_id) REFERENCES staff_accounts(id) ON DELETE CASCADE,
-        FOREIGN KEY (action_by) REFERENCES staff_accounts(id) ON DELETE CASCADE,
-        INDEX idx_entity_id (entity_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Notifications for actions taken';
-    `);
+        FOREIGN KEY (recipient_id) REFERENCES staff_accounts(staff_id) ON DELETE CASCADE,
+        FOREIGN KEY (action_by) REFERENCES staff_accounts(staff_id) ON DELETE CASCADE,
+        INDEX idx_recipient_id (recipient_id),
+        INDEX idx_action_by (action_by),
+        INDEX idx_entity_id (entity_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Notifications for actions taken';
+`);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        image MEDIUMBLOB,
-        description TEXT DEFAULT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name)
+      CREATE TABLE categories (
+          category_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          image MEDIUMBLOB,
+          description TEXT DEFAULT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          INDEX idx_name (name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product categories';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS brands (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        brand_logo MEDIUMBLOB NOT NULL,
-        description TEXT DEFAULT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name)
+      CREATE TABLE brands (
+          brand_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          brand_logo MEDIUMBLOB NOT NULL,
+          description TEXT DEFAULT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          INDEX idx_name (name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product brands';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS suppliers (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON',
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name)
+      CREATE TABLE suppliers (
+          supplier_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+          INDEX idx_name (name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Suppliers and their contact information';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS slides (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT DEFAULT NULL,
-        image MEDIUMBLOB DEFAULT NULL COMMENT 'Binary image data',
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Slides for marketing';
+      CREATE TABLE products (
+          product_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          short_description TEXT,
+          price DECIMAL(10, 2) NOT NULL,
+          discount DECIMAL(10, 2) DEFAULT 0.00,
+          quantity INT DEFAULT 0,
+          status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
+          category_id INT NOT NULL,
+          brand_id INT,
+          supplier_id INT,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (category_id) REFERENCES Categories(category_id),
+          FOREIGN KEY (brand_id) REFERENCES Brands(brand_id),
+          FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id),
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_name (name),
+          INDEX idx_category_id (category_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS products (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT DEFAULT NULL,
-        short_description TEXT DEFAULT NULL,
-        price DECIMAL(10, 2) NOT NULL,
-        discount DECIMAL(10, 2) DEFAULT 0.00,
-        quantity INT DEFAULT 0,
-        status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
-        category_id CHAR(36) NOT NULL,
-        brand_id CHAR(36) DEFAULT NULL,
-        supplier_id CHAR(36) DEFAULT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-        FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE SET NULL,
-        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name),
-        INDEX idx_category_id (category_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products in the catalog';
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS product_images (
-        id CHAR(36) PRIMARY KEY,
-        product_id CHAR(36) NOT NULL,
-        image BLOB DEFAULT NULL COMMENT 'Binary image data',
-        main_image BOOLEAN DEFAULT FALSE,
-        thumbnail_image BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_product_id (product_id)
+      CREATE TABLE product_images (
+          product_image_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          image BLOB,
+          main_image BOOLEAN DEFAULT FALSE,
+          thumbnail_image BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_product_id (product_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product images and thumbnails';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS tags (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT DEFAULT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name)
+      CREATE TABLE tags (
+          tag_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_name (name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Tags for products';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS product_tags (
-        product_id CHAR(36),
-        tag_id CHAR(36),
-        PRIMARY KEY (product_id, tag_id),
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
-        INDEX idx_product_id (product_id),
-        INDEX idx_tag_id (tag_id)
+      CREATE TABLE product_tags (
+          product_tag_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          tag_id INT NOT NULL,
+          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (tag_id) REFERENCES tags(tag_id),
+          INDEX idx_product_id (product_id),
+          INDEX idx_tag_id (tag_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags relationship';
     `);
 
     // Variant-related tables
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS variant_types (
-        id CHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT DEFAULT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_name (name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Types of product variants (e.g., size, color)';
+      CREATE TABLE variant_types (
+          variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_name (name)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Types of variants for products';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS variant_options (
-        id CHAR(36) PRIMARY KEY,
-        variant_type_id CHAR(36) NOT NULL,
-        value VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (variant_type_id) REFERENCES variant_types(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_variant_type_id (variant_type_id),
-        INDEX idx_value (value)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Available options for product variants';
+      CREATE TABLE variants (
+          variant_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          variant_type_id INT NOT NULL,
+          value VARCHAR(255) NOT NULL,
+          price DECIMAL(10, 2),
+          quantity INT DEFAULT 0,
+          status ENUM('active', 'inactive') DEFAULT 'active',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (variant_type_id) REFERENCES variant_types(variant_type_id),
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_product_id (product_id),
+          INDEX idx_variant_type_id (variant_type_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS product_variants (
-        id CHAR(36) PRIMARY KEY,
-        product_id CHAR(36) NOT NULL,
-        variant_option_id CHAR(36) NOT NULL,
-        additional_price DECIMAL(10, 2) DEFAULT 0.00,
-        quantity INT DEFAULT 0,
-        status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-        FOREIGN KEY (variant_option_id) REFERENCES variant_options(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_product_id (product_id),
-        INDEX idx_variant_option_id (variant_option_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants and their additional pricing';
+      CREATE TABLE product_variant_images (
+          product_variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
+          variant_id INT NOT NULL,
+          image BLOB,
+          is_main BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (variant_id) REFERENCES variants(variant_id),
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_variant_id (variant_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images associated with product variants';
+    `);
+
+    // Customer-related tables
+    await connection.query(`
+      CREATE TABLE customers (
+          customer_id INT AUTO_INCREMENT PRIMARY KEY,
+          first_name VARCHAR(100) NOT NULL,
+          last_name VARCHAR(100) NOT NULL,
+          email VARCHAR(255) NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          active BOOLEAN DEFAULT TRUE,
+          registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          INDEX idx_email (email)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Customer accounts';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS variant_images (
-        id CHAR(36) PRIMARY KEY,
-        variant_id CHAR(36) NOT NULL,
-        image BLOB DEFAULT NULL COMMENT 'Binary image data',
-        main_image BOOLEAN DEFAULT FALSE,
-        thumbnail_image BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        created_by CHAR(36),
-        updated_by CHAR(36),
-        FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(id) ON DELETE SET NULL,
-        INDEX idx_variant_id (variant_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images for product variants';
+      CREATE TABLE customer_addresses (
+          customer_address_id INT AUTO_INCREMENT PRIMARY KEY,
+          customer_id INT NOT NULL,
+          address_line1 TEXT NOT NULL,
+          address_line2 TEXT,
+          phone_number VARCHAR(255) NOT NULL,
+          dial_code VARCHAR(100) NOT NULL,
+          country VARCHAR(255) NOT NULL,
+          postal_code VARCHAR(255) NOT NULL,
+          city VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_customer_id (customer_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Customer addresses';
     `);
 
-    // Create users with specific permissions
     await connection.query(`
-      CREATE USER IF NOT EXISTS 'superadmin'@'localhost' IDENTIFIED BY 'superadminpassword';
-      GRANT ALL PRIVILEGES ON Bernzz.* TO 'superadmin'@'localhost' WITH GRANT OPTION;
-      CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY 'adminpassword';
-      GRANT SELECT, INSERT, UPDATE, DELETE ON Bernzz.* TO 'admin'@'localhost';
-      CREATE USER IF NOT EXISTS 'user'@'localhost' IDENTIFIED BY 'userpassword';
-      GRANT SELECT, INSERT ON Bernzz.* TO 'user'@'localhost';
+      CREATE TABLE coupons (
+        coupon_id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        discount_value DECIMAL(10, 2),
+        discount_type VARCHAR(50) NOT NULL,
+        times_used INT NOT NULL DEFAULT 0,
+        max_usage INT DEFAULT NULL,
+        order_amount_limit DECIMAL(10, 2) DEFAULT NULL,
+        coupon_start_date TIMESTAMP,
+        coupon_end_date TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        created_by INT,
+        updated_by INT,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+        INDEX idx_code (code)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Coupon details and usage';
+    `);
+
+    await connection.query(`
+      CREATE TABLE product_coupons (
+            product_coupon_id INT AUTO_INCREMENT PRIMARY KEY,
+            product_id INT NOT NULL,
+            coupon_id INT NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP NULL,
+            created_by INT,
+            updated_by INT,
+            FOREIGN KEY (product_id) REFERENCES products(product_id),
+            FOREIGN KEY (coupon_id) REFERENCES coupons(coupon_id),
+            FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+            FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+            INDEX idx_product_id (product_id),
+            INDEX idx_coupon_id (coupon_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Relation between products and coupons';
+    `);
+
+    await connection.query(`
+      CREATE TABLE order_statuses (
+          order_status_id INT AUTO_INCREMENT PRIMARY KEY,
+          status_name VARCHAR(255) NOT NULL,
+          color VARCHAR(50) NOT NULL,
+          privacy ENUM('public', 'private') NOT NULL DEFAULT 'private',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_status_name (status_name)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Order status metadata';
+    `);
+
+    await connection.query(`
+      CREATE TABLE orders (
+          order_id INT AUTO_INCREMENT PRIMARY KEY,
+          coupon_id INT,
+          customer_id INT,
+          order_status_id INT,
+          order_approved_at TIMESTAMP,
+          order_delivered_carrier_date TIMESTAMP,
+          order_delivered_customer_date TIMESTAMP,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          updated_by INT,
+          FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+          FOREIGN KEY (coupon_id) REFERENCES coupons(coupon_id),
+          FOREIGN KEY (order_status_id) REFERENCES order_statuses(order_status_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_customer_id (customer_id),
+          INDEX idx_coupon_id (coupon_id),
+          INDEX idx_order_status_id (order_status_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Order details and statuses';
+    `);
+
+    await connection.query(`
+      CREATE TABLE order_items (
+          order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          order_id INT NOT NULL,
+          price DECIMAL(10, 2) NOT NULL,
+          quantity INT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (order_id) REFERENCES orders(order_id),
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_product_id (product_id),
+          INDEX idx_order_id (order_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Items in an order';
+    `);
+
+    await connection.query(`
+      CREATE TABLE carousels (
+        carousel_id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL COMMENT 'Title of the product or slide',
+        short_description VARCHAR(500) DEFAULT NULL COMMENT 'Short description of the product or slide',
+        button_text VARCHAR(100) DEFAULT NULL COMMENT 'Text displayed on the button',
+        button_link VARCHAR(255) DEFAULT NULL COMMENT 'Link that the button leads to',
+        image BLOB DEFAULT NULL COMMENT 'Image for the carousel slide',
+        position INT NOT NULL DEFAULT 1 COMMENT 'Position of the slide in the carousel (1-4)',
+        status ENUM('active', 'inactive') DEFAULT 'active' COMMENT 'Status of the carousel slide',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        created_by INT,
+        updated_by INT,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+        INDEX idx_title (title)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Hero section carousel slides';
+    `);
+
+    await connection.query(`
+      CREATE TABLE banners (
+          banner_id INT AUTO_INCREMENT PRIMARY KEY,
+          title VARCHAR(255) NOT NULL COMMENT 'Title for the banner',
+          description VARCHAR(500) DEFAULT NULL COMMENT 'Small description for the banner',
+          link VARCHAR(255) DEFAULT NULL COMMENT 'Link the banner will lead to when clicked',
+          image BLOB DEFAULT NULL COMMENT 'Image for the banner',
+          text_color VARCHAR(7) DEFAULT '#000000' COMMENT 'Text color in hex format (default is black)',
+          background_color VARCHAR(7) DEFAULT '#FFFFFF' COMMENT 'Background color in hex format (default is white)',
+          status ENUM('active', 'inactive') DEFAULT 'active' COMMENT 'Status of the banner',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_title (title)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Banners for various sections of the site';
     `);
 
     await connection.commit();
+    console.log("Tables created successfully.");
+  } catch (err) {
+    console.error("Error creating tables:", err);
+    await connection.rollback();
+  } finally {
+    await connection.end();
+  }
+}
+
+export async function CreateTriggers() {
+  const connection = await getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query(`
+      CREATE PROCEDURE update_at_timestamp()
+      BEGIN
+          SET NEW.updated_at = NOW();
+      END;
+    `);
+    await connection.query(`
+      CREATE TRIGGER category_set_update BEFORE UPDATE ON categories FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER attribute_set_update BEFORE UPDATE ON attributes FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER product_set_update BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER staff_set_update BEFORE UPDATE ON staff_accounts FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER coupon_set_update BEFORE UPDATE ON coupons FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER customer_set_update BEFORE UPDATE ON customers FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER order_set_update BEFORE UPDATE ON orders FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER notification_set_update BEFORE UPDATE ON notifications FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER tag_set_update BEFORE UPDATE ON tags FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER order_status_set_update BEFORE UPDATE ON order_statuses FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+      CREATE TRIGGER supplier_set_update BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
+    `);
   } catch (error) {
     if (connection) {
       await connection.rollback();
