@@ -69,7 +69,7 @@ export async function dbsetupTables() {
 `);
 
     await connection.query(`
-      CREATE TABLE categories (
+      CREATE TABLE IF NOT EXISTS categories (
           category_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           image MEDIUMBLOB,
@@ -86,7 +86,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE brands (
+      CREATE TABLE IF NOT EXISTS brands (
           brand_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           brand_logo MEDIUMBLOB NOT NULL,
@@ -103,7 +103,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE suppliers (
+      CREATE TABLE IF NOT EXISTS suppliers (
           supplier_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON',
@@ -119,7 +119,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE products (
+      CREATE TABLE IF NOT EXISTS products (
           product_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           description TEXT,
@@ -136,9 +136,9 @@ export async function dbsetupTables() {
           deleted_at TIMESTAMP NULL,
           created_by INT,
           updated_by INT,
-          FOREIGN KEY (category_id) REFERENCES Categories(category_id),
-          FOREIGN KEY (brand_id) REFERENCES Brands(brand_id),
-          FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id),
+          FOREIGN KEY (category_id) REFERENCES categories(category_id),
+          FOREIGN KEY (brand_id) REFERENCES brands(brand_id),
+          FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_name (name),
@@ -147,7 +147,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE product_images (
+      CREATE TABLE IF NOT EXISTS product_images (
           product_image_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
           image BLOB,
@@ -166,7 +166,30 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE tags (
+      CREATE TABLE IF NOT EXISTS specifications (
+          specification_id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL UNIQUE, -- Name of the specification (e.g., "RAM")
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_specifications (
+          product_spec_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          specification_id INT NOT NULL,
+          value VARCHAR(255) NOT NULL, -- The value of the specification (e.g., "16GB")
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
+          INDEX idx_product_specification (product_id, specification_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS tags (
           tag_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           description TEXT,
@@ -182,7 +205,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE product_tags (
+      CREATE TABLE IF NOT EXISTS product_tags (
           product_tag_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
           tag_id INT NOT NULL,
@@ -193,9 +216,8 @@ export async function dbsetupTables() {
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags relationship';
     `);
 
-    // Variant-related tables
     await connection.query(`
-      CREATE TABLE variant_types (
+      CREATE TABLE IF NOT EXISTS variant_types (
           variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           description TEXT,
@@ -211,7 +233,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE variants (
+      CREATE TABLE IF NOT EXISTS variants (
           variant_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
           variant_type_id INT NOT NULL,
@@ -234,7 +256,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE product_variant_images (
+      CREATE TABLE IF NOT EXISTS product_variant_images (
           product_variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
           variant_id INT NOT NULL,
           image BLOB,
