@@ -36,10 +36,10 @@ export type ProductData = {
 export type Category = {
   category_id: number;
   name: string;
-  image: Buffer | null;
-  description: string | null;
-  created_at: string; // Use ISO string for date/time
-  updated_at: string; // Use ISO string for date/time
+  category_image: File; // Image file
+  description: string;
+  created_at: string; // ISO string format
+  updated_at: string; // ISO string format
   deleted_at: string | null;
   created_by: number | null;
   updated_by: number | null;
@@ -49,10 +49,9 @@ export type Category = {
 export type Brand = {
   brand_id: number;
   name: string;
-  brand_logo: Buffer | null;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
+  brand_logo: File;
+  created_at: string; // Use ISO string for date/time
+  updated_at: string; // Use ISO string for date/time
   deleted_at: string | null;
   created_by: number | null;
   updated_by: number | null;
@@ -62,12 +61,19 @@ export type Brand = {
 export type Supplier = {
   supplier_id: number;
   name: string;
-  contact_info: Record<string, any> | null; // JSON field
-  created_at: string;
-  updated_at: string;
+  contact_info: string | null; // JSON data as a string
+  created_at: string; // Use ISO string for date/time
+  updated_at: string; // Use ISO string for date/time
   deleted_at: string | null;
   created_by: number | null;
   updated_by: number | null;
+};
+
+export type ProductSupplier = {
+  product_id: number;
+  supplier_id: number;
+  created_at: string; // Use ISO string for date/time
+  updated_at: string; // Use ISO string for date/time
 };
 
 // Product Images
@@ -86,10 +92,9 @@ export type ProductImage = {
 
 // Specifications
 export type Specification = {
-  specification_id: number;
+  specificationId?: number;
   name: string;
-  created_at: string;
-  updated_at: string;
+  value: string;
 };
 
 // Product Specifications
@@ -100,6 +105,8 @@ export type ProductSpecification = {
   value: string;
   created_at: string;
   updated_at: string;
+  created_by: number | null;
+  updated_by: number | null;
 };
 
 // Tags
@@ -121,45 +128,35 @@ export type ProductTag = {
   tag_id: number;
 };
 
-// Variant Types
-export type VariantType = {
-  variant_type_id: number;
+// Type for Variant Type
+type VariantType = {
+  variant_type_id?: number;
   name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  created_by: number | null;
-  updated_by: number | null;
+  description?: string;
+  created_by: number;
+  updated_by: number;
 };
 
-// Variants
-export type Variant = {
-  variant_id: number;
+// Type for Variant
+type Variant = {
+  variant_id?: number;
   product_id: number;
   variant_type_id: number;
   value: string;
-  price: number | null;
-  quantity: number;
-  status: "active" | "inactive";
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  created_by: number | null;
-  updated_by: number | null;
+  price?: number;
+  quantity?: number;
+  status?: "active" | "inactive";
+  created_by: number;
+  updated_by: number;
 };
 
-// Product Variant Images
-export type ProductVariantImage = {
-  product_variant_image_id: number;
+// Type for Product Variant Image
+type ProductVariantImage = {
   variant_id: number;
-  image: Buffer; // non-nullable
-  is_main: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  created_by: number | null;
-  updated_by: number | null;
+  main_image: File | null;
+  thumbnail_images: (File | null)[];
+  created_by: number;
+  updated_by: number;
 };
 
 // Customers

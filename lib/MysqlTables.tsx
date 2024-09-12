@@ -41,7 +41,7 @@ export async function dbsetupTables() {
           staff_id INT NOT NULL,
           session_token VARCHAR(255) NOT NULL UNIQUE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          expires_at TIMESTAMP NOT NULL,
           FOREIGN KEY (staff_id) REFERENCES staff_accounts(staff_id) ON DELETE CASCADE,
           INDEX idx_session_token (session_token),
           INDEX idx_staff_id (staff_id)
@@ -72,8 +72,8 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS categories (
           category_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
-          image MEDIUMBLOB,
-          description TEXT DEFAULT NULL,
+          category_image MEDIUMBLOB NOT NULL,
+          description TEXT NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -90,7 +90,6 @@ export async function dbsetupTables() {
           brand_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           brand_logo MEDIUMBLOB NOT NULL,
-          description TEXT DEFAULT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -119,9 +118,22 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_suppliers (
+          product_id INT NOT NULL,
+          supplier_id INT NOT NULL,
+          PRIMARY KEY (product_id, supplier_id),
+          FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+          FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE CASCADE,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Mapping of products to suppliers';
+    `);
+
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS products (
           product_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
+          sku VARCHAR(255) NOT NULL UNIQUE,
           description TEXT,
           short_description TEXT,
           price DECIMAL(10, 2) NOT NULL,
@@ -130,15 +142,15 @@ export async function dbsetupTables() {
           status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
           category_id INT NOT NULL,
           brand_id INT,
-          supplier_id INT,
+          product_image_id INT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
           created_by INT,
           updated_by INT,
+          FOREIGN KEY (product_image_id) REFERENCES product_images(product_image_id),
           FOREIGN KEY (category_id) REFERENCES categories(category_id),
           FOREIGN KEY (brand_id) REFERENCES brands(brand_id),
-          FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_name (name),
@@ -150,15 +162,18 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS product_images (
           product_image_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
-          image BLOB,
-          main_image BOOLEAN DEFAULT FALSE,
-          thumbnail_image BOOLEAN DEFAULT FALSE,
+          main_image MEDIUMBLOB NOT NULL,
+          thumbnail_image1 MEDIUMBLOB NOT NULL,
+          thumbnail_image2 MEDIUMBLOB NOT NULL,
+          thumbnail_image3 MEDIUMBLOB NOT NULL,
+          thumbnail_image4 MEDIUMBLOB NOT NULL,
+          thumbnail_image5 MEDIUMBLOB NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
           created_by INT,
           updated_by INT,
-          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_product_id (product_id)
@@ -192,7 +207,6 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS tags (
           tag_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
-          description TEXT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -220,7 +234,7 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS variant_types (
           variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
-          description TEXT,
+          description VARCHAR(255),
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -259,8 +273,12 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS product_variant_images (
           product_variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
           variant_id INT NOT NULL,
-          image BLOB,
-          is_main BOOLEAN DEFAULT FALSE,
+          main_image MEDIUMBLOB NOT NULL,
+          thumbnail_image1 MEDIUMBLOB NOT NULL,
+          thumbnail_image2 MEDIUMBLOB NOT NULL,
+          thumbnail_image3 MEDIUMBLOB NOT NULL,
+          thumbnail_image4 MEDIUMBLOB NOT NULL,
+          thumbnail_image5 MEDIUMBLOB NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -316,24 +334,25 @@ export async function dbsetupTables() {
 
     await connection.query(`
       CREATE TABLE coupons (
-        coupon_id INT AUTO_INCREMENT PRIMARY KEY,
-        code VARCHAR(50) NOT NULL UNIQUE,
-        discount_value DECIMAL(10, 2),
-        discount_type VARCHAR(50) NOT NULL,
-        times_used INT NOT NULL DEFAULT 0,
-        max_usage INT DEFAULT NULL,
-        order_amount_limit DECIMAL(10, 2) DEFAULT NULL,
-        coupon_start_date TIMESTAMP,
-        coupon_end_date TIMESTAMP,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP NULL,
-        created_by INT,
-        updated_by INT,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-        INDEX idx_code (code)
-    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Coupon details and usage';
+          coupon_id INT AUTO_INCREMENT PRIMARY KEY,
+          code VARCHAR(50) NOT NULL UNIQUE,
+          discount_value DECIMAL(10, 2),
+          discount_type VARCHAR(50) NOT NULL,
+          times_used INT NOT NULL DEFAULT 0,
+          max_usage INT DEFAULT NULL,
+          order_amount_limit DECIMAL(10, 2) DEFAULT NULL,
+          coupon_start_date TIMESTAMP NOT NULL,
+          coupon_end_date TIMESTAMP NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          created_by INT,
+          updated_by INT,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+          INDEX idx_code (code),
+          CHECK (coupon_start_date <= coupon_end_date)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Coupon details and usage';
     `);
 
     await connection.query(`
@@ -373,14 +392,14 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE orders (
+     CREATE TABLE orders (
           order_id INT AUTO_INCREMENT PRIMARY KEY,
           coupon_id INT,
           customer_id INT,
           order_status_id INT,
-          order_approved_at TIMESTAMP,
-          order_delivered_carrier_date TIMESTAMP,
-          order_delivered_customer_date TIMESTAMP,
+          order_approved_at TIMESTAMP DEFAULT NULL,
+          order_delivered_carrier_date TIMESTAMP DEFAULT NULL,
+          order_delivered_customer_date TIMESTAMP DEFAULT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
