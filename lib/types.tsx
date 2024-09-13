@@ -32,6 +32,32 @@ export type ProductData = {
   }[];
 };
 
+export type ProductFormData = {
+  name: string;
+  sku: string;
+  description: string;
+  shortDescription?: string;
+  price: number;
+  discount?: number;
+  quantity: number;
+  status?: "draft" | "pending" | "approved";
+  categoryName: string;
+  brandName: string;
+  productImages: FormData;
+  tags: string[];
+  suppliers: { name: string; contactInfo: string }[];
+  variants: {
+    variantTypeName: string;
+    value: string;
+    price: number;
+    quantity: number;
+    status: "active" | "inactive";
+    variantImages: FormData;
+  }[];
+  createdBy: number;
+  updatedBy: number;
+};
+
 // Categories
 export type Category = {
   category_id: number;
