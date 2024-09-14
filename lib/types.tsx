@@ -36,7 +36,6 @@ export type ProductFormData = {
   name: string;
   sku: string;
   description: string;
-  shortDescription?: string;
   price: number;
   discount?: number;
   quantity: number;
@@ -44,7 +43,7 @@ export type ProductFormData = {
   categoryName: string;
   brandName: string;
   productImages: FormData;
-  tags: string[];
+  tags: [];
   suppliers: { name: string; contactInfo: string }[];
   variants: {
     variantTypeName: string;

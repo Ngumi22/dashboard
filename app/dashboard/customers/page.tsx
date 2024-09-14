@@ -7,6 +7,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import ProductForm from "@/components/Product/AddProductsForm";
 
 interface Category {
   id: number;
@@ -92,29 +93,10 @@ export default function CategoryList() {
 
   return (
     <div className="py-8 sm:px-8 flex min-h-screen w-full flex-col bg-muted/40">
-      <h1>Product List</h1>
       <div>
         <Link href="/dashboard/products/create"></Link>
       </div>
-      <ul className="my-5">
-        {categories.map((category) => (
-          <li key={category.id} className="my-5">
-            <p>{category.name}</p>
-            <div className="flex gap-x-4 my-2">
-              <Button variant="default">
-                <Link href={`/dashboard/categories/${category.id}/edit`}>
-                  Edit
-                </Link>
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(category.id)}>
-                Delete
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <ProductForm />
     </div>
   );
 }
