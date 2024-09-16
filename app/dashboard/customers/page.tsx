@@ -93,9 +93,6 @@ export default function CategoryList() {
 
   return (
     <div className="py-8 sm:px-8 flex min-h-screen w-full flex-col bg-muted/40">
-      <div>
-        <Link href="/dashboard/products/create"></Link>
-      </div>
       <ProductForm />
     </div>
   );

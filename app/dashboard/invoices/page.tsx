@@ -7,6 +7,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import AddVariants from "@/components/Product/AddVariants";
 
 interface Category {
   id: number;
@@ -96,25 +97,7 @@ export default function CategoryList() {
       <div>
         <Link href="/dashboard/products/create"></Link>
       </div>
-      <ul className="my-5">
-        {categories.map((category) => (
-          <li key={category.id} className="my-5">
-            <p>{category.name}</p>
-            <div className="flex gap-x-4 my-2">
-              <Button variant="default">
-                <Link href={`/dashboard/categories/${category.id}/edit`}>
-                  Edit
-                </Link>
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(category.id)}>
-                Delete
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <AddVariants productId={1} />
     </div>
   );
 }

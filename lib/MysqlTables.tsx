@@ -246,6 +246,16 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
+      CREATE TABLE IF NOT EXISTS variant_attributes (
+          variant_attribute_id INT AUTO_INCREMENT PRIMARY KEY,
+          variant_id INT NOT NULL,
+          attribute_name VARCHAR(255) NOT NULL,
+          attribute_value VARCHAR(255),
+          FOREIGN KEY (variant_id) REFERENCES variants(variant_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant attributes';
+    `);
+
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS variants (
           variant_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,

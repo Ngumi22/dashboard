@@ -4,9 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
-import { PlusCircle } from "lucide-react";
-import { Label } from "@/components/ui/label";
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,25 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-  Table,
-} from "../ui/table";
-import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+
 import { Input } from "@/components/ui/input";
 import { toast } from "../ui/use-toast";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
   Select,
   SelectContent,
@@ -213,22 +195,6 @@ export default function ProductForm() {
     setProductTags(updatedTags); // Update state
     form.setValue("tags", updatedTags); // Sync with form state
   };
-  const [variants, setVariants] = useState([
-    { sku: "GGPC-001", stock: 100, price: 99.99, size: "s" },
-    { sku: "GGPC-002", stock: 143, price: 99.99, size: "m" },
-    { sku: "GGPC-003", stock: 32, price: 99.99, size: "s" },
-  ]);
-  const handleAddVariant = () => {
-    const newVariant = { sku: "", stock: 0, price: 0, size: "s" }; // default values for new variant
-    setVariants([...variants, newVariant]);
-  };
-
-  const handleVariantChange = (index: number, field: string, value: string) => {
-    const updatedVariants = variants.map((variant, idx) =>
-      idx === index ? { ...variant, [field]: value } : variant
-    );
-    setVariants(updatedVariants);
-  };
 
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
     console.log("Submitted data: ", data); // Log submitted data
@@ -323,13 +289,11 @@ export default function ProductForm() {
                     {productTags.map((tag, index) => (
                       <div
                         key={index}
-                        className="bg-gray-200 px-2 py-1 rounded-md flex items-center"
-                      >
+                        className="bg-gray-200 px-2 py-1 rounded-md flex items-center">
                         <span>{tag}</span>
                         <button
                           onClick={() => removeTag(tag)}
-                          className="ml-2 text-red-600 hover:text-red-800 focus:outline-none"
-                        >
+                          className="ml-2 text-red-600 hover:text-red-800 focus:outline-none">
                           x
                         </button>
                       </div>
@@ -352,6 +316,7 @@ export default function ProductForm() {
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
                           } // Convert to number
+                          min={0}
                         />
                       </FormControl>
                       <FormMessage />
@@ -374,6 +339,7 @@ export default function ProductForm() {
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
                           } // Convert to number
+                          min={0}
                         />
                       </FormControl>
                       <FormMessage />
@@ -396,6 +362,7 @@ export default function ProductForm() {
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
                           } // Convert to number
+                          min={0}
                         />
                       </FormControl>
                       <FormMessage />
@@ -407,102 +374,6 @@ export default function ProductForm() {
 
                 {/* Brand Name Field */}
               </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Variants</CardTitle>
-                <CardDescription>
-                  Table for adding variants if available
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[100px]">SKU</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead className="w-[100px]">Size</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {variants?.map((variant, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-semibold">
-                          <Input
-                            id={`sku-${index}`}
-                            type="text"
-                            value={variant.sku}
-                            onChange={(e) =>
-                              handleVariantChange(index, "sku", e.target.value)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Label htmlFor={`stock-${index}`} className="sr-only">
-                            Stock
-                          </Label>
-                          <Input
-                            id={`stock-${index}`}
-                            type="number"
-                            value={variant.stock}
-                            onChange={(e) =>
-                              handleVariantChange(
-                                index,
-                                "stock",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Label htmlFor={`price-${index}`} className="sr-only">
-                            Price
-                          </Label>
-                          <Input
-                            id={`price-${index}`}
-                            type="number"
-                            value={variant.price}
-                            onChange={(e) =>
-                              handleVariantChange(
-                                index,
-                                "price",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <ToggleGroup
-                            type="single"
-                            defaultValue={variant.size}
-                            variant="outline"
-                            onValueChange={(value) =>
-                              handleVariantChange(index, "size", value)
-                            }
-                          >
-                            <ToggleGroupItem value="s">S</ToggleGroupItem>
-                            <ToggleGroupItem value="m">M</ToggleGroupItem>
-                            <ToggleGroupItem value="l">L</ToggleGroupItem>
-                          </ToggleGroup>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-              <CardFooter className="justify-center border-t p-4">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1"
-                  onClick={handleAddVariant}
-                >
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  Add Variant
-                </Button>
-              </CardFooter>
             </Card>
 
             <Card>
