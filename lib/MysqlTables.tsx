@@ -106,6 +106,7 @@ export async function dbsetupTables() {
           supplier_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON',
+          email VARCHAR(255) NOT NULL UNIQUE,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -185,6 +186,17 @@ export async function dbsetupTables() {
           name VARCHAR(255) NOT NULL UNIQUE, -- Name of the specification (e.g., "RAM")
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS category_specifications (
+          category_spec_id INT AUTO_INCREMENT PRIMARY KEY,
+          category_id INT NOT NULL,
+          specification_id INT NOT NULL,
+          FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
+          UNIQUE KEY (category_id, specification_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     `);
 

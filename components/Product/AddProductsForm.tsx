@@ -25,6 +25,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useState } from "react";
+import AddSupplierForm from "./AddSupplier";
+import AddSpecificationForm from "./AddSpecifications";
 
 const MAX_FILE_SIZE = 1024 * 1024 * 5;
 const ACCEPTED_IMAGE_MIME_TYPES = [
@@ -196,14 +198,33 @@ export default function ProductForm() {
     form.setValue("tags", updatedTags); // Sync with form state
   };
 
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+
+  const handleSupplierChange = (supplier: any) => {
+    setSelectedSupplier(supplier);
+  };
+
+  const [specificationsData, setSpecificationsData] = useState<any>(null);
+
+  function handleSpecificationsChange(data: any) {
+    setSpecificationsData(data);
+    // Additional logic for handling specifications data
+  }
+
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
-    console.log("Submitted data: ", data); // Log submitted data
+    const productData = {
+      ...data,
+      supplier: selectedSupplier,
+    };
+    console.log("Submitted data: ", productData); // Log submitted data
     // Add your submit handling logic here, e.g., sending data to the backend
     toast({
       title: "You submitted the following values:",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+          <code className="text-white">
+            {JSON.stringify(productData, null, 2)}
+          </code>
         </pre>
       ),
     });
@@ -404,6 +425,8 @@ export default function ProductForm() {
                 </FormControl>
               </CardContent>
             </Card>
+
+            <AddSupplierForm onSupplierChange={handleSupplierChange} />
           </div>
 
           <div className="space-y-4">
@@ -538,6 +561,10 @@ export default function ProductForm() {
                 </div>
               </CardContent>
             </Card>
+
+            <AddSpecificationForm
+              onSpecificationsChange={handleSpecificationsChange}
+            />
           </div>
         </div>
 

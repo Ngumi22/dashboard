@@ -231,30 +231,23 @@ export default function AddVariants({ productId }: { productId: number }) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="images"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Images</FormLabel>
-              <FormControl>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    const fileUrls = files.map((file) =>
-                      URL.createObjectURL(file)
-                    );
-                    form.setValue("images", fileUrls);
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormItem>
+          <FormLabel>Images</FormLabel>
+          <FormControl>
+            <Input
+              name="images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                const fileUrls = files.map((file) => URL.createObjectURL(file));
+                form.setValue("images", fileUrls);
+              }}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
         <Button type="submit">Submit</Button>
       </form>
     </Form>
