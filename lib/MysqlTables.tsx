@@ -194,9 +194,9 @@ export async function dbsetupTables() {
           category_spec_id INT AUTO_INCREMENT PRIMARY KEY,
           category_id INT NOT NULL,
           specification_id INT NOT NULL,
+          UNIQUE KEY (category_id, specification_id),
           FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
-          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
-          UNIQUE KEY (category_id, specification_id)
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     `);
 
@@ -208,9 +208,10 @@ export async function dbsetupTables() {
           value VARCHAR(255) NOT NULL, -- The value of the specification (e.g., "16GB")
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          -- Index for faster querying based on product-specification pairs
+          INDEX idx_product_specification (product_id, specification_id),
           FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
-          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
-          INDEX idx_product_specification (product_id, specification_id)
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     `);
 

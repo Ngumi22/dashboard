@@ -24,9 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AddSupplierForm from "./AddSupplier";
 import AddSpecificationForm from "./AddSpecifications";
+import AddTagsForm from "./AddTagsForm";
 
 const MAX_FILE_SIZE = 1024 * 1024 * 5;
 const ACCEPTED_IMAGE_MIME_TYPES = [
@@ -72,6 +73,18 @@ export const FormSchema = z.object({
   categoryDescription: z.string().min(2, {
     message: "Category must be at least 2 characters.",
   }),
+  categoryImage: z
+    .any()
+    .refine((files) => {
+      return files?.[0]?.size <= MAX_FILE_SIZE;
+    }, `Max image size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+  brandName: z.string().min(2, {
+    message: "Brand must be at least 2 characters.",
+  }),
   mainImage: z
     .any()
     .refine(
@@ -97,18 +110,6 @@ export const FormSchema = z.object({
         ),
       "Each image should be less than 5MB and in the accepted formats."
     ),
-  categoryImage: z
-    .any()
-    .refine((files) => {
-      return files?.[0]?.size <= MAX_FILE_SIZE;
-    }, `Max image size is 5MB.`)
-    .refine(
-      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
-      "Only .jpg, .jpeg, .png and .webp formats are supported."
-    ),
-  brandName: z.string().min(2, {
-    message: "Brand must be at least 2 characters.",
-  }),
 
   brandImage: z
     .any()
@@ -150,6 +151,7 @@ export default function ProductForm() {
   const [currentTag, setCurrentTag] = useState<string>("");
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+  const [specificationsData, setSpecificationsData] = useState<any>(null);
 
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -182,39 +184,28 @@ export default function ProductForm() {
     }
   };
 
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && currentTag.trim() !== "") {
-      e.preventDefault();
-      const newTags = [...productTags, currentTag.trim()]; // Add the new tag
-      setProductTags(newTags); // Update the state
-      form.setValue("tags", newTags); // Update the form state
-      setCurrentTag(""); // Clear the input field
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    const updatedTags = productTags.filter((tag) => tag !== tagToRemove); // Remove tag
-    setProductTags(updatedTags); // Update state
-    form.setValue("tags", updatedTags); // Sync with form state
-  };
+  const handleTagsChange = useCallback(
+    (tags: string[]) => {
+      console.log("Updating tags:", tags);
+      form.setValue("tags", tags);
+    },
+    [form]
+  );
 
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
 
-  const handleSupplierChange = (supplier: any) => {
+  const handleSupplierChange = useCallback((supplier: any) => {
     setSelectedSupplier(supplier);
-  };
-
-  const [specificationsData, setSpecificationsData] = useState<any>(null);
-
-  function handleSpecificationsChange(data: any) {
-    setSpecificationsData(data);
-    // Additional logic for handling specifications data
-  }
+  }, []);
+  const handleSpecificationsChange = useCallback((specification: any) => {
+    setSpecificationsData(specification);
+  }, []);
 
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
     const productData = {
       ...data,
       supplier: selectedSupplier,
+      specification: specificationsData,
     };
     console.log("Submitted data: ", productData); // Log submitted data
     // Add your submit handling logic here, e.g., sending data to the backend
@@ -293,34 +284,7 @@ export default function ProductForm() {
                   )}
                 />
 
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      id="tags"
-                      value={currentTag}
-                      onChange={(e) => setCurrentTag(e.target.value)}
-                      onKeyDown={handleTagKeyDown}
-                      placeholder="Press Enter to add tag"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {productTags.map((tag, index) => (
-                      <div
-                        key={index}
-                        className="bg-gray-200 px-2 py-1 rounded-md flex items-center">
-                        <span>{tag}</span>
-                        <button
-                          onClick={() => removeTag(tag)}
-                          className="ml-2 text-red-600 hover:text-red-800 focus:outline-none">
-                          x
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </FormItem>
+                <AddTagsForm onTagsChange={handleTagsChange} />
 
                 {/* Price Field */}
                 <FormField

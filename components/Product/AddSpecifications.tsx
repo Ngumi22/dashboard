@@ -21,7 +21,9 @@ import {
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
+// Validation schema for form data
 const schema = z.object({
   categoryId: z.string().min(1, "Category is required."),
   specifications: z
@@ -37,6 +39,7 @@ const schema = z.object({
 interface Specification {
   id: string;
   name: string;
+  value: string;
 }
 
 interface Category {
@@ -45,7 +48,7 @@ interface Category {
 }
 
 interface AddSpecificationFormProps {
-  onSpecificationsChange: (data: z.infer<typeof schema>) => void;
+  onSpecificationsChange: (data: { [name: string]: string }) => void; // Expecting an object with specifications.
 }
 
 export default function AddSpecificationForm({
@@ -53,6 +56,11 @@ export default function AddSpecificationForm({
 }: AddSpecificationFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [specifications, setSpecifications] = useState<Specification[]>([]);
+
+  const [newSpecificationName, setNewSpecificationName] = useState<string>("");
+  const [newSpecificationValue, setNewSpecificationValue] =
+    useState<string>("");
+
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -61,10 +69,10 @@ export default function AddSpecificationForm({
     },
   });
 
+  // Fetching categories initially
   useEffect(() => {
-    // Fetch categories and set them to state
     async function fetchCategories() {
-      // Replace with your API call
+      // Simulating fetching categories
       return [
         { id: "1", name: "Laptops" },
         { id: "2", name: "Phones" },
@@ -73,131 +81,202 @@ export default function AddSpecificationForm({
     fetchCategories().then(setCategories);
   }, []);
 
+  // Fetching specifications based on selected category
   async function fetchSpecifications(categoryId: string) {
-    // Replace with your API call
+    // Simulating fetching specifications
     return [
-      { id: "1", name: "RAM" },
-      { id: "2", name: "Storage" },
+      { id: "1", name: "RAM", value: "" },
+      { id: "2", name: "Storage", value: "" },
     ];
   }
 
+  // API call to add a new specification
+  const addNewSpecificationToAPI = async (specification: Specification) => {
+    // Simulate an API call with a timeout
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log("Mock API call with specification:", specification);
+        resolve({ success: true });
+      }, 500); // Simulate a 500ms API delay
+    });
+  };
+
+  // Adding a new specification and updating the state
+  const handleAddNewSpecification = async () => {
+    const newSpec: Specification = {
+      id: Date.now().toString(), // Generate a unique ID
+      name: newSpecificationName,
+      value: newSpecificationValue,
+    };
+
+    try {
+      await addNewSpecificationToAPI(newSpec);
+      setSpecifications((prevSpecs) => [...prevSpecs, newSpec]);
+      setNewSpecificationName(""); // Clear the input field
+      setNewSpecificationValue(""); // Clear the input field
+    } catch (error) {
+      console.error("Failed to add specification:", error);
+    }
+  };
+
+  // Handling category change and fetching associated specifications
   function handleCategoryChange(categoryId: string) {
     form.setValue("categoryId", categoryId);
     fetchSpecifications(categoryId).then(setSpecifications);
   }
 
-  function handleSpecificationChange() {
-    // Notify parent of specification changes
-    onSpecificationsChange(form.getValues());
-  }
+  // Handling form submission
+  const onSubmit = (data: z.infer<typeof schema>) => {
+    // Convert specifications into an object
+    const specificationsObject: { [name: string]: string } = {};
+
+    data.specifications?.forEach((spec) => {
+      const foundSpec = specifications.find(
+        (s) => s.id === spec.specificationId
+      );
+      if (foundSpec) {
+        specificationsObject[foundSpec.name] = spec.value;
+      }
+    });
+
+    onSpecificationsChange(specificationsObject); // Pass the specifications object to the parent component
+  };
 
   return (
-    <Form {...form}>
-      <form className="w-2/3 space-y-6">
-        <FormField
-          control={form.control}
-          name="categoryId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Category</FormLabel>
-              <FormControl>
-                <Select
-                  defaultValue={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    handleCategoryChange(value);
-                  }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <Card>
+      <CardHeader>
+        <CardTitle>Product Specs</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form
+            className="w-2/3 space-y-6"
+            onSubmit={form.handleSubmit(onSubmit)}>
+            {/* Category Select */}
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleCategoryChange(value);
+                      }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="specifications"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Specifications</FormLabel>
-              <FormControl>
-                <div className="space-y-2">
-                  {(field.value || []).map((spec, index) => (
-                    <div key={index} className="">
-                      <Controller
-                        control={form.control}
-                        name={`specifications.${index}.specificationId`}
-                        render={({ field: specField }) => (
-                          <Select
-                            defaultValue={specField.value}
-                            onValueChange={(value) => {
-                              specField.onChange(value);
-                              handleSpecificationChange();
-                            }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select specification" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {specifications.map((specification) => (
-                                <SelectItem
-                                  key={specification.id}
-                                  value={specification.id}>
-                                  {specification.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                      <Controller
-                        control={form.control}
-                        name={`specifications.${index}.value`}
-                        render={({ field: valueField }) => (
-                          <Input
-                            placeholder="Value"
-                            {...valueField}
-                            onBlur={() => handleSpecificationChange()} // Notify parent on value change
+            {/* Specifications Section */}
+            <FormField
+              control={form.control}
+              name="specifications"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Specifications</FormLabel>
+                  <FormControl>
+                    <div className="space-y-2">
+                      {(field.value || []).map((spec, index) => (
+                        <div key={index} className="flex space-x-2">
+                          <Controller
+                            control={form.control}
+                            name={`specifications.${index}.specificationId`}
+                            render={({ field: specField }) => (
+                              <Select
+                                value={specField.value}
+                                onValueChange={(value) => {
+                                  specField.onChange(value);
+                                }}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select specification" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {specifications.map((specification) => (
+                                    <SelectItem
+                                      key={specification.id}
+                                      value={specification.id}>
+                                      {specification.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           />
-                        )}
-                      />
+                          <Controller
+                            control={form.control}
+                            name={`specifications.${index}.value`}
+                            render={({ field: valueField }) => (
+                              <Input placeholder="Value" {...valueField} />
+                            )}
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              const updatedSpecs =
+                                field.value?.filter((_, i) => i !== index) ||
+                                [];
+                              form.setValue("specifications", updatedSpecs);
+                            }}>
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
                       <Button
                         type="button"
-                        onClick={() => {
-                          const updatedSpecs =
-                            field.value?.filter((_, i) => i !== index) || [];
-                          form.setValue("specifications", updatedSpecs);
-                        }}>
-                        Remove
+                        onClick={() =>
+                          form.setValue("specifications", [
+                            ...(field.value || []),
+                            { specificationId: "", value: "" },
+                          ])
+                        }>
+                        Add Specification
                       </Button>
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      form.setValue("specifications", [
-                        ...(field.value || []),
-                        { specificationId: "", value: "" },
-                      ])
-                    }>
-                    Add Specification
-                  </Button>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Add New Specification Section */}
+            <div className="space-y-2">
+              <FormLabel>Add New Specification</FormLabel>
+              <Input
+                placeholder="New Specification Name"
+                value={newSpecificationName}
+                onChange={(e) => setNewSpecificationName(e.target.value)}
+              />
+              <Input
+                placeholder="Value"
+                value={newSpecificationValue}
+                onChange={(e) => setNewSpecificationValue(e.target.value)}
+              />
+              <Button type="button" onClick={handleAddNewSpecification}>
+                Add New Specification
+              </Button>
+            </div>
+
+            {/* Submit Button */}
+            <Button type="submit">Submit Specifications</Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }
