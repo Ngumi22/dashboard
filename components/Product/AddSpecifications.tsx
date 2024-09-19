@@ -48,10 +48,12 @@ interface Category {
 }
 
 interface AddSpecificationFormProps {
+  specificationsData: any; // Pre-existing specifications passed from parent form
   onSpecificationsChange: (data: { [name: string]: string }) => void; // Expecting an object with specifications.
 }
 
 export default function AddSpecificationForm({
+  specificationsData,
   onSpecificationsChange,
 }: AddSpecificationFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -65,7 +67,7 @@ export default function AddSpecificationForm({
     resolver: zodResolver(schema),
     defaultValues: {
       categoryId: "",
-      specifications: [],
+      specifications: [], // Start with an empty array
     },
   });
 
@@ -125,157 +127,129 @@ export default function AddSpecificationForm({
     fetchSpecifications(categoryId).then(setSpecifications);
   }
 
-  // Handling form submission
-  const onSubmit = (data: z.infer<typeof schema>) => {
-    // Convert specifications into an object
-    const specificationsObject: { [name: string]: string } = {};
-
-    data.specifications?.forEach((spec) => {
-      const foundSpec = specifications.find(
-        (s) => s.id === spec.specificationId
-      );
-      if (foundSpec) {
-        specificationsObject[foundSpec.name] = spec.value;
-      }
-    });
-
-    onSpecificationsChange(specificationsObject); // Pass the specifications object to the parent component
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Product Specs</CardTitle>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form
-            className="w-2/3 space-y-6"
-            onSubmit={form.handleSubmit(onSubmit)}>
-            {/* Category Select */}
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleCategoryChange(value);
-                      }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="categoryId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Category</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    handleCategoryChange(value);
+                  }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            {/* Specifications Section */}
-            <FormField
-              control={form.control}
-              name="specifications"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Specifications</FormLabel>
-                  <FormControl>
-                    <div className="space-y-2">
-                      {(field.value || []).map((spec, index) => (
-                        <div key={index} className="flex space-x-2">
-                          <Controller
-                            control={form.control}
-                            name={`specifications.${index}.specificationId`}
-                            render={({ field: specField }) => (
-                              <Select
-                                value={specField.value}
-                                onValueChange={(value) => {
-                                  specField.onChange(value);
-                                }}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select specification" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {specifications.map((specification) => (
-                                    <SelectItem
-                                      key={specification.id}
-                                      value={specification.id}>
-                                      {specification.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          />
-                          <Controller
-                            control={form.control}
-                            name={`specifications.${index}.value`}
-                            render={({ field: valueField }) => (
-                              <Input placeholder="Value" {...valueField} />
-                            )}
-                          />
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              const updatedSpecs =
-                                field.value?.filter((_, i) => i !== index) ||
-                                [];
-                              form.setValue("specifications", updatedSpecs);
+        {/* Specifications Section */}
+        <FormField
+          control={form.control}
+          name="specifications"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Specifications</FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  {(field.value || []).map((spec, index) => (
+                    <div key={index} className="flex space-x-2">
+                      <Controller
+                        control={form.control}
+                        name={`specifications.${index}.specificationId`}
+                        render={({ field: specField }) => (
+                          <Select
+                            value={specField.value}
+                            onValueChange={(value) => {
+                              specField.onChange(value);
                             }}>
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select specification" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {specifications.map((specification) => (
+                                <SelectItem
+                                  key={specification.id}
+                                  value={specification.id}>
+                                  {specification.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <Controller
+                        control={form.control}
+                        name={`specifications.${index}.value`}
+                        render={({ field: valueField }) => (
+                          <Input placeholder="Value" {...valueField} />
+                        )}
+                      />
                       <Button
                         type="button"
-                        onClick={() =>
-                          form.setValue("specifications", [
-                            ...(field.value || []),
-                            { specificationId: "", value: "" },
-                          ])
-                        }>
-                        Add Specification
+                        onClick={() => {
+                          const updatedSpecs =
+                            field.value?.filter((_, i) => i !== index) || [];
+                          form.setValue("specifications", updatedSpecs);
+                        }}>
+                        Remove
                       </Button>
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  ))}
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      form.setValue("specifications", [
+                        ...(field.value || []),
+                        { specificationId: "", value: "" },
+                      ])
+                    }>
+                    Add Specification
+                  </Button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            {/* Add New Specification Section */}
-            <div className="space-y-2">
-              <FormLabel>Add New Specification</FormLabel>
-              <Input
-                placeholder="New Specification Name"
-                value={newSpecificationName}
-                onChange={(e) => setNewSpecificationName(e.target.value)}
-              />
-              <Input
-                placeholder="Value"
-                value={newSpecificationValue}
-                onChange={(e) => setNewSpecificationValue(e.target.value)}
-              />
-              <Button type="button" onClick={handleAddNewSpecification}>
-                Add New Specification
-              </Button>
-            </div>
-
-            {/* Submit Button */}
-            <Button type="submit">Submit Specifications</Button>
-          </form>
-        </Form>
+        {/* Add New Specification Section */}
+        <div className="space-y-2">
+          <FormLabel>Add New Specification</FormLabel>
+          <Input
+            placeholder="New Specification Name"
+            value={newSpecificationName}
+            onChange={(e) => setNewSpecificationName(e.target.value)}
+          />
+          <Input
+            placeholder="Value"
+            value={newSpecificationValue}
+            onChange={(e) => setNewSpecificationValue(e.target.value)}
+          />
+          <Button type="button" onClick={handleAddNewSpecification}>
+            Add New Specification
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

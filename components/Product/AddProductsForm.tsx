@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,9 +25,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCallback, useEffect, useState } from "react";
-import AddSupplierForm from "./AddSupplier";
-import AddSpecificationForm from "./AddSpecifications";
-import AddTagsForm from "./AddTagsForm";
+
+const AddSupplierForm = dynamic(() => import("./AddSupplier"), { ssr: false });
+const AddSpecificationForm = dynamic(() => import("./AddSpecifications"), {
+  ssr: false,
+});
+const AddTagsForm = dynamic(() => import("./AddTagsForm"), { ssr: false });
+const AddProductImagesForm = dynamic(() => import("./AddProductImages"), {
+  ssr: false,
+});
 
 const MAX_FILE_SIZE = 1024 * 1024 * 5;
 const ACCEPTED_IMAGE_MIME_TYPES = [
@@ -85,31 +91,6 @@ export const FormSchema = z.object({
   brandName: z.string().min(2, {
     message: "Brand must be at least 2 characters.",
   }),
-  mainImage: z
-    .any()
-    .refine(
-      (files) => files?.length === 1 && files?.[0]?.size <= MAX_FILE_SIZE,
-      {
-        message: "Main image size should be less than 5MB",
-      }
-    )
-    .refine((files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type), {
-      message: "Only .jpg, .jpeg, .png and .webp formats are supported.",
-    }),
-  thumbnailImages: z
-    .array(z.any())
-    .refine((files) => files?.length <= 5, {
-      message: "Maximum 5 thumbnails are allowed.",
-    })
-    .refine(
-      (files) =>
-        files.every(
-          (file) =>
-            file.size <= MAX_FILE_SIZE &&
-            ACCEPTED_IMAGE_MIME_TYPES.includes(file.type)
-        ),
-      "Each image should be less than 5MB and in the accepted formats."
-    ),
 
   brandImage: z
     .any()
@@ -126,6 +107,12 @@ export const FormSchema = z.object({
 
 // Form Component
 export default function ProductForm() {
+  const [specificationsData, setSpecificationsData] = useState<any>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [validatedImages, setValidatedImages] = useState<{
+    mainImage: File | null;
+    thumbnails: File[];
+  }>({ mainImage: null, thumbnails: [] });
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -136,8 +123,6 @@ export default function ProductForm() {
       discount: 0,
       quantity: 0,
       status: "draft",
-      mainImage: null,
-      thumbnailImages: [],
       categoryName: "",
       categoryImage: undefined,
       categoryDescription: "",
@@ -147,42 +132,23 @@ export default function ProductForm() {
     },
   });
 
-  const [productTags, setProductTags] = useState<string[]>([]);
-  const [currentTag, setCurrentTag] = useState<string>("");
-  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
-  const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
-  const [specificationsData, setSpecificationsData] = useState<any>(null);
-
-  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      form.setValue("mainImage", [file]);
-      setMainImagePreview(URL.createObjectURL(file));
-    }
+  const handleImagesValidated = (images: {
+    mainImage: File | null;
+    thumbnails: File[];
+  }) => {
+    setValidatedImages(images);
+    // You can also handle additional logic for images here if needed
   };
 
-  const handleThumbnailChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      const newThumbnails = [...form.getValues("thumbnailImages")];
-      newThumbnails[index] = file;
-      form.setValue("thumbnailImages", newThumbnails);
-
-      const newPreviews = [...thumbnailPreviews];
-      newPreviews[index] = URL.createObjectURL(file);
-      setThumbnailPreviews(newPreviews);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files?.length) {
-      form.setValue(e.target.name as any, files); // Update the form value
-    }
-  };
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files?.length) {
+        form.setValue(e.target.name as any, files); // Update the form value
+      }
+    },
+    [form] // Ensure this function only updates when `form` changes
+  );
 
   const handleTagsChange = useCallback(
     (tags: string[]) => {
@@ -192,22 +158,24 @@ export default function ProductForm() {
     [form]
   );
 
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
-
   const handleSupplierChange = useCallback((supplier: any) => {
     setSelectedSupplier(supplier);
   }, []);
+
   const handleSpecificationsChange = useCallback((specification: any) => {
+    console.log("Specification data:", specification);
     setSpecificationsData(specification);
   }, []);
 
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
+    console.log("Specifications before submit:", specificationsData);
     const productData = {
       ...data,
       supplier: selectedSupplier,
       specification: specificationsData,
+      images: validatedImages, // Add images to productData
     };
-    console.log("Submitted data: ", productData); // Log submitted data
+    console.log("Submitted data: ", productData.specification); // Log submitted data
     // Add your submit handling logic here, e.g., sending data to the backend
     toast({
       title: "You submitted the following values:",
@@ -220,13 +188,6 @@ export default function ProductForm() {
       ),
     });
   };
-  // Cleanup URL object when the component unmounts
-  useEffect(() => {
-    return () => {
-      if (mainImagePreview) URL.revokeObjectURL(mainImagePreview);
-      thumbnailPreviews.forEach((preview) => URL.revokeObjectURL(preview));
-    };
-  }, [mainImagePreview, thumbnailPreviews]);
 
   return (
     <Form {...form}>
@@ -474,60 +435,11 @@ export default function ProductForm() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Upload Main Image</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleMainImageChange}
-                />
-                {mainImagePreview && (
-                  <div className="my-2 h-40">
-                    <Image
-                      src={mainImagePreview}
-                      alt="Main Image Preview"
-                      className="aspect-video w-full h-full rounded-md object-contain"
-                      height={160}
-                      width={160}
-                    />
-                  </div>
-                )}
-              </CardContent>
-
-              <CardHeader>
-                <CardTitle>Upload Thumbnails</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  {[...Array(5)].map((_, index) => (
-                    <div key={index}>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleThumbnailChange(e, index)}
-                      />
-                      {thumbnailPreviews[index] && (
-                        <div className="my-2 h-24">
-                          <Image
-                            src={thumbnailPreviews[index]}
-                            alt={`Thumbnail ${index + 1} Preview`}
-                            className="w-full rounded-md object-contain aspect-video h-full"
-                            height={96}
-                            width={96}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <AddProductImagesForm onImagesValidated={handleImagesValidated} />
 
             <AddSpecificationForm
-              onSpecificationsChange={handleSpecificationsChange}
+              specificationsData={specificationsData}
+              onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
             />
           </div>
         </div>
