@@ -438,7 +438,6 @@ export default function ProductForm() {
             <AddProductImagesForm onImagesValidated={handleImagesValidated} />
 
             <AddSpecificationForm
-              specificationsData={specificationsData}
               onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
             />
           </div>
