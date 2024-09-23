@@ -162,11 +162,6 @@ export default function ProductForm() {
     setSelectedSupplier(supplier);
   }, []);
 
-  const handleSpecificationsChange = useCallback((specification: any) => {
-    console.log("Specification data:", specification);
-    setSpecificationsData(specification);
-  }, []);
-
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
     console.log("Specifications before submit:", specificationsData);
     const productData = {

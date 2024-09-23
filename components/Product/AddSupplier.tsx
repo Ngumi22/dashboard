@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -90,6 +90,9 @@ export default function AddSupplierForm({
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle>Supplier</CardTitle>
+      </CardHeader>
       <CardContent className="space-y-4">
         {/* Existing Supplier Selection */}
         <FormField

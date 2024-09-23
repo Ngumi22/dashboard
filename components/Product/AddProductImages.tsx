@@ -11,7 +11,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // File validation constants
 const MAX_FILE_SIZE = 1024 * 1024 * 5; // 5MB
@@ -102,6 +102,9 @@ export default function AddProductImagesForm({
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle>Product Images</CardTitle>
+      </CardHeader>
       <CardContent className="space-y-4">
         {/* Main Image */}
         <FormItem>
