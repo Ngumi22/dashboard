@@ -51,7 +51,8 @@ const AddSpecifications = ({
   }, [selectedCategory]);
 
   // Handle adding a new or existing specification
-  const handleAddSpec = () => {
+  const handleAddSpec = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault(); // Prevent form submission
     if ((selectedSpec || newSpecName) && specValue) {
       const spec = {
         name: selectedSpec || newSpecName, // Use selected spec or new spec name
@@ -139,7 +140,9 @@ const AddSpecifications = ({
             </div>
 
             {/* Add specification button */}
-            <Button onClick={handleAddSpec}>Add Specification</Button>
+            <Button type="button" onClick={handleAddSpec}>
+              Add Specification
+            </Button>
           </>
         )}
 

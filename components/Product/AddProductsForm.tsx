@@ -107,12 +107,14 @@ export const FormSchema = z.object({
 
 // Form Component
 export default function ProductForm() {
+  const [submittedData, setSubmittedData] = useState<any>(null);
   const [specificationsData, setSpecificationsData] = useState<any>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [validatedImages, setValidatedImages] = useState<{
     mainImage: File | null;
     thumbnails: File[];
   }>({ mainImage: null, thumbnails: [] });
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -132,12 +134,11 @@ export default function ProductForm() {
     },
   });
 
-  const handleImagesValidated = (images: {
+  const handleImageValidation = (images: {
     mainImage: File | null;
     thumbnails: File[];
   }) => {
-    setValidatedImages(images);
-    // You can also handle additional logic for images here if needed
+    setValidatedImages(images); // Keep the original File objects
   };
 
   const handleFileChange = useCallback(
@@ -163,14 +164,17 @@ export default function ProductForm() {
   }, []);
 
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
-    console.log("Specifications before submit:", specificationsData);
     const productData = {
       ...data,
       supplier: selectedSupplier,
       specification: specificationsData,
       images: validatedImages, // Add images to productData
     };
-    console.log("Submitted data: ", productData.specification); // Log submitted data
+
+    // Set the submitted data to state
+    setSubmittedData(productData);
+
+    console.log("Submitted data: ", productData.images); // Log submitted data
     // Add your submit handling logic here, e.g., sending data to the backend
     toast({
       title: "You submitted the following values:",
@@ -185,263 +189,279 @@ export default function ProductForm() {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Name Field */}
+    <section>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Name Field */}
 
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Product Name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* SKU Field */}
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SKU</FormLabel>
-                      <FormControl>
-                        <Input placeholder="SKU" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Description Field */}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <AddTagsForm onTagsChange={handleTagsChange} />
-
-                {/* Price Field */}
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Price"
-                          value={field.value.toString()} // Ensure it's a string
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          } // Convert to number
-                          min={0}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Discount Field */}
-                <FormField
-                  control={form.control}
-                  name="discount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Discount</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Discount"
-                          value={field.value?.toString() ?? "0"} // Ensure it's a string
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          } // Convert to number
-                          min={0}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Quantity Field */}
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Quantity"
-                          value={field.value.toString()} // Ensure it's a string
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          } // Convert to number
-                          min={0}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Category Name Field */}
-
-                {/* Brand Name Field */}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Brand</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-2">
-                <FormField
-                  control={form.control}
-                  name="brandName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brand</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Brand Name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormControl>
-                  <Input
-                    name="brandImage"
-                    type="file"
-                    onChange={handleFileChange} // Ensure file change is handled correctly
-                  />
-                </FormControl>
-              </CardContent>
-            </Card>
-
-            <AddSupplierForm onSupplierChange={handleSupplierChange} />
-          </div>
-
-          <div className="space-y-4">
-            <Card className="">
-              <CardHeader>
-                <CardTitle>Product Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Product Status</FormLabel>
-                      <Select
-                        value={field.value} // Controlled value
-                        onValueChange={(value) => field.onChange(value)} // Update form state on change
-                      >
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
+                          <Input placeholder="Product Name" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Category</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-2">
-                <FormField
-                  control={form.control}
-                  name="categoryName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Category Name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="categoryDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category Description</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Category Description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  {/* SKU Field */}
+                  <FormField
+                    control={form.control}
+                    name="sku"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SKU</FormLabel>
+                        <FormControl>
+                          <Input placeholder="SKU" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormItem>
-                  <FormLabel>Category Image</FormLabel>
+                  {/* Description Field */}
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <AddTagsForm onTagsChange={handleTagsChange} />
+
+                  {/* Price Field */}
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Price"
+                            value={field.value.toString()} // Ensure it's a string
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            } // Convert to number
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Discount Field */}
+                  <FormField
+                    control={form.control}
+                    name="discount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Discount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Discount"
+                            value={field.value?.toString() ?? "0"} // Ensure it's a string
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            } // Convert to number
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Quantity Field */}
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quantity</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Quantity"
+                            value={field.value.toString()} // Ensure it's a string
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            } // Convert to number
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Category Name Field */}
+
+                  {/* Brand Name Field */}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Brand</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-2">
+                  <FormField
+                    control={form.control}
+                    name="brandName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Brand</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Brand Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormControl>
                     <Input
-                      name="categoryImage"
+                      name="brandImage"
                       type="file"
-                      onChange={handleFileChange}
+                      onChange={handleFileChange} // Ensure file change is handled correctly
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <AddProductImagesForm onImagesValidated={handleImagesValidated} />
+              <AddSupplierForm onSupplierChange={handleSupplierChange} />
+            </div>
 
-            <AddSpecificationForm
-              onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
-            />
+            <div className="space-y-4">
+              <Card className="">
+                <CardHeader>
+                  <CardTitle>Product Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product Status</FormLabel>
+                        <Select
+                          value={field.value} // Controlled value
+                          onValueChange={(value) => field.onChange(value)} // Update form state on change
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Category</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-2">
+                  <FormField
+                    control={form.control}
+                    name="categoryName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Category Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="categoryDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category Description</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Category Description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormItem>
+                    <FormLabel>Category Image</FormLabel>
+
+                    <FormControl>
+                      <Input
+                        name="categoryImage"
+                        type="file"
+                        onChange={handleFileChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </CardContent>
+              </Card>
+
+              <AddSpecificationForm
+                onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
+              />
+
+              <AddProductImagesForm onImagesValidated={handleImageValidation} />
+            </div>
           </div>
-        </div>
 
-        <Button type="submit" className="w-auto">
-          Submit
-        </Button>
-      </form>
-    </Form>
+          <Button type="submit" className="w-auto">
+            Submit
+          </Button>
+        </form>
+      </Form>
+
+      <div>
+        {submittedData && (
+          <div className="mt-4">
+            <h3 className="text-lg font-bold">Submitted Data:</h3>
+            <pre className=" p-4 rounded">
+              <code>{JSON.stringify(submittedData, null, 2)}</code>
+            </pre>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

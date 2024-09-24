@@ -242,3 +242,16 @@ export type ProductCoupon = {
   created_by: number | null;
   updated_by: number | null;
 };
+
+export interface UploadFormProps {
+  initialData?: any;
+  onSubmit: (data: FormData) => Promise<void>;
+  isEdit: boolean;
+}
+
+export interface AddProductImagesFormProps {
+  onImagesValidated: (images: {
+    mainImage: File | null;
+    thumbnails: File[];
+  }) => void;
+}

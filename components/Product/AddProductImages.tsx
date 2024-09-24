@@ -1,9 +1,7 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
-import { z } from "zod";
-import { useFormContext, Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import {
   FormItem,
   FormLabel,
@@ -12,50 +10,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// File validation constants
-const MAX_FILE_SIZE = 1024 * 1024 * 5; // 5MB
-const ACCEPTED_IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-];
-
-// Zod schema for image validation
-const ImageSchema = z.object({
-  mainImage: z
-    .any()
-    .refine(
-      (files) =>
-        files instanceof FileList &&
-        files.length === 1 &&
-        files[0].size <= MAX_FILE_SIZE,
-      "Main image must be under 5MB."
-    )
-    .refine(
-      (files) =>
-        files instanceof FileList &&
-        ACCEPTED_IMAGE_MIME_TYPES.includes(files[0].type),
-      "Only .jpg, .jpeg, .png, and .webp formats are supported."
-    ),
-  thumbnailImages: z
-    .any()
-    .refine(
-      (files) => files instanceof FileList && files.length <= 5,
-      "You can upload up to 5 thumbnails."
-    )
-    .refine(
-      (files) =>
-        files instanceof FileList &&
-        Array.from(files).every(
-          (file) =>
-            (file as File).size <= MAX_FILE_SIZE &&
-            ACCEPTED_IMAGE_MIME_TYPES.includes((file as File).type)
-        ),
-      "Each thumbnail must be under 5MB and in the accepted formats."
-    ),
-});
 
 interface AddProductImagesFormProps {
   onImagesValidated: (images: {
@@ -70,29 +24,37 @@ export default function AddProductImagesForm({
   const {
     control,
     formState: { errors },
-  } = useFormContext(); // Use `useFormContext` for the parent form
+  } = useFormContext();
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+  const [mainImage, setMainImage] = useState<File | null>(null);
+  const [thumbnails, setThumbnails] = useState<File[]>([]);
 
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const mainImageFile = files[0];
+      setMainImage(mainImageFile);
       setMainImagePreview(URL.createObjectURL(mainImageFile));
+
+      // Send updated main image to parent
+      onImagesValidated({ mainImage: mainImageFile, thumbnails });
     }
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const thumbnails = Array.from(files).map((file) =>
-        URL.createObjectURL(file)
-      );
-      setThumbnailPreviews(thumbnails);
+      const thumbnailFiles = Array.from(files);
+      setThumbnails(thumbnailFiles);
+      const previews = thumbnailFiles.map((file) => URL.createObjectURL(file));
+      setThumbnailPreviews(previews);
+
+      // Send updated thumbnails to parent
+      onImagesValidated({ mainImage, thumbnails: thumbnailFiles });
     }
   };
 
-  // Cleanup URL object when the component unmounts
   useEffect(() => {
     return () => {
       if (mainImagePreview) URL.revokeObjectURL(mainImagePreview);
