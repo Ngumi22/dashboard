@@ -25,8 +25,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           INDEX idx_email (email),
@@ -69,7 +69,7 @@ export async function dbsetupTables() {
 `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS categories (
+     CREATE TABLE IF NOT EXISTS categories (
           category_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           category_image MEDIUMBLOB NOT NULL,
@@ -77,8 +77,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           INDEX idx_name (name)
@@ -93,8 +93,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           INDEX idx_name (name)
@@ -110,8 +110,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           INDEX idx_name (name)
@@ -120,13 +120,13 @@ export async function dbsetupTables() {
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_suppliers (
-          product_id INT NOT NULL,
-          supplier_id INT NOT NULL,
-          PRIMARY KEY (product_id, supplier_id),
-          FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
-          FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE CASCADE,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        product_id INT NOT NULL,
+        supplier_id INT NOT NULL,
+        PRIMARY KEY (product_id, supplier_id),
+        FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE CASCADE,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Mapping of products to suppliers';
     `);
 
@@ -146,14 +146,15 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (product_image_id) REFERENCES product_images(product_image_id),
           FOREIGN KEY (category_id) REFERENCES categories(category_id),
           FOREIGN KEY (brand_id) REFERENCES brands(brand_id),
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_name (name),
+          INDEX idx_sku (sku),
           INDEX idx_category_id (category_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
     `);
@@ -171,8 +172,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
@@ -222,8 +223,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_name (name)
@@ -242,76 +243,79 @@ export async function dbsetupTables() {
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags relationship';
     `);
 
+    // Create the variant_types table with an additional variant type for height
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS variant_types (
-          variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL UNIQUE,
-          description VARCHAR(255),
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-          INDEX idx_name (name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Types of variants for products';
-    `);
+    CREATE TABLE IF NOT EXISTS variant_types (
+        variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        description VARCHAR(255),
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        created_by INT DEFAULT NULL,
+        updated_by INT DEFAULT NULL,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+        INDEX idx_name (name)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Types of variants for products';
+  `);
 
+    // Create the variants table to hold each product variant
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS variant_attributes (
-          variant_attribute_id INT AUTO_INCREMENT PRIMARY KEY,
-          variant_id INT NOT NULL,
-          attribute_name VARCHAR(255) NOT NULL,
-          attribute_value VARCHAR(255),
-          FOREIGN KEY (variant_id) REFERENCES variants(variant_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant attributes';
-    `);
+    CREATE TABLE IF NOT EXISTS variants (
+        variant_id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        variant_type_id INT NOT NULL,
+        value VARCHAR(255) NOT NULL,
+        price DECIMAL(10, 2) DEFAULT 0.00,
+        quantity INT DEFAULT 0,
+        status ENUM('active', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        created_by INT DEFAULT NULL,
+        updated_by INT DEFAULT NULL,
+        FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+        FOREIGN KEY (variant_type_id) REFERENCES variant_types(variant_type_id),
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+        INDEX idx_product_id (product_id),
+        INDEX idx_variant_type_id (variant_type_id)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants';
+  `);
 
+    // Create the variant_attributes table to hold attributes for each variant
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS variants (
-          variant_id INT AUTO_INCREMENT PRIMARY KEY,
-          product_id INT NOT NULL,
-          variant_type_id INT NOT NULL,
-          value VARCHAR(255) NOT NULL,
-          price DECIMAL(10, 2) DEFAULT 0.00,
-          quantity INT DEFAULT 0,
-          status ENUM('active', 'inactive') DEFAULT 'active',
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
-          FOREIGN KEY (product_id) REFERENCES products(product_id),
-          FOREIGN KEY (variant_type_id) REFERENCES variant_types(variant_type_id),
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-          INDEX idx_product_id (product_id),
-          INDEX idx_variant_type_id (variant_type_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants';
-    `);
+    CREATE TABLE IF NOT EXISTS variant_attributes (
+        variant_attribute_id INT AUTO_INCREMENT PRIMARY KEY,
+        variant_id INT NOT NULL,
+        attribute_name VARCHAR(255) NOT NULL,
+        attribute_value VARCHAR(255),
+        FOREIGN KEY (variant_id) REFERENCES variants(variant_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Attributes for each variant';
+  `);
 
+    // Create the product_variant_images table to hold images for variants
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS product_variant_images (
-          product_variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
-          variant_id INT NOT NULL,
-          variant_image_path VARCHAR(255) NOT NULL,
-          variant_thumbnail1_path VARCHAR(255) NOT NULL,
-          variant_thumbnail2_path VARCHAR(255) NOT NULL,
-          variant_thumbnail3_path VARCHAR(255) NOT NULL,
-          variant_thumbnail4_path VARCHAR(255) NOT NULL,
-          variant_thumbnail5_path VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
-          FOREIGN KEY (variant_id) REFERENCES variants(variant_id),
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-          INDEX idx_variant_id (variant_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images associated with product variants';
-    `);
+    CREATE TABLE IF NOT EXISTS product_variant_images (
+        product_variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
+        variant_id INT NOT NULL,
+        variant_image MEDIUMBLOB,
+        variant_thumbnail1 MEDIUMBLOB,
+        variant_thumbnail2 MEDIUMBLOB,
+        variant_thumbnail3 MEDIUMBLOB,
+        variant_thumbnail4 MEDIUMBLOB,
+        variant_thumbnail5 MEDIUMBLOB,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        created_by INT DEFAULT NULL,
+        updated_by INT DEFAULT NULL,
+        FOREIGN KEY (variant_id) REFERENCES variants(variant_id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images associated with product variants';
+`);
 
     // Customer-related tables
     await connection.query(`
@@ -325,8 +329,8 @@ export async function dbsetupTables() {
           registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           INDEX idx_email (email)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Customer accounts';
     `);
@@ -345,8 +349,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
@@ -368,8 +372,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_code (code),
@@ -405,8 +409,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_status_name (status_name)
@@ -446,8 +450,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (product_id) REFERENCES products(product_id),
           FOREIGN KEY (order_id) REFERENCES orders(order_id),
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
@@ -491,8 +495,8 @@ export async function dbsetupTables() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
-          created_by INT,
-          updated_by INT,
+          created_by INT DEFAULT NULL,
+          updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_title (title)
