@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import ProductForm from "@/components/Product/AddProductsForm";
+import { MailForm } from "@/components/Product/AddProductForm";
 
 interface Category {
   id: number;
@@ -93,7 +94,7 @@ export default function CategoryList() {
 
   return (
     <div className="py-8 sm:px-8 flex min-h-screen w-full flex-col bg-muted/40">
-      <ProductForm />
+      <MailForm />
     </div>
   );
 }

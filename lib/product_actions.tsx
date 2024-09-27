@@ -1,7 +1,7 @@
 "use server";
 
 import { FieldPacket, ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import { getConnection } from "./db";
+import { getConnection } from "./database";
 import { NextResponse } from "next/server";
 import validator from "validator";
 import { Specification } from "./types";

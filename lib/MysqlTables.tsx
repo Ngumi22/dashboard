@@ -1,4 +1,4 @@
-import { getConnection } from "./db";
+import { getConnection } from "./database";
 
 export async function dbsetupTables() {
   const connection = await getConnection();
@@ -6,8 +6,8 @@ export async function dbsetupTables() {
     await connection.beginTransaction();
 
     // Create the database if it doesn't exist
-    await connection.query(`CREATE DATABASE IF NOT EXISTS Bernzz;`);
-    await connection.query(`USE Bernzz;`);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS Bernzzz;`);
+    await connection.query(`USE Bernzzz;`);
 
     // Create the tables
     await connection.query(`

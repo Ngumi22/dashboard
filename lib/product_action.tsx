@@ -1,17 +1,31 @@
 "use server";
 
-import { getConnection } from "./db";
+import { getConnection } from "./database";
 import { NextResponse } from "next/server";
-import { FieldPacket, ResultSetHeader } from "mysql2/promise";
-import validator from "validator";
+import { ResultSetHeader } from "mysql2/promise";
 import {
   createProductImages,
   createProductSupplierMapping,
   createSupplier,
   manageProductTags,
 } from "./product_actions";
+import validator from "validator";
 
-// Utility function to validate image files
+// Custom error class for improved error handling
+class CustomError extends Error {
+  statusCode: number;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
+// Utility function for centralized logging
+function logError(error: any, message: string) {
+  console.error(`${message}:`, error);
+}
+
+// Improved validateImageFile with dynamic maxSize in error message
 function validateImageFile(
   file: File,
   maxSize: number,
@@ -28,21 +42,7 @@ function validateImageFile(
   return { valid: true, message: "File is valid." };
 }
 
-// Custom error class for improved error handling
-class CustomError extends Error {
-  statusCode: number;
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
-
-// Utility function for centralized logging
-function logError(error: any, message: string) {
-  console.error(`${message}:`, error);
-}
-
-// Create Product Function with improved handling
+// Create Product Function with refined supplier handling
 export async function createProduct(formData: FormData) {
   const connection = await getConnection();
   await connection.beginTransaction();
@@ -59,75 +59,59 @@ export async function createProduct(formData: FormData) {
       ? parseInt(formData.get("supplier_id") as string, 10)
       : null;
 
-    // Validate required fields
     if (!name || !description || isNaN(price) || isNaN(stock)) {
       throw new CustomError("Missing or invalid product details.", 400);
     }
 
-    // Validate and handle main image and thumbnails
     const mainImage = formData.get("mainImage") as File | null;
     const thumbnails = formData.getAll("thumbnails") as File[];
 
-    // Set maximum file size (e.g., 2MB) and allowed types
     const maxSize = 2 * 1024 * 1024; // 2MB
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif"]; // Define allowed image types
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
 
-    // Validate main image
     if (mainImage) {
       const { valid, message } = validateImageFile(
         mainImage,
         maxSize,
         allowedTypes
       );
-      if (!valid) {
-        throw new CustomError(message, 400);
-      }
+      if (!valid) throw new CustomError(message, 400);
     }
 
-    // Validate thumbnails
     if (thumbnails.length > 0) {
       for (const thumbnail of thumbnails) {
         const { valid, message } = validateImageFile(
-          thumbnail as File,
+          thumbnail,
           maxSize,
           allowedTypes
         );
-        if (!valid) {
-          throw new CustomError(message, 400);
-        }
+        if (!valid) throw new CustomError(message, 400);
       }
     }
 
-    // Insert product into database using prepared statements
-    const [result]: [ResultSetHeader, FieldPacket[]] = await connection.query(
+    const [result] = await connection.query<ResultSetHeader>(
       `INSERT INTO products (name, description, price, stock, category_id, brand_id)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [name, description, price, stock, categoryId, brandId]
     );
+
     const productId = result.insertId;
 
-    // Create a new FormData instance for images
     const imagesFormData = new FormData();
-    if (mainImage) {
-      imagesFormData.append("mainImage", mainImage);
-    }
-    thumbnails.forEach((thumbnail) => {
-      imagesFormData.append("thumbnails", thumbnail);
-    });
+    if (mainImage) imagesFormData.append("mainImage", mainImage);
+    thumbnails.forEach((thumbnail) =>
+      imagesFormData.append("thumbnails", thumbnail)
+    );
 
-    // Handle tags and images asynchronously after product insert
     await Promise.all([
-      createProductImages(imagesFormData, productId), // Handle images
-      manageProductTags(formData, productId), // Manage tags
+      createProductImages(imagesFormData, productId),
+      manageProductTags(formData, productId),
     ]);
 
-    // Handle supplier and product-supplier mapping if supplierId is provided
     if (supplierId) {
-      await createSupplier(formData); // Ensure supplier is created
-      await createProductSupplierMapping(productId, supplierId); // Map product to supplier
+      await createProductSupplierMapping(productId, supplierId);
     }
 
-    // Commit transaction
     await connection.commit();
     return NextResponse.json({
       success: true,
@@ -135,7 +119,6 @@ export async function createProduct(formData: FormData) {
       productId: productId,
     });
   } catch (error) {
-    // Rollback transaction in case of error
     await connection.rollback();
     logError(error, "Error creating product");
 
@@ -154,7 +137,6 @@ export async function createProduct(formData: FormData) {
       { status: 500 }
     );
   } finally {
-    // Always release connection back to the pool
     connection.release();
   }
 }

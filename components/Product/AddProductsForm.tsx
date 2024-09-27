@@ -163,29 +163,72 @@ export default function ProductForm() {
     setSelectedSupplier(supplier);
   }, []);
 
-  const onSubmit = (data: z.infer<typeof FormSchema>) => {
-    const productData = {
-      ...data,
-      supplier: selectedSupplier,
-      specification: specificationsData,
-      images: validatedImages, // Add images to productData
-    };
+  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+    try {
+      // Create a new FormData object
+      const formData = new FormData();
 
-    // Set the submitted data to state
-    setSubmittedData(productData);
+      // Append text fields to FormData
+      formData.append("name", data.name);
+      formData.append("sku", data.sku);
+      formData.append("description", data.description);
+      formData.append("price", data.price.toString());
+      formData.append("discount", data.discount?.toString() || "0"); // Handle optional discount
+      formData.append("quantity", data.quantity.toString());
+      formData.append("status", data.status);
+      formData.append("categoryName", data.categoryName);
+      formData.append("categoryDescription", data.categoryDescription);
+      formData.append("brandName", data.brandName);
 
-    console.log("Submitted data: ", productData.images); // Log submitted data
-    // Add your submit handling logic here, e.g., sending data to the backend
-    toast({
-      title: "You submitted the following values:",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">
-            {JSON.stringify(productData, null, 2)}
-          </code>
-        </pre>
-      ),
-    });
+      // Append images (files) to FormData (if they exist)
+      if (data.categoryImage && data.categoryImage[0]) {
+        formData.append("categoryImage", data.categoryImage[0]);
+      }
+      if (data.brandImage && data.brandImage[0]) {
+        formData.append("brandImage", data.brandImage[0]);
+      }
+
+      // Append supplier information if selected
+      if (selectedSupplier) {
+        formData.append("supplier", JSON.stringify(selectedSupplier));
+      }
+
+      // Append specifications
+      formData.append("specifications", JSON.stringify(specificationsData));
+
+      // Append tags if available
+      if (data.tags && data.tags.length > 0) {
+        data.tags.forEach((tag, index) => {
+          formData.append(`tags[${index}]`, tag);
+        });
+      }
+
+      // Append validated images (if available)
+      if (validatedImages.mainImage) {
+        formData.append("mainImage", validatedImages.mainImage);
+      }
+      validatedImages.thumbnails.forEach((thumbnail, index) => {
+        formData.append(`thumbnail${index + 1}`, thumbnail);
+      });
+
+      // Send the FormData object to the backend
+      const response = await fetch("/api/product", {
+        method: "POST",
+        body: formData, // Send the FormData directly
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit product data");
+      }
+
+      const result = await response.json();
+      console.log("Product added successfully:", result);
+
+      // Optionally handle successful submission (e.g., redirect or show success message)
+    } catch (error) {
+      console.error("Error submitting product:", error);
+      // Optionally handle error state (e.g., show an error message)
+    }
   };
 
   return (
