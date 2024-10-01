@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   Form,
@@ -20,23 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-
-const schema = z.object({
-  supplier: z.string().nullable(), // Accepts either an existing supplier or null
-  newSupplier: z
-    .object({
-      name: z.string().min(1, "Supplier name is required").optional(),
-      contact_info: z
-        .object({
-          phone: z.string().optional(),
-          address: z.string().optional(),
-        })
-        .optional(),
-      email: z.string().email("Invalid email format").optional(),
-    })
-    .optional(),
-});
+import { useState } from "react";
+import { supplierSchema } from "@/lib/formSchema";
 
 interface AddSupplierFormProps {
   onSupplierChange: (supplier: any) => void; // Callback to handle supplier data
@@ -45,8 +30,8 @@ interface AddSupplierFormProps {
 export default function AddSupplierForm({
   onSupplierChange,
 }: AddSupplierFormProps) {
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
+  const form = useForm<z.infer<typeof supplierSchema>>({
+    resolver: zodResolver(supplierSchema),
     defaultValues: {
       supplier: null,
       newSupplier: {
@@ -57,36 +42,40 @@ export default function AddSupplierForm({
     },
   });
 
-  const [suppliers, setSuppliers] = useState<any[]>([]);
+  // Placeholder data for suppliers
+  const [suppliers, setSuppliers] = useState<any[]>([
+    { supplier_id: 1, name: "Supplier A" },
+    { supplier_id: 2, name: "Supplier B" },
+    { supplier_id: 3, name: "Supplier C" },
+  ]);
+
   const [isNewSupplier, setIsNewSupplier] = useState(false);
 
-  useEffect(() => {
-    async function fetchSuppliers() {
-      // Fetch existing suppliers from the API or database
-      const response = await fetch("/api/suppliers"); // Adjust the API endpoint as needed
-      const data = await response.json();
-      setSuppliers(data);
+  // Handle supplier selection change
+  const handleSupplierChange = (value: string) => {
+    form.setValue("supplier", value); // Update form state
+
+    if (value === "new") {
+      setIsNewSupplier(true);
+      // Reset newSupplier fields when adding a new supplier
+      form.setValue("newSupplier", {
+        name: "",
+        contact_info: { phone: "", address: "" },
+        email: "",
+      });
+    } else {
+      setIsNewSupplier(false);
+      const selectedSupplier = suppliers.find(
+        (supplier) => supplier.supplier_id.toString() === value
+      );
+      onSupplierChange(selectedSupplier); // Notify parent about the selected supplier
     }
+  };
 
-    fetchSuppliers();
-  }, []);
-
-  useEffect(() => {
-    // Call onSupplierChange whenever the form data changes
-    const subscription = form.watch((data) => {
-      if (data.supplier) {
-        // If an existing supplier is selected
-        const selectedSupplier = suppliers.find(
-          (supplier) => supplier.supplier_id.toString() === data.supplier
-        );
-        onSupplierChange(selectedSupplier);
-      } else if (data.newSupplier) {
-        // If a new supplier is added
-        onSupplierChange(data.newSupplier);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form.watch, suppliers, onSupplierChange]);
+  // Handle new supplier submission
+  const handleNewSupplierChange = (newSupplier: any) => {
+    onSupplierChange(newSupplier); // Notify parent about the new supplier
+  };
 
   return (
     <Card>
@@ -104,7 +93,7 @@ export default function AddSupplierForm({
               <FormControl>
                 <Select
                   value={field.value ?? ""}
-                  onValueChange={field.onChange}>
+                  onValueChange={(value) => handleSupplierChange(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
@@ -116,6 +105,7 @@ export default function AddSupplierForm({
                         {supplier.name}
                       </SelectItem>
                     ))}
+                    <SelectItem value="new">Add New Supplier</SelectItem>
                   </SelectContent>
                 </Select>
               </FormControl>
@@ -124,59 +114,66 @@ export default function AddSupplierForm({
           )}
         />
 
-        {/* Add New Supplier */}
-        <FormField
-          control={form.control}
-          name="newSupplier.name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Add New Supplier (if applicable)</FormLabel>
-              <FormControl>
-                <Input placeholder="New Supplier Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="newSupplier.contact_info.phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone</FormLabel>
-              <FormControl>
-                <Input placeholder="Phone (optional)" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="newSupplier.contact_info.address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Input placeholder="Address (optional)" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="newSupplier.email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="Email (optional)" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Conditionally Render New Supplier Fields */}
+        {isNewSupplier && (
+          <>
+            <FormField
+              control={form.control}
+              name="newSupplier.name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Add New Supplier (if applicable)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="New Supplier Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="newSupplier.contact_info.phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Phone (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="newSupplier.contact_info.address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Address (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="newSupplier.email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Email (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
       </CardContent>
     </Card>
   );

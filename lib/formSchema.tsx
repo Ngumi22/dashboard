@@ -68,3 +68,69 @@ export const FormSchema = z.object({
     ),
   tags: z.array(z.string()).optional(),
 });
+
+// Supplier Schema
+export const supplierSchema = z.object({
+  supplier: z.string().nullable(), // Existing supplier or null
+  newSupplier: z
+    .object({
+      name: z.string().min(1, "Supplier name is required"),
+      contact_info: z
+        .object({
+          phone: z.string().optional(),
+          address: z.string().optional(),
+        })
+        .optional(),
+      email: z.string().email("Invalid email format").optional(),
+    })
+    .optional(), // Optional to avoid being required when selecting an existing supplier
+});
+
+export const schema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Name is required and must be at least 2 characters." }),
+  sku: z
+    .string()
+    .min(2, { message: "SKU is required and must be at least 2 characters." }),
+  description: z.string().min(5, {
+    message: "Description is required and must be at least 5 characters.",
+  }),
+
+  price: z
+    .string()
+    .transform((value) => (value === "" ? "" : Number(value)))
+    .refine((value) => !isNaN(Number(value)), {
+      message: "Expected number, received string",
+    }),
+  quantity: z
+    .string()
+    .transform((value) => (value === "" ? "" : Number(value)))
+    .refine((value) => !isNaN(Number(value)), {
+      message: "Expected number, received string",
+    }),
+  discount: z
+    .string()
+    .transform((value) => (value === "" ? "" : Number(value)))
+    .refine((value) => !isNaN(Number(value)), {
+      message: "Expected number, received string",
+    }),
+  supplierId: z
+    .string()
+    .transform((value) => (value === "" ? null : value))
+    .nullable() // Allow for null if no supplier is selected
+    .refine((value) => value !== null || value === "", {
+      message: "Supplier must be selected.",
+    }),
+  status: z.enum(["draft", "pending", "approved"], {
+    message: "Status is required.",
+  }),
+});
+
+// Combine Product and Supplier Schemas
+export const combinedSchema = schema.extend({
+  supplier: z.union([
+    supplierSchema.optional(), // Use supplierSchema if existing supplier selected
+    z.literal(null), // Allow null if no supplier selected
+  ]),
+});
