@@ -82,18 +82,6 @@ export type Brand = {
   updated_by: number | null;
 };
 
-// Suppliers
-export type Supplier = {
-  supplier_id: number;
-  name: string;
-  contact_info: string | null; // JSON data as a string
-  created_at: string; // Use ISO string for date/time
-  updated_at: string; // Use ISO string for date/time
-  deleted_at: string | null;
-  created_by: number | null;
-  updated_by: number | null;
-};
-
 export type ProductSupplier = {
   product_id: number;
   supplier_id: number;
@@ -248,6 +236,21 @@ export interface UploadFormProps {
   onSubmit: (data: FormData) => Promise<void>;
   isEdit: boolean;
 }
+
+export type Supplier = {
+  supplier_id: number;
+  name: string;
+  contact_info: {
+    phone: string;
+    address: string;
+    email: string;
+  };
+  created_at?: string | null;
+  updated_at?: string | null;
+  deleted_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+};
 
 export interface AddProductImagesFormProps {
   onImagesValidated: (images: {

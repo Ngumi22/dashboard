@@ -1,4 +1,3 @@
-// AddTagsForm.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -6,40 +5,60 @@ import { Input } from "@/components/ui/input";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form";
-import { useFormContext } from "react-hook-form";
+import { z } from "zod";
 
 interface AddTagsFormProps {
   onTagsChange: (tags: string[]) => void;
 }
 
+// Zod schema for tag validation
+const tagSchema = z
+  .string()
+  .min(1, { message: "Tag cannot be empty" })
+  .max(20, { message: "Tag cannot exceed 20 characters" });
+
 export const AddTagsForm = ({ onTagsChange }: AddTagsFormProps) => {
   const [productTags, setProductTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState<string>("");
-
-  const form = useFormContext();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleTagKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && currentTag.trim() !== "") {
+      if (e.key === "Enter") {
         e.preventDefault();
-        const newTags = [...productTags, currentTag.trim()];
+        const tag = currentTag.trim();
+
+        // Validate the tag using the Zod schema
+        const result = tagSchema.safeParse(tag);
+
+        if (!result.success) {
+          setErrorMessage(result.error.errors[0]?.message || "Invalid tag");
+          return;
+        }
+
+        if (productTags.includes(tag)) {
+          setErrorMessage("Tag already exists");
+          return;
+        }
+
+        setErrorMessage(null); // Clear error if validation passes
+
+        const newTags = [...productTags, tag];
         setProductTags(newTags);
-        form.setValue("tags", newTags);
-        onTagsChange(newTags);
+        onTagsChange(newTags); // Let the parent know about the new tags
         setCurrentTag("");
       }
     },
-    [currentTag, productTags, form, onTagsChange]
+    [currentTag, productTags, onTagsChange]
   );
 
   const removeTag = useCallback(
     (tagToRemove: string) => {
       const updatedTags = productTags.filter((tag) => tag !== tagToRemove);
       setProductTags(updatedTags);
-      form.setValue("tags", updatedTags);
-      onTagsChange(updatedTags);
+      onTagsChange(updatedTags); // Let the parent know about the updated tags
     },
-    [productTags, form, onTagsChange]
+    [productTags, onTagsChange]
   );
 
   return (
@@ -55,11 +74,12 @@ export const AddTagsForm = ({ onTagsChange }: AddTagsFormProps) => {
           placeholder="Add a tag and press enter"
         />
       </FormControl>
+      {errorMessage && <div className="text-red-500 mt-1">{errorMessage}</div>}
       <div className="flex flex-wrap gap-2 mt-2">
         {productTags.map((tag, index) => (
           <div
             key={index}
-            className="flex items-center bg-gray-200 rounded px-2 py-1">
+            className="flex items-center bg-secondary rounded px-2 py-1">
             <span>{tag}</span>
             <Button
               variant="link"

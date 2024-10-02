@@ -70,8 +70,22 @@ export const FormSchema = z.object({
 });
 
 // Supplier Schema
+
+// Supplier Schema
 export const supplierSchema = z.object({
-  supplier: z.string().nullable(), // Existing supplier or null
+  supplier: z
+    .object({
+      supplier_id: z.number().positive(),
+      name: z.string(),
+      contact_info: z
+        .object({
+          phone: z.string().optional(),
+          address: z.string().optional(),
+          email: z.string().email().optional(),
+        })
+        .optional(),
+    })
+    .nullable(), // Allow supplier to be null
   newSupplier: z
     .object({
       name: z.string().min(1, "Supplier name is required"),
@@ -79,13 +93,19 @@ export const supplierSchema = z.object({
         .object({
           phone: z.string().optional(),
           address: z.string().optional(),
+          email: z.string().email("Invalid email format").optional(),
         })
         .optional(),
-      email: z.string().email("Invalid email format").optional(),
+      created_at: z.string().nullable().optional(),
+      updated_at: z.string().nullable().optional(),
+      deleted_at: z.string().nullable().optional(),
+      created_by: z.number().nullable().optional(),
+      updated_by: z.number().nullable().optional(),
     })
-    .optional(), // Optional to avoid being required when selecting an existing supplier
+    .optional(),
 });
 
+// Product Schema
 export const schema = z.object({
   name: z
     .string()
@@ -96,7 +116,6 @@ export const schema = z.object({
   description: z.string().min(5, {
     message: "Description is required and must be at least 5 characters.",
   }),
-
   price: z
     .string()
     .transform((value) => (value === "" ? "" : Number(value)))
@@ -115,22 +134,18 @@ export const schema = z.object({
     .refine((value) => !isNaN(Number(value)), {
       message: "Expected number, received string",
     }),
-  supplierId: z
-    .string()
-    .transform((value) => (value === "" ? null : value))
-    .nullable() // Allow for null if no supplier is selected
-    .refine((value) => value !== null || value === "", {
-      message: "Supplier must be selected.",
-    }),
   status: z.enum(["draft", "pending", "approved"], {
     message: "Status is required.",
   }),
-});
-
-// Combine Product and Supplier Schemas
-export const combinedSchema = schema.extend({
-  supplier: z.union([
-    supplierSchema.optional(), // Use supplierSchema if existing supplier selected
-    z.literal(null), // Allow null if no supplier selected
-  ]),
+  tags: z
+    .array(z.string().nonempty("Tags cannot be empty"))
+    .optional()
+    .refine(
+      (tags) => {
+        const uniqueTags = new Set(tags);
+        return uniqueTags.size === tags?.length;
+      },
+      { message: "Tags must be unique" }
+    ),
+  supplier: supplierSchema,
 });

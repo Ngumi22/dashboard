@@ -1,8 +1,9 @@
 "use client";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFormState } from "react-dom";
 import { X } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { ProductSubmit } from "@/lib/product_submit";
-import { combinedSchema } from "@/lib/formSchema";
+import { schema } from "@/lib/formSchema";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
   Select,
@@ -26,78 +27,91 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import dynamic from "next/dynamic";
 import AddSupplierForm from "./AddSupplier";
+import { Supplier } from "@/lib/types";
+
+const AddTagsForm = dynamic(() => import("./AddTagsForm"), { ssr: false });
 
 export const ProductAdding = () => {
+  const formRef = useRef<HTMLFormElement>(null);
+
   const [state, formAction] = useFormState(ProductSubmit, {
     message: "",
   });
 
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
-
-  const form = useForm<z.output<typeof combinedSchema>>({
-    resolver: zodResolver(combinedSchema),
+  const form = useForm<z.output<typeof schema>>({
+    resolver: zodResolver(schema),
     defaultValues: {
       name: "",
       sku: "",
       description: "",
-      status: "draft",
-      price: 0, // default price
-      quantity: 0, // default quantity
+      price: 0,
+      quantity: 0,
       discount: 0,
-      supplier: {
-        supplier: null, // Correct structure for existing supplier
-        newSupplier: {
-          name: "", // Ensure this structure is properly initialized
-          contact_info: {
-            phone: "",
-            address: "",
-          },
-          email: "",
-        },
-      },
-      ...(state?.fields ?? {}),
+      status: "draft",
+      tags: [],
+      supplier: { supplier: null },
     },
   });
 
-  const handleSupplierChange = (
-    supplier: {
-      supplier_id: { toString: () => string | null };
-    } | null
-  ) => {
-    setSelectedSupplier(supplier);
+  // Handle tag changes, updating the form field for 'tags'
+  const handleTagsChange = useCallback(
+    (tags: string[]) => {
+      form.setValue("tags", tags); // Update the 'tags' field in the form state
+    },
+    [form]
+  );
 
-    // Update the form state directly
-    form.setValue(
-      "supplier.supplier",
-      supplier?.supplier_id?.toString() ?? null
-    );
+  const handleSupplierChange = useCallback(
+    (supplier: Supplier | null) => {
+      console.log("Selected Supplier:", supplier);
 
-    // Reset newSupplier fields when an existing supplier is selected
-    if (supplier) {
-      // If a supplier is selected, clear the newSupplier fields
-      form.setValue("supplier.newSupplier", {
-        name: "",
-        contact_info: {
-          phone: undefined,
-          address: undefined,
-        },
-        email: undefined,
+      const supplierData = supplier
+        ? {
+            supplier: {
+              supplier_id: supplier.supplier_id,
+              name: supplier.name,
+              contact_info: {
+                phone: supplier.contact_info?.phone || "", // Default to an empty string if not available
+                address: supplier.contact_info?.address || "", // Default to an empty string if not available
+                email: supplier.contact_info?.email || "", // Default to an empty string if not available
+              },
+            },
+          }
+        : { supplier: null }; // This should match the expected structure
+
+      form.setValue("supplier", supplierData); // Set structured supplier object
+    },
+    [form]
+  );
+
+  const handleSubmit = (evt: React.FormEvent) => {
+    evt.preventDefault();
+
+    form.handleSubmit((data) => {
+      const formData = new FormData(formRef.current!);
+
+      // Directly append form values to formData
+      const tags = form.getValues("tags");
+      const supplier = form.getValues("supplier");
+
+      formData.append("tags", JSON.stringify(tags)); // Serialize tags
+      formData.append("supplier", JSON.stringify(supplier)); // Serialize supplier
+
+      // Check if supplier contains contact info before logging
+      if (supplier && supplier.supplier) {
+        console.log("Supplier Contact Info:", supplier.supplier.contact_info);
+      }
+
+      console.log("Form Data before submission:", Object.fromEntries(formData));
+
+      // Submit form data
+      ProductSubmit({ message: "" }, formData).then((response) => {
+        console.log("Server Response:", response); // Handle the server response if needed
       });
-    } else {
-      // If no supplier is selected, you may want to reset newSupplier as well
-      form.setValue("supplier.newSupplier", {
-        name: "",
-        contact_info: {
-          phone: undefined,
-          address: undefined,
-        },
-        email: undefined,
-      });
-    }
+    })(evt);
   };
-
-  const formRef = useRef<HTMLFormElement>(null);
 
   return (
     <Form {...form}>
@@ -105,13 +119,7 @@ export const ProductAdding = () => {
         ref={formRef}
         className="space-y-8"
         action={formAction}
-        onSubmit={(evt) => {
-          evt.preventDefault();
-          form.handleSubmit(() => {
-            const formData = new FormData(formRef.current!);
-            formAction(formData); // Submit form data including supplier info
-          })(evt);
-        }}>
+        onSubmit={handleSubmit}>
         <div className="flex gap-2">
           <FormField
             control={form.control}
@@ -232,7 +240,11 @@ export const ProductAdding = () => {
             />
           </CardContent>
         </Card>
+
+        <AddTagsForm onTagsChange={handleTagsChange} />
+
         <AddSupplierForm onSupplierChange={handleSupplierChange} />
+
         <Button type="submit">Submit</Button>
       </form>
       {state?.message !== "" && !state.issues && (
