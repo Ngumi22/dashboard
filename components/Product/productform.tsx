@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFormState } from "react-dom";
 import { X } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +30,20 @@ import {
 import dynamic from "next/dynamic";
 import AddSupplierForm from "./AddSupplier";
 import { Supplier } from "@/lib/types";
+import AddProductImagesForm from "./AddProductImages";
 
 const AddTagsForm = dynamic(() => import("./AddTagsForm"), { ssr: false });
+const AddSpecificationForm = dynamic(() => import("./AddSpecifications"), {
+  ssr: false,
+});
 
 export const ProductAdding = () => {
   const formRef = useRef<HTMLFormElement>(null);
-
+  const [specificationsData, setSpecificationsData] = useState<any>([]);
+  const [validatedImages, setValidatedImages] = useState<{
+    mainImage: File | null;
+    thumbnails: File[];
+  }>({ mainImage: null, thumbnails: [] });
   const [state, formAction] = useFormState(ProductSubmit, {
     message: "",
   });
@@ -52,8 +60,33 @@ export const ProductAdding = () => {
       status: "draft",
       tags: [],
       supplier: { supplier: null },
+      categoryName: "",
+      categoryImage: undefined,
+      categoryDescription: "",
+      mainImage: undefined,
+      thumbnails: [],
+      brandName: "",
+      brandImage: undefined,
+      specificationData: undefined,
     },
   });
+
+  const handleImageValidation = (images: {
+    mainImage: File | null;
+    thumbnails: File[];
+  }) => {
+    setValidatedImages(images); // Keep the original File objects
+  };
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files?.length) {
+        form.setValue(e.target.name as any, files); // Update the form value
+      }
+    },
+    [form] // Ensure this function only updates when `form` changes
+  );
 
   // Handle tag changes, updating the form field for 'tags'
   const handleTagsChange = useCallback(
@@ -65,8 +98,6 @@ export const ProductAdding = () => {
 
   const handleSupplierChange = useCallback(
     (supplier: Supplier | null) => {
-      console.log("Selected Supplier:", supplier);
-
       const supplierData = supplier
         ? {
             supplier: {
@@ -92,17 +123,22 @@ export const ProductAdding = () => {
     form.handleSubmit((data) => {
       const formData = new FormData(formRef.current!);
 
-      // Directly append form values to formData
+      // Get all form values
       const tags = form.getValues("tags");
       const supplier = form.getValues("supplier");
 
+      // Append form values to formData
       formData.append("tags", JSON.stringify(tags)); // Serialize tags
       formData.append("supplier", JSON.stringify(supplier)); // Serialize supplier
+      formData.append("specificationData", JSON.stringify(specificationsData)); // Append specifications
 
-      // Check if supplier contains contact info before logging
-      if (supplier && supplier.supplier) {
-        console.log("Supplier Contact Info:", supplier.supplier.contact_info);
+      // Append validated images (if available)
+      if (validatedImages.mainImage) {
+        formData.append("mainImage", validatedImages.mainImage);
       }
+      validatedImages.thumbnails.forEach((thumbnail, index) => {
+        formData.append(`thumbnail${index + 1}`, thumbnail);
+      });
 
       console.log("Form Data before submission:", Object.fromEntries(formData));
 
@@ -207,6 +243,86 @@ export const ProductAdding = () => {
             </FormItem>
           )}
         />
+        {/*  */}
+        <AddProductImagesForm onImagesValidated={handleImageValidation} />
+        <AddSpecificationForm
+          onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
+        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Product Category</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 p-2">
+            <FormField
+              control={form.control}
+              name="categoryName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Category Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="categoryDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Category Description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormItem>
+              <FormLabel>Category Image</FormLabel>
+
+              <FormControl>
+                <Input
+                  name="categoryImage"
+                  type="file"
+                  onChange={handleFileChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Product Brand</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 p-2">
+            <FormField
+              control={form.control}
+              name="brandName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Brand</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Brand Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormControl>
+              <Input
+                name="brandImage"
+                type="file"
+                onChange={handleFileChange} // Ensure file change is handled correctly
+              />
+            </FormControl>
+          </CardContent>
+        </Card>
         <Card className="">
           <CardHeader>
             <CardTitle>Product Status</CardTitle>

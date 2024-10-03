@@ -69,41 +69,48 @@ export const FormSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-// Supplier Schema
+export const supplierSchema = z
+  .object({
+    supplier: z
+      .object({
+        supplier_id: z.number().positive(), // Optionally include for existing suppliers
+        name: z.string().min(1, "Name is required"),
+        contact_info: z
+          .object({
+            phone: z.string().optional(),
+            address: z.string().optional(),
+            email: z.string().email(),
+          })
+          .nullable(), // or z.any() if more generic JSON structure is needed
+        created_at: z.string().optional().nullable(), // Use appropriate date string format
+        updated_at: z.string().optional().nullable(),
+        deleted_at: z.string().optional().nullable(),
+        created_by: z.number().optional().nullable(),
+        updated_by: z.number().optional().nullable(),
+      })
+      .nullable()
+      .optional(),
 
-// Supplier Schema
-export const supplierSchema = z.object({
-  supplier: z
-    .object({
-      supplier_id: z.number().positive(),
-      name: z.string(),
-      contact_info: z
-        .object({
-          phone: z.string().optional(),
-          address: z.string().optional(),
-          email: z.string().email().optional(),
-        })
-        .optional(),
-    })
-    .nullable(), // Allow supplier to be null
-  newSupplier: z
-    .object({
-      name: z.string().min(1, "Supplier name is required"),
-      contact_info: z
-        .object({
-          phone: z.string().optional(),
-          address: z.string().optional(),
-          email: z.string().email("Invalid email format").optional(),
-        })
-        .optional(),
-      created_at: z.string().nullable().optional(),
-      updated_at: z.string().nullable().optional(),
-      deleted_at: z.string().nullable().optional(),
-      created_by: z.number().nullable().optional(),
-      updated_by: z.number().nullable().optional(),
-    })
-    .optional(),
-});
+    newSupplier: z
+      .object({
+        name: z.string().min(1, "Name is required"),
+        contact_info: z
+          .object({
+            phone: z.string().optional(),
+            address: z.string().optional(),
+            email: z.string().email(),
+          })
+          .nullable(),
+        created_by: z.number().nullable(),
+        updated_by: z.number().nullable(),
+      })
+      .nullable()
+      .optional(),
+  })
+  .refine((data) => !(data.supplier && data.newSupplier), {
+    message:
+      "Either select an existing supplier or add a new supplier, not both.",
+  });
 
 // Product Schema
 export const schema = z.object({
@@ -148,4 +155,58 @@ export const schema = z.object({
       { message: "Tags must be unique" }
     ),
   supplier: supplierSchema,
+  categoryName: z.string().min(2, {
+    message: "Category must be at least 2 characters.",
+  }),
+  categoryDescription: z.string().min(2, {
+    message: "Category must be at least 2 characters.",
+  }),
+  categoryImage: z
+    .any()
+    .refine((files) => {
+      return files?.[0]?.size <= MAX_FILE_SIZE;
+    }, `Max image size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+  brandName: z.string().min(2, {
+    message: "Brand must be at least 2 characters.",
+  }),
+  brandImage: z
+    .any()
+    .refine((files) => {
+      return files?.[0]?.size <= MAX_FILE_SIZE;
+    }, `Max image size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+  mainImage: z
+    .any()
+    .refine((files) => {
+      return files?.[0]?.size <= MAX_FILE_SIZE;
+    }, `Max image size is 5MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+  thumbnails: z.any(),
+  specificationData: z
+    .array(
+      z.object({
+        key: z.string().nonempty({ message: "Specification key is required." }),
+        value: z
+          .string()
+          .nonempty({ message: "Specification value is required." }),
+      })
+    )
+    .optional(),
+});
+
+// Schema for contact information
+const contactInfoSchema = z.object({
+  phone: z.string().nonempty("Phone is required"),
+  address: z.string().nonempty("Address is required"),
+  email: z.string().email("Invalid email"),
 });

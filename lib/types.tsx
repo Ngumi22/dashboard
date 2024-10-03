@@ -241,15 +241,35 @@ export type Supplier = {
   supplier_id: number;
   name: string;
   contact_info: {
-    phone: string;
-    address: string;
+    phone?: string;
+    address?: string;
     email: string;
   };
   created_at?: string | null;
   updated_at?: string | null;
   deleted_at?: string | null;
-  created_by?: string | null;
-  updated_by?: string | null;
+  created_by?: number | null;
+  updated_by?: number | null;
+};
+
+export type NewSupplier = {
+  name: string;
+  contact_info: {
+    phone?: string;
+    address?: string;
+    email: string;
+  };
+  created_at?: string | null;
+  updated_at?: string | null;
+  deleted_at?: string | null;
+  created_by: number | null; // Ensure this is either number or null
+  updated_by: number | null; // Ensure this is either number or null
+};
+
+// Update the form supplier type
+export type SupplierFormData = {
+  supplier: Supplier | null; // Existing supplier or null
+  newSupplier: NewSupplier | null; // New supplier or null
 };
 
 export interface AddProductImagesFormProps {
@@ -258,3 +278,25 @@ export interface AddProductImagesFormProps {
     thumbnails: File[];
   }) => void;
 }
+
+//to be used across the app
+
+export type FormValues = {
+  name: string;
+  sku: string;
+  description: string;
+  price: string;
+  quantity: string;
+  discount: string;
+  status: string;
+  tags: string[];
+  supplier: Supplier | { supplier: null }; // Handles both existing and new supplier cases
+  newSupplier?: {
+    name: string;
+    contact_info: {
+      phone: string;
+      address: string;
+      email: string;
+    };
+  };
+};

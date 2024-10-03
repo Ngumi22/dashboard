@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
 
 interface AddProductImagesFormProps {
   onImagesValidated: (images: {
@@ -88,7 +89,9 @@ export default function AddProductImagesForm({
             />
           </FormControl>
           {mainImagePreview && (
-            <img
+            <Image
+              height={100}
+              width={100}
               src={mainImagePreview}
               alt="Main Image Preview"
               className="w-32 h-32 object-cover"
@@ -119,7 +122,9 @@ export default function AddProductImagesForm({
           </FormControl>
           <div className="flex gap-2">
             {thumbnailPreviews.map((preview, index) => (
-              <img
+              <Image
+                height={100}
+                width={100}
                 key={index}
                 src={preview}
                 alt={`Thumbnail ${index + 1} Preview`}

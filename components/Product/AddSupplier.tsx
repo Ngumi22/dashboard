@@ -36,10 +36,7 @@ export default function AddSupplierForm({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
       supplier: null,
-      newSupplier: {
-        name: "",
-        contact_info: { phone: "", address: "", email: "" },
-      },
+      newSupplier: null,
     },
   });
 
