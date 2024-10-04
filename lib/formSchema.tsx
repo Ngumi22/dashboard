@@ -141,11 +141,12 @@ export const schema = z.object({
     .refine((value) => !isNaN(Number(value)), {
       message: "Expected number, received string",
     }),
+
   status: z.enum(["draft", "pending", "approved"], {
     message: "Status is required.",
   }),
   tags: z
-    .array(z.string().nonempty("Tags cannot be empty"))
+    .array(z.string())
     .optional()
     .refine(
       (tags) => {
@@ -182,16 +183,8 @@ export const schema = z.object({
       (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
       "Only .jpg, .jpeg, .png and .webp formats are supported."
     ),
-  mainImage: z
-    .any()
-    .refine((files) => {
-      return files?.[0]?.size <= MAX_FILE_SIZE;
-    }, `Max image size is 5MB.`)
-    .refine(
-      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
-      "Only .jpg, .jpeg, .png and .webp formats are supported."
-    ),
-  thumbnails: z.any(),
+  images: z.any(),
+
   specificationData: z
     .array(
       z.object({
@@ -202,11 +195,4 @@ export const schema = z.object({
       })
     )
     .optional(),
-});
-
-// Schema for contact information
-const contactInfoSchema = z.object({
-  phone: z.string().nonempty("Phone is required"),
-  address: z.string().nonempty("Address is required"),
-  email: z.string().email("Invalid email"),
 });

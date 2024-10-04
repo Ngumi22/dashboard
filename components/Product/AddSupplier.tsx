@@ -1,192 +1,200 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
   Select,
+  SelectTrigger,
   SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
-import { supplierSchema } from "@/lib/formSchema";
-import { Supplier } from "@/lib/types";
 
-interface AddSupplierFormProps {
-  onSupplierChange: (supplier: Supplier | null) => void;
+// Mock placeholder data for existing suppliers (This should be fetched from a database)
+const placeholderSuppliers = [
+  {
+    supplier_id: 1,
+    name: "Supplier A",
+    contact_info: {
+      phone: "123-456-7890",
+      address: "123 Supplier St",
+      email: "supplierA@example.com",
+    },
+  },
+  {
+    supplier_id: 2,
+    name: "Supplier B",
+    contact_info: {
+      phone: "234-567-8901",
+      address: "234 Supplier Ave",
+      email: "supplierB@example.com",
+    },
+  },
+];
+
+interface AddSupplierProps {
+  onSupplierChange: (supplierData: any) => void; // Function to handle the supplier object
 }
 
-export default function AddSupplierForm({
-  onSupplierChange,
-}: AddSupplierFormProps) {
-  const [isNewSupplier, setIsNewSupplier] = useState(false);
-
-  const form = useForm<z.infer<typeof supplierSchema>>({
-    resolver: zodResolver(supplierSchema),
-    defaultValues: {
-      supplier: null,
-      newSupplier: null,
+const AddSupplier = ({ onSupplierChange }: AddSupplierProps) => {
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>(""); // Track selected supplier
+  const [isAddingNewSupplier, setIsAddingNewSupplier] = useState(false); // Toggle new supplier form
+  const [newSupplier, setNewSupplier] = useState({
+    name: "",
+    contact_info: {
+      phone: "",
+      address: "",
+      email: "",
     },
-  });
+  }); // New supplier data
 
-  // Simulate the suppliers data
-  const [suppliers] = useState<Supplier[]>([
-    {
-      supplier_id: 1,
-      name: "Supplier A",
-      contact_info: {
-        phone: "123-456-7890",
-        address: "123 Supplier St",
-        email: "supplierA@example.com",
-      },
-    },
-    {
-      supplier_id: 2,
-      name: "Supplier B",
-      contact_info: {
-        phone: "234-567-8901",
-        address: "234 Supplier Ave",
-        email: "supplierB@example.com",
-      },
-    },
-    {
-      supplier_id: 3,
-      name: "Supplier C",
-      contact_info: {
-        phone: "345-678-9012",
-        address: "345 Supplier Blvd",
-        email: "supplierC@example.com",
-      },
-    },
-  ]);
+  // Handle selecting an existing supplier
+  const handleSelectSupplier = (value: string) => {
+    setSelectedSupplierId(value);
+    const selectedSupplier = placeholderSuppliers.find(
+      (supplier) => supplier.supplier_id.toString() === value
+    );
+    if (selectedSupplier) {
+      onSupplierChange({ supplier: selectedSupplier });
+    }
+    setIsAddingNewSupplier(false); // Hide new supplier form if existing supplier is selected
+  };
 
-  const handleSupplierChange = (value: string) => {
-    if (value === "new") {
-      setIsNewSupplier(true);
-      form.resetField("supplier"); // Clear the supplier field
-      onSupplierChange(null); // Notify that no existing supplier is selected
-    } else {
-      const selectedSupplierId = parseInt(value, 10);
-      const selectedSupplier = suppliers.find(
-        (supplier) => supplier.supplier_id === selectedSupplierId
-      );
+  // Handle adding new supplier
+  const handleAddNewSupplier = () => {
+    setIsAddingNewSupplier(true);
+    setSelectedSupplierId(""); // Clear existing supplier selection
+    onSupplierChange(null); // Clear supplier data
+  };
 
-      if (selectedSupplier) {
-        form.setValue("supplier", selectedSupplier);
-        setIsNewSupplier(false); // Hide new supplier form
-        onSupplierChange(selectedSupplier); // Pass selected supplier
-      }
+  // Handle form submission for new supplier
+  const handleSaveNewSupplier = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.preventDefault(); // Prevent form submission
+    if (newSupplier.name && newSupplier.contact_info.email) {
+      // Validate necessary fields
+      onSupplierChange({
+        supplier: {
+          newSupplier: newSupplier,
+        },
+      });
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Supplier</CardTitle>
+        <CardTitle>Add Supplier</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <FormField
-          control={form.control}
-          name="supplier"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Select Existing Supplier</FormLabel>
-              <FormControl>
-                <Select
-                  value={
-                    field.value?.supplier_id
-                      ? field.value.supplier_id.toString()
-                      : ""
-                  }
-                  onValueChange={handleSupplierChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select supplier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((supplier) => (
-                      <SelectItem
-                        key={supplier.supplier_id}
-                        value={supplier.supplier_id.toString()}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="new">Add New Supplier</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        {isNewSupplier && (
+      <CardContent className="space-y-4">
+        {/* Step 1: Select an existing supplier */}
+        <div>
+          <label>Select Existing Supplier</label>
+          <Select
+            value={selectedSupplierId}
+            onValueChange={handleSelectSupplier} // Update selected supplier
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a supplier" />
+            </SelectTrigger>
+            <SelectContent>
+              {placeholderSuppliers.map((supplier) => (
+                <SelectItem
+                  key={supplier.supplier_id}
+                  value={supplier.supplier_id.toString()}>
+                  {supplier.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Button to add a new supplier */}
+        <Button type="button" onClick={handleAddNewSupplier}>
+          Add New Supplier
+        </Button>
+
+        {/* Step 2: If adding new supplier, show the form */}
+        {isAddingNewSupplier && (
           <>
-            <FormField
-              control={form.control}
-              name="newSupplier.name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Supplier Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter Supplier Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="newSupplier.contact_info.phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter Phone" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="newSupplier.contact_info.address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter Address" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="newSupplier.contact_info.email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter Email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div>
+              <label>Supplier Name</label>
+              <Input
+                placeholder="Enter Supplier Name"
+                value={newSupplier.name}
+                onChange={(e) =>
+                  setNewSupplier((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label>Phone</label>
+              <Input
+                placeholder="Enter Phone Number"
+                value={newSupplier.contact_info.phone}
+                onChange={(e) =>
+                  setNewSupplier((prev) => ({
+                    ...prev,
+                    contact_info: {
+                      ...prev.contact_info,
+                      phone: e.target.value,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label>Address</label>
+              <Input
+                placeholder="Enter Address"
+                value={newSupplier.contact_info.address}
+                onChange={(e) =>
+                  setNewSupplier((prev) => ({
+                    ...prev,
+                    contact_info: {
+                      ...prev.contact_info,
+                      address: e.target.value,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label>Email</label>
+              <Input
+                placeholder="Enter Email"
+                value={newSupplier.contact_info.email}
+                onChange={(e) =>
+                  setNewSupplier((prev) => ({
+                    ...prev,
+                    contact_info: {
+                      ...prev.contact_info,
+                      email: e.target.value,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            {/* Save new supplier button */}
+            <Button type="button" onClick={handleSaveNewSupplier}>
+              Save New Supplier
+            </Button>
           </>
         )}
       </CardContent>
     </Card>
   );
-}
+};
+
+export default AddSupplier;

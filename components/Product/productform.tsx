@@ -40,6 +40,7 @@ const AddSpecificationForm = dynamic(() => import("./AddSpecifications"), {
 export const ProductAdding = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const [specificationsData, setSpecificationsData] = useState<any>([]);
+  const [supplierData, setSupplierData] = useState<any>([]);
   const [validatedImages, setValidatedImages] = useState<{
     mainImage: File | null;
     thumbnails: File[];
@@ -63,20 +64,15 @@ export const ProductAdding = () => {
       categoryName: "",
       categoryImage: undefined,
       categoryDescription: "",
-      mainImage: undefined,
-      thumbnails: [],
+      images: {
+        mainImage: undefined,
+        thumbnails: undefined,
+      },
       brandName: "",
       brandImage: undefined,
       specificationData: undefined,
     },
   });
-
-  const handleImageValidation = (images: {
-    mainImage: File | null;
-    thumbnails: File[];
-  }) => {
-    setValidatedImages(images); // Keep the original File objects
-  };
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,31 +84,18 @@ export const ProductAdding = () => {
     [form] // Ensure this function only updates when `form` changes
   );
 
+  // Callback to handle validated image data from child
+  const handleImagesValidated = (images: {
+    mainImage: File | null;
+    thumbnails: File[];
+  }) => {
+    setValidatedImages(images);
+  };
+
   // Handle tag changes, updating the form field for 'tags'
   const handleTagsChange = useCallback(
     (tags: string[]) => {
       form.setValue("tags", tags); // Update the 'tags' field in the form state
-    },
-    [form]
-  );
-
-  const handleSupplierChange = useCallback(
-    (supplier: Supplier | null) => {
-      const supplierData = supplier
-        ? {
-            supplier: {
-              supplier_id: supplier.supplier_id,
-              name: supplier.name,
-              contact_info: {
-                phone: supplier.contact_info?.phone || "", // Default to an empty string if not available
-                address: supplier.contact_info?.address || "", // Default to an empty string if not available
-                email: supplier.contact_info?.email || "", // Default to an empty string if not available
-              },
-            },
-          }
-        : { supplier: null }; // This should match the expected structure
-
-      form.setValue("supplier", supplierData); // Set structured supplier object
     },
     [form]
   );
@@ -125,14 +108,13 @@ export const ProductAdding = () => {
 
       // Get all form values
       const tags = form.getValues("tags");
-      const supplier = form.getValues("supplier");
 
       // Append form values to formData
-      formData.append("tags", JSON.stringify(tags)); // Serialize tags
-      formData.append("supplier", JSON.stringify(supplier)); // Serialize supplier
-      formData.append("specificationData", JSON.stringify(specificationsData)); // Append specifications
+      formData.append("tags", JSON.stringify(tags));
+      formData.append("supplier", JSON.stringify(supplierData));
+      formData.append("specificationData", JSON.stringify(specificationsData));
 
-      // Append validated images (if available)
+      // Append validated images
       if (validatedImages.mainImage) {
         formData.append("mainImage", validatedImages.mainImage);
       }
@@ -144,7 +126,7 @@ export const ProductAdding = () => {
 
       // Submit form data
       ProductSubmit({ message: "" }, formData).then((response) => {
-        console.log("Server Response:", response); // Handle the server response if needed
+        console.log("Server Response:", response);
       });
     })(evt);
   };
@@ -243,11 +225,11 @@ export const ProductAdding = () => {
             </FormItem>
           )}
         />
-        {/*  */}
-        <AddProductImagesForm onImagesValidated={handleImageValidation} />
+        <AddProductImagesForm onImagesValidated={handleImagesValidated} />;
         <AddSpecificationForm
           onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
         />
+        <AddSupplierForm onSupplierChange={setSupplierData} />
         <Card>
           <CardHeader>
             <CardTitle>Product Category</CardTitle>
@@ -356,11 +338,7 @@ export const ProductAdding = () => {
             />
           </CardContent>
         </Card>
-
         <AddTagsForm onTagsChange={handleTagsChange} />
-
-        <AddSupplierForm onSupplierChange={handleSupplierChange} />
-
         <Button type="submit">Submit</Button>
       </form>
       {state?.message !== "" && !state.issues && (
