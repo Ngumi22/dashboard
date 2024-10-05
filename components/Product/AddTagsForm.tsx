@@ -6,6 +6,7 @@ import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form";
 import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface AddTagsFormProps {
   onTagsChange: (tags: string[]) => void;
@@ -62,36 +63,45 @@ export const AddTagsForm = ({ onTagsChange }: AddTagsFormProps) => {
   );
 
   return (
-    <FormItem>
-      <FormLabel>Tags</FormLabel>
-      <FormControl>
-        <Input
-          type="text"
-          id="tags"
-          value={currentTag}
-          onChange={(e) => setCurrentTag(e.target.value)}
-          onKeyDown={handleTagKeyDown}
-          placeholder="Add a tag and press enter"
-        />
-      </FormControl>
-      {errorMessage && <div className="text-red-500 mt-1">{errorMessage}</div>}
-      <div className="flex flex-wrap gap-2 mt-2">
-        {productTags.map((tag, index) => (
-          <div
-            key={index}
-            className="flex items-center bg-secondary rounded px-2 py-1">
-            <span>{tag}</span>
-            <Button
-              variant="link"
-              className="ml-2 text-red-500"
-              onClick={() => removeTag(tag)}>
-              x
-            </Button>
-          </div>
-        ))}
-      </div>
-      <FormMessage />
-    </FormItem>
+    <Card>
+      <CardHeader>
+        <CardTitle>Add Tags</CardTitle>
+        <CardContent>
+          <FormItem>
+            <FormLabel>Tags</FormLabel>
+            <FormControl>
+              <Input
+                type="text"
+                id="tags"
+                value={currentTag}
+                onChange={(e) => setCurrentTag(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder="Add a tag and press enter"
+              />
+            </FormControl>
+            {errorMessage && (
+              <div className="text-red-500 mt-1">{errorMessage}</div>
+            )}
+            <div className="flex flex-wrap gap-2 mt-2">
+              {productTags.map((tag, index) => (
+                <div
+                  key={index}
+                  className="flex items-center bg-secondary rounded px-2 py-1">
+                  <span>{tag}</span>
+                  <Button
+                    variant="link"
+                    className="ml-2 text-red-500"
+                    onClick={() => removeTag(tag)}>
+                    x
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <FormMessage />
+          </FormItem>
+        </CardContent>
+      </CardHeader>
+    </Card>
   );
 };
 

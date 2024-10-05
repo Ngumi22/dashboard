@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const MAX_FILE_SIZE = 1024 * 1024 * 5;
+const MAX_FILE_SIZE = 1024 * 1024 * 200;
 const ACCEPTED_IMAGE_MIME_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -73,16 +73,18 @@ export const supplierSchema = z
   .object({
     supplier: z
       .object({
-        supplier_id: z.number().positive(), // Optionally include for existing suppliers
-        name: z.string().min(1, "Name is required"),
+        supplier_id: z.number().positive().optional(),
+        name: z.string().min(1, "Name is required").optional(),
         contact_info: z
           .object({
             phone: z.string().optional(),
             address: z.string().optional(),
             email: z.string().email(),
           })
-          .nullable(), // or z.any() if more generic JSON structure is needed
-        created_at: z.string().optional().nullable(), // Use appropriate date string format
+
+          .optional()
+          .nullable(),
+        created_at: z.string().optional().nullable(),
         updated_at: z.string().optional().nullable(),
         deleted_at: z.string().optional().nullable(),
         created_by: z.number().optional().nullable(),
@@ -93,13 +95,14 @@ export const supplierSchema = z
 
     newSupplier: z
       .object({
-        name: z.string().min(1, "Name is required"),
+        name: z.string().min(1, "Name is required").optional(),
         contact_info: z
           .object({
             phone: z.string().optional(),
             address: z.string().optional(),
             email: z.string().email(),
           })
+          .optional()
           .nullable(),
         created_by: z.number().nullable(),
         updated_by: z.number().nullable(),
@@ -124,20 +127,20 @@ export const schema = z.object({
     message: "Description is required and must be at least 5 characters.",
   }),
   price: z
-    .string()
-    .transform((value) => (value === "" ? "" : Number(value)))
+    .number()
+    .transform((value) => (value === 0 ? "" : Number(value)))
     .refine((value) => !isNaN(Number(value)), {
       message: "Expected number, received string",
     }),
   quantity: z
-    .string()
-    .transform((value) => (value === "" ? "" : Number(value)))
+    .number()
+    .transform((value) => (value === 0 ? "" : Number(value)))
     .refine((value) => !isNaN(Number(value)), {
       message: "Expected number, received string",
     }),
   discount: z
-    .string()
-    .transform((value) => (value === "" ? "" : Number(value)))
+    .number()
+    .transform((value) => (value === 0 ? "" : Number(value)))
     .refine((value) => !isNaN(Number(value)), {
       message: "Expected number, received string",
     }),
@@ -188,10 +191,8 @@ export const schema = z.object({
   specificationData: z
     .array(
       z.object({
-        key: z.string().nonempty({ message: "Specification key is required." }),
-        value: z
-          .string()
-          .nonempty({ message: "Specification value is required." }),
+        name: z.string().min(1, { message: "Specification key is required." }),
+        value: z.string().min(1, { message: "required" }),
       })
     )
     .optional(),

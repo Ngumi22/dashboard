@@ -38,7 +38,7 @@ export default function AddProductImagesForm({
       setMainImage(mainImageFile);
       setMainImagePreview(URL.createObjectURL(mainImageFile));
 
-      // Send updated main image to parent
+      // Send updated main image and thumbnails to parent
       onImagesValidated({ mainImage: mainImageFile, thumbnails });
     }
   };
@@ -51,7 +51,7 @@ export default function AddProductImagesForm({
       const previews = thumbnailFiles.map((file) => URL.createObjectURL(file));
       setThumbnailPreviews(previews);
 
-      // Send updated thumbnails to parent
+      // Send updated thumbnails and main image to parent
       onImagesValidated({ mainImage, thumbnails: thumbnailFiles });
     }
   };

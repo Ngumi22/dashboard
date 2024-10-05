@@ -347,10 +347,10 @@ export default function ProductForm() {
                           <Input
                             type="number"
                             placeholder="Quantity"
-                            value={field.value.toString()} // Ensure it's a string
+                            value={field.value.toString()}
                             onChange={(e) =>
                               field.onChange(Number(e.target.value))
-                            } // Convert to number
+                            }
                             min={0}
                           />
                         </FormControl>
