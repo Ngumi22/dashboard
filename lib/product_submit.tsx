@@ -1,118 +1,83 @@
 "use server";
 
 import { schema } from "./formSchema";
+import { z } from "zod";
 
-// Define a simple type for the form state response
 export type FormState = {
   message: string;
   issues?: string[];
 };
 
-// ProductSubmit function with logging
+function parseJsonField(formData: Record<string, any>, key: string): any {
+  if (formData[key]) {
+    try {
+      return JSON.parse(formData[key]);
+    } catch (error) {
+      console.error(`Error parsing ${key}:`, error);
+      throw new Error(`Failed to parse ${key} data.`);
+    }
+  }
+  return undefined;
+}
+
+function parseNumberField(
+  formData: Record<string, any>,
+  key: string
+): number | undefined {
+  if (formData[key]) {
+    const value = Number(formData[key]);
+    if (isNaN(value)) {
+      throw new Error(`Invalid ${key} data: not a number.`);
+    }
+    return value;
+  }
+  return undefined;
+}
+
 export async function ProductSubmit(
   prevState: FormState,
   data: FormData
 ): Promise<FormState> {
-  const formData: Record<string, any> = {};
+  const formData: Record<string, any> = Object.fromEntries(data);
 
-  // Convert FormData to a plain object
-  data.forEach((value, key) => {
-    formData[key] = value;
-  });
+  try {
+    // Parse JSON fields
+    [
+      "images",
+      "specificationData",
+      "supplier",
+      "tags",
+      "brand",
+      "category",
+    ].forEach((field) => {
+      formData[field] = parseJsonField(formData, field);
+    });
 
-  // Parse the images field if it exists
-  if (formData.images) {
-    try {
-      formData.images = JSON.parse(formData.images); // Parse the JSON string back into an object
-    } catch (error) {
-      console.error("Error parsing images:", error);
+    // Parse number fields
+    ["price", "quantity", "discount"].forEach((field) => {
+      formData[field] = parseNumberField(formData, field);
+    });
+
+    console.log("Parsed product data:", formData);
+
+    // Validate data using Zod schema
+    const parsed = schema.parse(formData);
+
+    console.log("Validation successful:", parsed);
+    return { message: "Product Added Successfully" };
+  } catch (error) {
+    console.error("Error processing form data:", error);
+
+    if (error instanceof z.ZodError) {
       return {
-        message: "Invalid images data",
-        issues: ["Failed to parse images data."],
+        message: "Invalid form data",
+        issues: error.issues.map((issue) => issue.message),
       };
     }
-  }
 
-  // Parse the images field if it exists
-  if (formData.price) {
-    try {
-      formData.price = Number(formData.price); // Parse the JSON string back into an object
-    } catch (error) {
-      console.error("Error parsing price:", error);
-      return {
-        message: "Invalid price data",
-        issues: ["Failed to parse price data."],
-      };
-    }
-  }
-
-  // Parse the images field if it exists
-  if (formData.quantity) {
-    try {
-      formData.quantity = Number(formData.quantity); // Parse the JSON string back into an object
-    } catch (error) {
-      console.error("Error parsing quantity:", error);
-      return {
-        message: "Invalid quantity data",
-        issues: ["Failed to parse quantity data."],
-      };
-    }
-  }
-
-  // Parse the images field if it exists
-  if (formData.discount) {
-    try {
-      formData.discount = Number(formData.discount); // Parse the JSON string back into an object
-    } catch (error) {
-      console.error("Error parsing discount:", error);
-      return {
-        message: "Invalid discount data",
-        issues: ["Failed to parse discount data."],
-      };
-    }
-  }
-
-  // Parse the images field if it exists
-  if (formData.specificationData) {
-    try {
-      formData.specificationData = JSON.parse(formData.specificationData); // Parse the JSON string back into an object
-    } catch (error) {
-      console.error("Error parsing specificationData:", error);
-      return {
-        message: "Invalid specificationData data",
-        issues: ["Failed to parse specificationData data."],
-      };
-    }
-  }
-
-  // Parse the images field if it exists
-  if (formData.tags) {
-    try {
-      formData.tags = JSON.parse(formData.tags); // Parse the JSON string back into an object
-    } catch (error) {
-      console.error("Error parsing tags:", error);
-      return {
-        message: "Invalid tags data",
-        issues: ["Failed to parse tags data."],
-      };
-    }
-  }
-
-  // Log the structured product data after parsing images
-  console.log("Parsed product data:", formData);
-
-  // Validate data using Zod schema
-  const parsed = schema.safeParse(formData);
-
-  // Log the validation result
-  if (!parsed.success) {
-    console.error("Validation failed:", parsed.error.issues);
     return {
-      message: "Invalid form data",
-      issues: parsed.error.issues.map((issue) => issue.message),
+      message: "Error processing form data",
+      issues: [error instanceof Error ? error.message : String(error)],
     };
   }
-
-  console.log("Validation successful:", parsed.data);
-  return { message: "Product Added Successfully" };
 }

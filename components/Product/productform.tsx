@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { z } from "zod";
+import { string, z } from "zod";
 import { ProductSubmit } from "@/lib/product_submit";
 import { schema } from "@/lib/formSchema";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -36,17 +36,27 @@ const AddSpecificationForm = dynamic(() => import("./AddSpecifications"), {
   ssr: false,
 });
 
+import ImagePreview from "./ImagesPreview";
+
 export const ProductAdding = () => {
   const [state, formAction] = useFormState(ProductSubmit, {
     message: "",
   });
   const formRef = useRef<HTMLFormElement>(null);
-  const [specificationsData, setSpecificationsData] = useState<any>([]);
+  const [specificationData, setSpecificationData] = useState<any>([]);
   const [supplierData, setSupplierData] = useState<any>([]);
   const [validatedImages, setValidatedImages] = useState<{
     mainImage: File | null;
     thumbnails: File[];
   }>({ mainImage: null, thumbnails: [] });
+
+  const [brandImagePreview, setBrandImagePreview] = useState<File | null>(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState<File | null>(
+    null
+  );
+
+  const brandImageInputRef = useRef<HTMLInputElement>(null);
+  const categoryImageInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.output<typeof schema>>({
     resolver: zodResolver(schema),
@@ -54,39 +64,35 @@ export const ProductAdding = () => {
       name: "",
       sku: "",
       description: "",
-      price: 0,
-      quantity: 0,
-      discount: 0,
-      status: "draft",
-      tags: [],
-      supplier: { supplier: null },
-      categoryName: "",
-      categoryImage: undefined,
-      categoryDescription: "",
-      images: {
-        mainImage: undefined,
-        thumbnails: undefined,
-      },
-      brandName: "",
-      brandImage: undefined,
+      price: 0, // Schema expects a number, 0 is valid
+      quantity: 0, // Schema expects a number, 0 is valid
+      discount: 0, // Schema expects a number, 0 is valid
+      status: "draft", // Enum value, "draft" is valid
+      tags: [], // Array, empty array is valid
+
       specificationData: undefined,
+
+      supplier: { supplier: null },
+      brand: {
+        brandName: "",
+        brandImage: null, // Change to null instead of undefined
+      },
+      category: {
+        categoryName: "",
+        categoryDescription: "",
+        categoryImage: null, // Change to null instead of undefined
+      },
+      images: {
+        mainImage: null, // Change to null instead of undefined
+        thumbnails: [],
+      },
     },
   });
 
-  const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files?.length) {
-        form.setValue(e.target.name as any, files); // Update the form value
-      }
-    },
-    [form] // Ensure this function only updates when `form` changes
-  );
-
-  // Handle tag changes, updating the form field for 'tags'
   const handleTagsChange = useCallback(
     (tags: string[]) => {
-      form.setValue("tags", tags); // Update the 'tags' field in the form state
+      const uniqueTags = Array.from(new Set(tags));
+      form.setValue("tags", uniqueTags);
     },
     [form]
   );
@@ -102,26 +108,60 @@ export const ProductAdding = () => {
 
     form.handleSubmit((data) => {
       const formData = new FormData(formRef.current!);
+
+      // Basic fields
+      formData.append("name", data.name);
+      formData.append("sku", data.sku);
+      formData.append("description", data.description);
+      formData.append("status", data.status);
       formData.append("price", data.price.toString());
-      formData.append("discount", data.discount?.toString() || "0"); // Handle optional discount
+      formData.append("discount", data.discount?.toString() || "0");
       formData.append("quantity", data.quantity.toString());
 
-      // Get all form values
-      const tags = form.getValues("tags");
+      // Brand
+      const brandData = {
+        brandName: data.brand.brandName,
+        brandImage: null as string | null,
+      };
+      if (data.brand.brandImage instanceof File) {
+        brandData.brandImage = data.brand.brandImage.name;
+      }
+      formData.append("brand", JSON.stringify(brandData));
 
-      // Append form values to formData
-      formData.append("tags", JSON.stringify(tags));
-      formData.append("supplier", JSON.stringify(supplierData));
-      formData.append("specificationData", JSON.stringify(specificationsData));
+      // Category
+      const categoryData = {
+        categoryName: data.category.categoryName,
+        categoryDescription: data.category.categoryDescription,
+        categoryImage: null as string | null,
+      };
+      if (data.category.categoryImage instanceof File) {
+        categoryData.categoryImage = data.category.categoryImage.name;
+      }
+      formData.append("category", JSON.stringify(categoryData));
 
-      // Prepare the images as JSON structure (filenames)
-      const images = {
-        mainImage: validatedImages.mainImage?.name || null, // Save file name for reference
-        thumbnails: validatedImages.thumbnails.map((file) => file.name),
+      // Images
+      const imagesData = {
+        mainImage: null as string | null,
+        thumbnails: [] as string[],
       };
 
-      // Append images as JSON structure (filenames or references)
-      formData.append("images", JSON.stringify(images)); // JSON of filenames
+      // Add file names to imagesData
+      if (validatedImages.mainImage instanceof File) {
+        imagesData.mainImage = validatedImages.mainImage.name;
+      }
+      validatedImages.thumbnails.forEach((thumbnail) => {
+        if (thumbnail instanceof File) {
+          imagesData.thumbnails.push(thumbnail.name);
+        }
+      });
+
+      // Append the entire imagesData object as a single entry
+      formData.append("images", JSON.stringify(imagesData));
+
+      // Other form values
+      formData.append("tags", JSON.stringify(data.tags));
+      formData.append("supplier", JSON.stringify(supplierData));
+      formData.append("specificationData", JSON.stringify(specificationData));
 
       console.log("Form Data before submission:", Object.fromEntries(formData));
 
@@ -264,82 +304,6 @@ export const ProductAdding = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Brand</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-2">
-                <FormField
-                  control={form.control}
-                  name="brandName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brand</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Brand Name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormControl>
-                  <Input
-                    name="brandImage"
-                    type="file"
-                    onChange={handleFileChange} // Ensure file change is handled correctly
-                  />
-                </FormControl>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Category</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-2">
-                <FormField
-                  control={form.control}
-                  name="categoryName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Category Name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="categoryDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category Description</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Category Description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormItem>
-                  <FormLabel>Category Image</FormLabel>
-
-                  <FormControl>
-                    <Input
-                      name="categoryImage"
-                      type="file"
-                      onChange={handleFileChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </CardContent>
-            </Card>
-
             <Card className="">
               <CardHeader>
                 <CardTitle>Product Status</CardTitle>
@@ -373,12 +337,140 @@ export const ProductAdding = () => {
                 />
               </CardContent>
             </Card>
-            <AddProductImagesForm onImagesValidated={handleImagesValidated} />
-            <AddSpecificationForm
-              onSpecificationsChange={setSpecificationsData} // Handle updates to specifications
-            />
-            <AddSupplierForm onSupplierChange={setSupplierData} />
+
             <AddTagsForm onTagsChange={handleTagsChange} />
+            <AddSupplierForm onSupplierChange={setSupplierData} />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Brand</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-2">
+                <FormField
+                  control={form.control}
+                  name="brand.brandName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Brand Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Brand Name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="brand.brandImage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Brand Image</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          ref={brandImageInputRef}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              field.onChange(file);
+                              setBrandImagePreview(file);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <ImagePreview
+                  file={brandImagePreview}
+                  altText="Brand"
+                  onRemove={() => {
+                    form.setValue("brand.brandImage", null);
+                    setBrandImagePreview(null);
+                    if (brandImageInputRef.current) {
+                      brandImageInputRef.current.value = "";
+                    }
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Category</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-2">
+                <FormField
+                  control={form.control}
+                  name="category.categoryName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Category Name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category.categoryDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category Description</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Category Description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category.categoryImage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category Image</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          ref={categoryImageInputRef}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              field.onChange(file);
+                              setCategoryImagePreview(file);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <ImagePreview
+                  file={categoryImagePreview}
+                  altText=""
+                  onRemove={() => {
+                    form.setValue("category.categoryImage", null);
+                    setCategoryImagePreview(null);
+                    if (categoryImageInputRef.current) {
+                      categoryImageInputRef.current.value = "";
+                    }
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            <AddSpecificationForm
+              onSpecificationsChange={setSpecificationData} // Handle updates to specifications
+            />
+
+            <AddProductImagesForm onImagesValidated={handleImagesValidated} />
+
             <Button type="submit">Submit</Button>
           </form>
           {state?.message !== "" && !state.issues && (

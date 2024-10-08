@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   FormItem,
@@ -10,7 +10,40 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { z } from "zod";
+import ImagePreview from "./ImagesPreview";
+
+// Define Zod schema for validation
+const imageSchema = z.object({
+  mainImage: z
+    .instanceof(File)
+    .nullable()
+    .refine(
+      (file) => !file || file.size <= 5 * 1024 * 1024,
+      "File size must be less than 5MB"
+    )
+    .refine(
+      (file) =>
+        !file || ["image/jpeg", "image/png", "image/webp"].includes(file.type),
+      "Invalid image type"
+    ),
+  thumbnails: z
+    .array(
+      z
+        .instanceof(File)
+        .refine(
+          (file) => file.size <= 5 * 1024 * 1024,
+          "File size must be less than 5MB"
+        )
+        .refine(
+          (file) =>
+            ["image/jpeg", "image/png", "image/webp"].includes(file.type),
+          "Invalid image type"
+        )
+    )
+    .max(5),
+});
 
 interface AddProductImagesFormProps {
   onImagesValidated: (images: {
@@ -25,43 +58,71 @@ export default function AddProductImagesForm({
   const {
     control,
     formState: { errors },
+    setValue,
   } = useFormContext();
-  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
-  const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
   const [mainImage, setMainImage] = useState<File | null>(null);
   const [thumbnails, setThumbnails] = useState<File[]>([]);
+
+  const mainImageInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const mainImageFile = files[0];
-      setMainImage(mainImageFile);
-      setMainImagePreview(URL.createObjectURL(mainImageFile));
+      const file = files[0];
 
-      // Send updated main image and thumbnails to parent
-      onImagesValidated({ mainImage: mainImageFile, thumbnails });
+      const parsed = imageSchema.safeParse({ mainImage: file, thumbnails });
+      if (!parsed.success) {
+        alert(parsed.error.errors[0].message);
+        return;
+      }
+
+      setMainImage(file);
+      onImagesValidated({ mainImage: file, thumbnails });
     }
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const thumbnailFiles = Array.from(files);
-      setThumbnails(thumbnailFiles);
-      const previews = thumbnailFiles.map((file) => URL.createObjectURL(file));
-      setThumbnailPreviews(previews);
+    const files = Array.from(e.target.files || []);
 
-      // Send updated thumbnails and main image to parent
-      onImagesValidated({ mainImage, thumbnails: thumbnailFiles });
+    const newThumbnails = thumbnails.concat(files).slice(0, 5);
+    const parsed = imageSchema.safeParse({
+      mainImage,
+      thumbnails: newThumbnails,
+    });
+    if (!parsed.success) {
+      alert(parsed.error.errors[0].message);
+      return;
     }
+
+    setThumbnails(newThumbnails);
+    onImagesValidated({ mainImage, thumbnails: newThumbnails });
+  };
+
+  const removeMainImage = () => {
+    setMainImage(null);
+    if (mainImageInputRef.current) mainImageInputRef.current.value = "";
+    onImagesValidated({ mainImage: null, thumbnails });
+  };
+
+  const removeThumbnail = (index: number) => {
+    const newThumbnails = thumbnails.filter((_, i) => i !== index);
+    setThumbnails(newThumbnails);
+    if (thumbnailInputRef.current) {
+      const dt = new DataTransfer();
+      newThumbnails.forEach((file) => dt.items.add(file));
+      thumbnailInputRef.current.files = dt.files;
+    }
+    onImagesValidated({ mainImage, thumbnails: newThumbnails });
   };
 
   useEffect(() => {
     return () => {
-      if (mainImagePreview) URL.revokeObjectURL(mainImagePreview);
-      thumbnailPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+      // Revoke all URLs when the component unmounts
+      mainImage && URL.revokeObjectURL(mainImage as any);
+      thumbnails.forEach((file) => URL.revokeObjectURL(file as any));
     };
-  }, [mainImagePreview, thumbnailPreviews]);
+  }, [mainImage, thumbnails]);
 
   return (
     <Card>
@@ -80,21 +141,20 @@ export default function AddProductImagesForm({
                 <Input
                   type="file"
                   accept="image/*"
+                  ref={mainImageInputRef}
                   onChange={(e) => {
                     handleMainImageChange(e);
-                    field.onChange(e.target.files); // Pass the file to the form state
+                    field.onChange(e.target.files); // Sync with form state
                   }}
                 />
               )}
             />
           </FormControl>
-          {mainImagePreview && (
-            <Image
-              height={100}
-              width={100}
-              src={mainImagePreview}
-              alt="Main Image Preview"
-              className="w-32 h-32 object-cover"
+          {mainImage && (
+            <ImagePreview
+              file={mainImage}
+              onRemove={removeMainImage}
+              altText="Main Image"
             />
           )}
           {errors.mainImage && <FormMessage />}
@@ -102,37 +162,36 @@ export default function AddProductImagesForm({
 
         {/* Thumbnails */}
         <FormItem>
-          <FormLabel>Thumbnails</FormLabel>
+          <FormLabel>Thumbnails (Max 5)</FormLabel>
           <FormControl>
             <Controller
               control={control}
-              name="thumbnailImages"
+              name="thumbnails"
               render={({ field }) => (
                 <Input
                   type="file"
                   accept="image/*"
                   multiple
+                  ref={thumbnailInputRef}
                   onChange={(e) => {
                     handleThumbnailChange(e);
-                    field.onChange(e.target.files); // Pass the files to the form state
+                    field.onChange(e.target.files); // Sync with form state
                   }}
                 />
               )}
             />
           </FormControl>
-          <div className="flex gap-2">
-            {thumbnailPreviews.map((preview, index) => (
-              <Image
-                height={100}
-                width={100}
+          <div className="flex flex-wrap gap-2">
+            {thumbnails.map((file, index) => (
+              <ImagePreview
                 key={index}
-                src={preview}
-                alt={`Thumbnail ${index + 1} Preview`}
-                className="w-16 h-16 object-cover"
+                file={file}
+                onRemove={() => removeThumbnail(index)}
+                altText={`thumbnail`}
               />
             ))}
           </div>
-          {errors.thumbnailImages && <FormMessage />}
+          {errors.thumbnails && <FormMessage />}
         </FormItem>
       </CardContent>
     </Card>
