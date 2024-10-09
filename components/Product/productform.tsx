@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { string, z } from "zod";
-import { ProductSubmit } from "@/lib/product_submit";
+import { submitProduct } from "@/lib/product_submit";
 import { schema } from "@/lib/formSchema";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
@@ -39,7 +39,7 @@ const AddSpecificationForm = dynamic(() => import("./AddSpecifications"), {
 import ImagePreview from "./ImagesPreview";
 
 export const ProductAdding = () => {
-  const [state, formAction] = useFormState(ProductSubmit, {
+  const [state, formAction] = useFormState(submitProduct, {
     message: "",
   });
   const formRef = useRef<HTMLFormElement>(null);
@@ -69,7 +69,6 @@ export const ProductAdding = () => {
       discount: 0, // Schema expects a number, 0 is valid
       status: "draft", // Enum value, "draft" is valid
       tags: [], // Array, empty array is valid
-
       specificationData: undefined,
 
       supplier: { supplier: null },
@@ -86,6 +85,7 @@ export const ProductAdding = () => {
         mainImage: null, // Change to null instead of undefined
         thumbnails: [],
       },
+      ...(state?.fields ?? {}),
     },
   });
 
@@ -103,6 +103,54 @@ export const ProductAdding = () => {
     setValidatedImages(images);
   };
 
+  // Helper function to create imagesData object
+  const createImagesData = () => {
+    const imagesData = {
+      mainImage: null as File | null,
+      thumbnails: [] as File[], // Initialized as an empty array
+    };
+
+    // Assign the main image
+    if (validatedImages.mainImage instanceof File) {
+      imagesData.mainImage = validatedImages.mainImage;
+    }
+
+    // Assign the thumbnails
+    validatedImages.thumbnails.forEach((thumbnail) => {
+      if (thumbnail instanceof File) {
+        imagesData.thumbnails.push(thumbnail);
+      }
+    });
+
+    return imagesData;
+  };
+  const createCategoryData = (data: any) => {
+    // Category
+    const categoryData = {
+      categoryName: data.category.categoryName,
+      categoryDescription: data.category.categoryDescription,
+      categoryImage:
+        data.category.categoryImage instanceof File
+          ? data.category.categoryImage.name
+          : null, // Store file name
+    };
+
+    return categoryData;
+  };
+
+  const createBrandData = (data: any) => {
+    // Brand
+    const brandData = {
+      brandName: data.brand.brandName,
+      brandImage:
+        data.brand.brandImage instanceof File
+          ? data.brand.brandImage.name
+          : null,
+    };
+    return brandData;
+  };
+
+  // handleSubmit function
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
 
@@ -118,55 +166,34 @@ export const ProductAdding = () => {
       formData.append("discount", data.discount?.toString() || "0");
       formData.append("quantity", data.quantity.toString());
 
-      // Brand
-      const brandData = {
-        brandName: data.brand.brandName,
-        brandImage: null as string | null,
-      };
-      if (data.brand.brandImage instanceof File) {
-        brandData.brandImage = data.brand.brandImage.name;
-      }
-      formData.append("brand", JSON.stringify(brandData));
+      const brandData = createBrandData(data);
+      formData.append(
+        "brand",
+        JSON.stringify({
+          brandName: brandData.brandName,
+          brandImage: brandData.brandImage,
+        })
+      );
 
-      // Category
-      const categoryData = {
-        categoryName: data.category.categoryName,
-        categoryDescription: data.category.categoryDescription,
-        categoryImage: null as string | null,
-      };
-      if (data.category.categoryImage instanceof File) {
-        categoryData.categoryImage = data.category.categoryImage.name;
-      }
+      const categoryData = createCategoryData(data);
       formData.append("category", JSON.stringify(categoryData));
 
-      // Images
-      const imagesData = {
-        mainImage: null as string | null,
-        thumbnails: [] as string[],
-      };
+      const imagesData = createImagesData();
+      formData.append(
+        "images",
+        JSON.stringify({
+          mainImage: imagesData.mainImage?.name || null,
+          thumbnails: imagesData.thumbnails.map((thumb) => thumb.name),
+        })
+      );
 
-      // Add file names to imagesData
-      if (validatedImages.mainImage instanceof File) {
-        imagesData.mainImage = validatedImages.mainImage.name;
-      }
-      validatedImages.thumbnails.forEach((thumbnail) => {
-        if (thumbnail instanceof File) {
-          imagesData.thumbnails.push(thumbnail.name);
-        }
-      });
-
-      // Append the entire imagesData object as a single entry
-      formData.append("images", JSON.stringify(imagesData));
-
-      // Other form values
       formData.append("tags", JSON.stringify(data.tags));
       formData.append("supplier", JSON.stringify(supplierData));
       formData.append("specificationData", JSON.stringify(specificationData));
 
       console.log("Form Data before submission:", Object.fromEntries(formData));
 
-      // Submit form data
-      ProductSubmit({ message: "" }, formData).then((response) => {
+      submitProduct({ message: "" }, formData).then((response) => {
         console.log("Server Response:", response);
       });
     })(evt);
@@ -179,6 +206,23 @@ export const ProductAdding = () => {
       </div>
       <div>
         <Form {...form}>
+          <div className="bg-white">
+            {state?.message !== "" && !state.issues && (
+              <div className="text-red-500">{state.message}</div>
+            )}
+            {state?.issues && (
+              <div className="text-red-500">
+                <ul>
+                  {state.issues.map((issue) => (
+                    <li key={issue} className="flex gap-1">
+                      <X fill="red" />
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
           <form
             ref={formRef}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -473,21 +517,6 @@ export const ProductAdding = () => {
 
             <Button type="submit">Submit</Button>
           </form>
-          {state?.message !== "" && !state.issues && (
-            <div className="text-red-500">{state.message}</div>
-          )}
-          {state?.issues && (
-            <div className="text-red-500">
-              <ul>
-                {state.issues.map((issue) => (
-                  <li key={issue} className="flex gap-1">
-                    <X fill="red" />
-                    {issue}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </Form>
       </div>
     </section>

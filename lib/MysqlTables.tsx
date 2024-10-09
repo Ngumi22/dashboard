@@ -86,27 +86,26 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS brands (
-          brand_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          brand_logo MEDIUMBLOB NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT DEFAULT NULL,
-          updated_by INT DEFAULT NULL,
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-          INDEX idx_name (name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product brands';
+        CREATE TABLE IF NOT EXISTS brands (
+            brand_id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            brand_logo MEDIUMBLOB NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP NULL,
+            created_by INT DEFAULT NULL,
+            updated_by INT DEFAULT NULL,
+            FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+            FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+            INDEX idx_name (name)
+        ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product brands';
     `);
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS suppliers (
           supplier_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
-          contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON',
-          email VARCHAR(255) NOT NULL UNIQUE,
+          contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON, including email',
           created_at TIMESTAMP NULL DEFAULT NULL,
           updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -131,7 +130,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS products (
+      CREATE TABLE IF NOT EXISTS product (
           product_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           sku VARCHAR(255) NOT NULL UNIQUE,

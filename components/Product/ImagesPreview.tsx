@@ -32,8 +32,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file, onRemove }) => {
       <Image
         src={objectUrl!}
         alt="Image Preview"
-        height={100}
-        width={100}
+        height={50}
+        width={50}
         className="rounded-md h-auto w-auto"
         onLoad={() => {
           if (objectUrl) {

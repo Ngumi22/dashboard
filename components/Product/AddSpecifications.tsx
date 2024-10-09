@@ -28,7 +28,7 @@ const categories = [
 
 interface AddSpecificationsProps {
   onSpecificationsChange: (
-    specifications: { name: string; value: string }[]
+    specifications: { name: string; value: string; category_id: string }[]
   ) => void;
 }
 
@@ -40,7 +40,9 @@ const AddSpecifications = ({
   const [selectedSpec, setSelectedSpec] = useState<string>(""); // Track selected specification
   const [newSpecName, setNewSpecName] = useState<string>(""); // New spec name
   const [specValue, setSpecValue] = useState<string>(""); // Specification value
-  const [specs, setSpecs] = useState<{ name: string; value: string }[]>([]); // Added specifications
+  const [specs, setSpecs] = useState<
+    { name: string; value: string; category_id: string }[]
+  >([]); // Added specifications
 
   // Update specifications when category changes
   useEffect(() => {
@@ -54,10 +56,24 @@ const AddSpecifications = ({
   const handleAddSpec = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault(); // Prevent form submission
     if ((selectedSpec || newSpecName) && specValue) {
+      const specName = selectedSpec || newSpecName; // Use selected spec or new spec name
+      const existingSpec = specs.find(
+        (spec) =>
+          spec.name === specName && spec.category_id === selectedCategory
+      );
+
+      // Check if the spec already exists for the selected category
+      if (existingSpec) {
+        alert(`Specification "${specName}" already exists for this category.`); // Alert the user
+        return; // Exit the function if the spec already exists
+      }
+
       const spec = {
-        name: selectedSpec || newSpecName, // Use selected spec or new spec name
+        name: specName,
         value: specValue,
+        category_id: selectedCategory, // Include category_id
       };
+
       const updatedSpecs = [...specs, spec];
       setSpecs(updatedSpecs); // Update local state
       onSpecificationsChange(updatedSpecs); // Send updated specs back to the parent form
