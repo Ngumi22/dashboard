@@ -39,6 +39,45 @@ export const imageSchema = z.object({
     .max(5),
 });
 
+export const brandSchema = z.object({
+  brandName: z.string().min(1, "Brand name is required"),
+  brandImage:
+    typeof window === "undefined"
+      ? z.any()
+      : z
+          .instanceof(File)
+          .nullable()
+          .refine((file) => !file || file.size <= MAX_FILE_SIZE, {
+            message: "File size must be less than 5MB",
+          })
+          .refine(
+            (file) => !file || ACCEPTED_IMAGE_MIME_TYPES.includes(file.type),
+            {
+              message: "Invalid image type",
+            }
+          ),
+});
+
+export const categorySchema = z.object({
+  categoryName: z.string().min(1, "Category name is required"),
+  categoryDescription: z.string().min(1, "Category description is required"),
+  categoryImage:
+    typeof window === "undefined"
+      ? z.any()
+      : z
+          .instanceof(File)
+          .nullable()
+          .refine((file) => !file || file.size <= MAX_FILE_SIZE, {
+            message: "File size must be less than 5MB",
+          })
+          .refine(
+            (file) => !file || ACCEPTED_IMAGE_MIME_TYPES.includes(file.type),
+            {
+              message: "Invalid image type",
+            }
+          ),
+});
+
 // Supplier schema
 const contactInfoSchema = z
   .object({

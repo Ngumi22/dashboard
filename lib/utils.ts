@@ -153,6 +153,34 @@ export function validateFiles(files: File[]): {
   return { valid: true };
 }
 
+export function validateImage(file: File | File[] | null | undefined): {
+  valid: boolean;
+  message?: string;
+} {
+  const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/jpg"];
+  const maxSize = 100 * 1024; // Images cannot be more 100KB in size
+
+  if (!file) {
+    return { valid: false, message: "No file provided" };
+  }
+
+  const files = Array.isArray(file) ? file : [file];
+
+  for (const f of files) {
+    if (!allowedTypes.includes(f.type)) {
+      return { valid: false, message: `Invalid file type: ${f.type}` };
+    }
+    if (f.size > maxSize) {
+      return {
+        valid: false,
+        message: `File size exceeds 100KB limit: ${f.name}`,
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
 // Utility function to convert binary data to base64
 export const convertToBase64 = (buffer: Buffer | null) =>
   buffer ? buffer.toString("base64") : "";

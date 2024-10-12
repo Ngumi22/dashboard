@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={roboto.className} suppressHydrationWarning>
+      <body className={roboto.className} suppressHydrationWarning={true}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

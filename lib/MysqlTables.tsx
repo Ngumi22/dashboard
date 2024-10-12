@@ -11,7 +11,7 @@ export async function dbsetupTables() {
 
     // Create the tables
     await connection.query(`
-      CREATE TABLE staff_accounts (
+      CREATE TABLE IF NOT EXISTS staff_accounts (
           staff_id INT AUTO_INCREMENT PRIMARY KEY,
           role_name ENUM('super_admin', 'admin', 'user') NOT NULL,
           first_name VARCHAR(100) NOT NULL,
@@ -36,7 +36,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE sessions (
+      CREATE TABLE IF NOT EXISTS sessions (
           session_id INT AUTO_INCREMENT PRIMARY KEY,
           staff_id INT NOT NULL,
           session_token VARCHAR(255) NOT NULL UNIQUE,
@@ -49,7 +49,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-    CREATE TABLE notifications (
+    CREATE TABLE IF NOT EXISTS notifications (
         notification_id INT AUTO_INCREMENT PRIMARY KEY,
         recipient_id INT NOT NULL,
         action_by INT NOT NULL,
@@ -71,9 +71,9 @@ export async function dbsetupTables() {
     await connection.query(`
      CREATE TABLE IF NOT EXISTS categories (
           category_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
+          category_name VARCHAR(255) NOT NULL,
           category_image MEDIUMBLOB NOT NULL,
-          description TEXT NOT NULL,
+          category_description TEXT NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -89,7 +89,7 @@ export async function dbsetupTables() {
         CREATE TABLE IF NOT EXISTS brands (
             brand_id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
-            brand_logo MEDIUMBLOB NOT NULL,
+            brandImage MEDIUMBLOB NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at TIMESTAMP NULL,
@@ -105,7 +105,9 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS suppliers (
           supplier_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
-          contact_info JSON DEFAULT NULL COMMENT 'Contact details as JSON, including email',
+          email VARCHAR(255) NOT NULL UNIQUE,
+          phone_number VARCHAR(255) NOT NULL,
+          location TEXT NOT NULL,
           created_at TIMESTAMP NULL DEFAULT NULL,
           updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -118,19 +120,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS product_suppliers (
-        product_id INT NOT NULL,
-        supplier_id INT NOT NULL,
-        PRIMARY KEY (product_id, supplier_id),
-        FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
-        FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE CASCADE,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Mapping of products to suppliers';
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS product (
+        CREATE TABLE IF NOT EXISTS products (
           product_id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           sku VARCHAR(255) NOT NULL UNIQUE,
@@ -141,13 +131,11 @@ export async function dbsetupTables() {
           status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
           category_id INT NOT NULL,
           brand_id INT,
-          product_image_id INT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
           created_by INT DEFAULT NULL,
           updated_by INT DEFAULT NULL,
-          FOREIGN KEY (product_image_id) REFERENCES product_images(product_image_id),
           FOREIGN KEY (category_id) REFERENCES categories(category_id),
           FOREIGN KEY (brand_id) REFERENCES brands(brand_id),
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
@@ -155,11 +143,11 @@ export async function dbsetupTables() {
           INDEX idx_name (name),
           INDEX idx_sku (sku),
           INDEX idx_category_id (category_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
+        ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
     `);
 
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS product_images (
+        CREATE TABLE IF NOT EXISTS product_images (
           product_image_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
           main_image MEDIUMBLOB NOT NULL,
@@ -177,7 +165,19 @@ export async function dbsetupTables() {
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_product_id (product_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product images and thumbnails';
+        ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product images and thumbnails';
+      `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS product_suppliers (
+        product_id INT NOT NULL,
+        supplier_id INT NOT NULL,
+        PRIMARY KEY (product_id, supplier_id),
+        FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE CASCADE,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Mapping of products to suppliers';
     `);
 
     await connection.query(`
@@ -318,7 +318,7 @@ export async function dbsetupTables() {
 
     // Customer-related tables
     await connection.query(`
-      CREATE TABLE customers (
+      CREATE TABLE IF NOT EXISTS customers (
           customer_id INT AUTO_INCREMENT PRIMARY KEY,
           first_name VARCHAR(100) NOT NULL,
           last_name VARCHAR(100) NOT NULL,
@@ -335,7 +335,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE customer_addresses (
+      CREATE TABLE IF NOT EXISTS customer_addresses (
           customer_address_id INT AUTO_INCREMENT PRIMARY KEY,
           customer_id INT NOT NULL,
           address_line1 TEXT NOT NULL,
@@ -358,7 +358,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE coupons (
+      CREATE TABLE IF NOT EXISTS coupons (
           coupon_id INT AUTO_INCREMENT PRIMARY KEY,
           code VARCHAR(50) NOT NULL UNIQUE,
           discount_value DECIMAL(10, 2),
@@ -381,7 +381,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE product_coupons (
+      CREATE TABLE IF NOT EXISTS product_coupons (
             product_coupon_id INT AUTO_INCREMENT PRIMARY KEY,
             product_id INT NOT NULL,
             coupon_id INT NOT NULL,
@@ -400,7 +400,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE order_statuses (
+      CREATE TABLE IF NOT EXISTS order_statuses (
           order_status_id INT AUTO_INCREMENT PRIMARY KEY,
           status_name VARCHAR(255) NOT NULL,
           color VARCHAR(50) NOT NULL,
@@ -417,7 +417,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-     CREATE TABLE orders (
+     CREATE TABLE IF NOT EXISTS orders (
           order_id INT AUTO_INCREMENT PRIMARY KEY,
           coupon_id INT,
           customer_id INT,
@@ -440,7 +440,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE order_items (
+      CREATE TABLE IF NOT EXISTS order_items (
           order_item_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
           order_id INT NOT NULL,
@@ -461,7 +461,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE carousels (
+      CREATE TABLE IF NOT EXISTS carousels (
         carousel_id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL COMMENT 'Title of the product or slide',
         short_description VARCHAR(500) DEFAULT NULL COMMENT 'Short description of the product or slide',
@@ -482,7 +482,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE banners (
+      CREATE TABLE IF NOT EXISTS banners (
           banner_id INT AUTO_INCREMENT PRIMARY KEY,
           title VARCHAR(255) NOT NULL COMMENT 'Title for the banner',
           description VARCHAR(500) DEFAULT NULL COMMENT 'Small description for the banner',
@@ -508,7 +508,7 @@ export async function dbsetupTables() {
     console.error("Error creating tables:", err);
     await connection.rollback();
   } finally {
-    await connection.end();
+    await connection.release();
   }
 }
 

@@ -3,8 +3,7 @@
 import { getConnection } from "./database";
 import { z } from "zod";
 import { schema } from "./formSchema";
-
-// Import all your individual insertion functions
+import { dbsetupTables } from "./MysqlTables";
 import {
   addCategory,
   addBrand,
@@ -21,10 +20,11 @@ export type FormState = {
   issues?: string[];
 };
 
-function parseJsonField(formData: Record<string, any>, key: string): any {
-  if (formData[key]) {
+function parseJsonField(formData: FormData, key: string): any {
+  const value = formData.get(key);
+  if (typeof value === "string") {
     try {
-      return JSON.parse(formData[key]);
+      return JSON.parse(value);
     } catch (error) {
       console.error(`Error parsing ${key}:`, error);
       throw new Error(`Failed to parse ${key} data.`);
@@ -33,25 +33,22 @@ function parseJsonField(formData: Record<string, any>, key: string): any {
   return undefined;
 }
 
-function parseNumberField(
-  formData: Record<string, any>,
-  key: string
-): number | undefined {
-  if (formData[key]) {
-    const value = Number(formData[key]);
-    if (isNaN(value)) {
+function parseNumberField(formData: FormData, key: string): number | undefined {
+  const value = formData.get(key);
+  if (typeof value === "string") {
+    const parsedValue = Number(value);
+    if (isNaN(parsedValue)) {
       throw new Error(`Invalid ${key} data: not a number.`);
     }
-    return value;
+    return parsedValue;
   }
   return undefined;
 }
 
-// Main function to coordinate all insertions
-// New function to insert product data
 async function insertProduct(formData: Record<string, any>) {
   const connection = await getConnection();
   try {
+    console.log("Starting product insertion...");
     const [result] = await connection.query(
       `INSERT INTO products (name, sku, description, price, quantity, discount, status, category_id, brand_id, created_by, updated_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -69,71 +66,88 @@ async function insertProduct(formData: Record<string, any>) {
         formData.updated_by,
       ]
     );
-
+    console.log("Product inserted successfully.");
     return (result as any).insertId;
   } catch (error) {
+    console.error("Error inserting product:", error);
     throw error;
   }
 }
 
-// Main function to coordinate all insertions
 export async function submitProduct(
   prevState: FormState,
-  data: FormData
+  formData: FormData
 ): Promise<FormState> {
   const connection = await getConnection();
   await connection.beginTransaction();
 
-  const formData: Record<string, any> = Object.fromEntries(data);
-
   try {
+    console.log("Starting transaction...");
+    await dbsetupTables();
+    console.log("Tables checked/created.");
+
+    const parsedData: Record<string, any> = {};
+
     // Parse JSON fields
-    [
-      "images",
-      "specificationData",
-      "supplier",
-      "tags",
-      "brand",
-      "category",
-    ].forEach((field) => {
-      formData[field] = parseJsonField(formData, field);
-    });
+    ["specificationData", "supplier", "tags", "category", "brand"].forEach(
+      (field) => {
+        parsedData[field] = parseJsonField(formData, field);
+      }
+    );
 
     // Parse number fields
     ["price", "quantity", "discount"].forEach((field) => {
-      formData[field] = parseNumberField(formData, field);
+      parsedData[field] = parseNumberField(formData, field);
+    });
+
+    // Handle images
+    const mainImage = formData.get("mainImage") as File | null;
+    const thumbnails = formData.getAll("thumbnails") as File[];
+    parsedData.images = {
+      mainImage: mainImage,
+      thumbnails: thumbnails,
+    };
+
+    // Copy other fields
+    Array.from(formData.keys()).forEach((key) => {
+      if (!parsedData.hasOwnProperty(key)) {
+        parsedData[key] = formData.get(key);
+      }
     });
 
     // Validate the form data using Zod
-    schema.parse(formData);
+    schema.parse(parsedData);
 
     // Perform all insertions
-    const categoryResponse = await addCategory(data);
+    const categoryResponse = await addCategory(formData);
     const categoryData = await categoryResponse.json();
-    formData.category_id = categoryData.categoryId;
+    parsedData.category_id = categoryData.categoryId;
 
-    const brandResponse = await addBrand(data);
+    const brandResponse = await addBrand(formData);
     const brandData = await brandResponse.json();
-    formData.brand_id = brandData.brandId;
+    parsedData.brand_id = brandData.brandId;
 
-    const supplierResponse = await createSupplier(data);
+    const supplierResponse = await createSupplier(formData);
     const supplierData = await supplierResponse.json();
 
-    const productId = await insertProduct(formData);
+    const productId = await insertProduct(parsedData);
 
     await createProductSupplierMapping(productId, supplierData.supplierId);
-    await createProductImages(data, productId);
-    await manageProductTags(data, productId);
-    await createProductSpecifications(data, productId, categoryData.categoryId);
+    await createProductImages(formData, productId);
+    await manageProductTags(formData, productId);
+    await createProductSpecifications(
+      formData,
+      productId,
+      categoryData.categoryId
+    );
 
-    // If all operations are successful, commit the transaction
+    // Commit the transaction if everything works
     await connection.commit();
 
     return { message: "Product submitted successfully" };
   } catch (error) {
-    // If any operation fails, rollback the transaction
+    // Rollback in case of any errors
     await connection.rollback();
-
     console.error("Error in submitProduct:", error);
 
     if (error instanceof z.ZodError) {
