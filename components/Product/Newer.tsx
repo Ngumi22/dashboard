@@ -46,6 +46,8 @@ export const ProductsForm = () => {
       discount: 0,
       status: "draft",
       tags: "", // Add a default tag
+      mainImage: undefined,
+
       brandName: "",
       brandImage: undefined,
       categoryName: "",
@@ -58,6 +60,7 @@ export const ProductsForm = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const brandImageRef = form.register("brandImage");
   const categoryImageRef = form.register("categoryImage");
+  const mainImageRef = form.register("mainImage");
 
   return (
     <Card className="space-y-4">
@@ -309,6 +312,29 @@ export const ProductsForm = () => {
                           <FormLabel>categorymage</FormLabel>
                           <FormControl>
                             <Input type="file" {...categoryImageRef} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Images</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="mainImage"
+                    render={({ field }) => {
+                      return (
+                        <FormItem>
+                          <FormLabel>Main Image</FormLabel>
+                          <FormControl>
+                            <Input type="file" {...mainImageRef} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

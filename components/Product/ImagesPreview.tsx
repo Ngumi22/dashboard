@@ -1,29 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
 
 interface ImagePreviewProps {
-  file: File | null;
+  file: File;
   onRemove: () => void;
-  altText: string; // New prop for different images (e.g., "Brand Image", "Category Image")
+  altText: string;
 }
-const ImagePreview: React.FC<ImagePreviewProps> = ({ file, onRemove }) => {
-  let objectUrl: string | undefined;
 
-  if (file) {
-    objectUrl = URL.createObjectURL(file);
-  }
+export const ImagePreview: React.FC<ImagePreviewProps> = ({
+  file,
+  onRemove,
+  altText,
+}) => {
+  const [objectUrl, setObjectUrl] = useState<string | undefined>();
 
   useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setObjectUrl(url);
+
     return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl); // Cleanup URL to avoid memory leaks
+      if (url) {
+        URL.revokeObjectURL(url);
       }
     };
-  }, [objectUrl]);
+  }, [file]);
 
   if (!file) return null;
 
@@ -31,13 +35,13 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file, onRemove }) => {
     <div className="relative w-32 h-32">
       <Image
         src={objectUrl!}
-        alt="Image Preview"
-        height={50}
-        width={50}
-        className="rounded-md h-auto w-auto"
+        alt={altText}
+        height={128}
+        width={128}
+        className="rounded-md h-32 w-32 object-cover"
         onLoad={() => {
           if (objectUrl) {
-            URL.revokeObjectURL(objectUrl); // Revoke URL after it's been used
+            URL.revokeObjectURL(objectUrl);
           }
         }}
       />
@@ -45,11 +49,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file, onRemove }) => {
         variant="destructive"
         size="icon"
         className="absolute top-0 right-0 rounded-full"
-        onClick={onRemove}>
+        onClick={onRemove}
+      >
         <X className="h-4 w-4" />
       </Button>
     </div>
   );
 };
-
-export default ImagePreview;
