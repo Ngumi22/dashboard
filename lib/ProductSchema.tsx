@@ -22,7 +22,46 @@ export const NewProductSchema = z.object({
   quantity: z.coerce.number().min(0, { message: "Mininmum quantity is 0" }),
   discount: z.coerce.number().min(0, { message: "Mininmum discount is 0" }),
   status: z.enum(["draft", "pending", "approved"]),
-  tags: z.string(),
+  tags: z.array(z.object({ value: z.string() })),
+  thumbnails: z.array(
+    z
+      .custom<FileList>()
+      .transform((val) => {
+        if (val instanceof File) return val;
+        if (val instanceof FileList) return val[0];
+        return null;
+      })
+      .superRefine((file, ctx) => {
+        if (!(file instanceof File)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: "Not a file",
+          });
+
+          return z.NEVER;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Max file size allowed is 5MB",
+          });
+        }
+
+        if (
+          !["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(
+            file.type
+          )
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "File must be an image (jpeg, jpg, png, webp)",
+          });
+        }
+      })
+      .pipe(z.custom<File>())
+  ),
   brandName: z.string().min(2, {
     message: "Brand name is required and must be at least 2 characters.",
   }),
@@ -64,7 +103,7 @@ export const NewProductSchema = z.object({
     })
     .pipe(z.custom<File>()),
 
-  thumbnails: z.array(z.custom<File>()).min(5, "Minimum 5 thumbnails required"),
+  //thumbnails: z.array(z.custom<File>()).min(5, "Minimum 5 thumbnails required"),
   brandImage: z
     .custom<FileList>()
     .transform((val) => {

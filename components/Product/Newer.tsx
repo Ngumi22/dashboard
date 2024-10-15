@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFormState } from "react-dom";
 import { X } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,8 @@ import { NewProductSchema } from "@/lib/ProductSchema";
 type FormValues = z.infer<typeof NewProductSchema>;
 
 export const ProductsForm = () => {
+  const formRef = useRef<HTMLFormElement>(null);
+
   const [state, formAction] = useFormState(SubmitAction, {
     message: "",
   });
@@ -45,9 +47,9 @@ export const ProductsForm = () => {
       quantity: 0,
       discount: 0,
       status: "draft",
-      tags: "", // Add a default tag
+      tags: [{ value: "" }],
+      thumbnails: [],
       mainImage: undefined,
-
       brandName: "",
       brandImage: undefined,
       categoryName: "",
@@ -57,10 +59,38 @@ export const ProductsForm = () => {
     },
   });
 
-  const formRef = useRef<HTMLFormElement>(null);
+  const { register } = form;
   const brandImageRef = form.register("brandImage");
   const categoryImageRef = form.register("categoryImage");
   const mainImageRef = form.register("mainImage");
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "tags",
+  });
+
+  const onSubmit = (evt: React.FormEvent) => {
+    evt.preventDefault();
+    form.handleSubmit((data: any) => {
+      const formData = new FormData(formRef.current!);
+      // Append other form fields
+      Object.keys(data).forEach((key) => {
+        if (key !== "thumbnails") {
+          formData.append(key, data[key]);
+        }
+      });
+
+      // Append thumbnails as multiple files
+      if (data.thumbnails) {
+        data.thumbnails.forEach((file: File) => {
+          formData.append("thumbnails", file);
+        });
+      }
+      SubmitAction({ message: "" }, formData).then((response) => {
+        console.log("Server Response:", response);
+      });
+    })(evt);
+  };
 
   return (
     <Card className="space-y-4">
@@ -88,13 +118,7 @@ export const ProductsForm = () => {
             ref={formRef}
             className="space-y-8"
             action={formAction}
-            onSubmit={(evt) => {
-              evt.preventDefault();
-              form.handleSubmit(() => {
-                formAction(new FormData(formRef.current!));
-              })(evt);
-            }}
-          >
+            onSubmit={onSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="h-fit">
                 <CardContent className="space-y-4">
@@ -154,8 +178,7 @@ export const ProductsForm = () => {
                           <Select
                             {...field}
                             value={field.value}
-                            onValueChange={(value) => field.onChange(value)}
-                          >
+                            onValueChange={(value) => field.onChange(value)}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select status" />
@@ -173,24 +196,37 @@ export const ProductsForm = () => {
                     />
                   </CardContent>
                 </Card>
-                <Card className="h-fit">
+
+                <Card>
                   <CardHeader>
-                    <CardTitle>Product Tags</CardTitle>
+                    <CardTitle>Tags</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <FormField
-                      control={form.control}
-                      name="tags"
-                      render={({ field }) => (
-                        <FormItem>
+                    <div>
+                      {fields.map((field, index) => (
+                        <div
+                          key={field.id}
+                          className="flex flex-row gap-3 items-center">
                           <Input
-                            type="text"
-                            placeholder="Enter tag"
-                            {...field}
+                            className="my-2"
+                            {...register(`tags.${index}.value` as const)} // Correctly registering the tag value
+                            defaultValue={field.value} // ensures the value is controlled by react-hook-form
                           />
-                        </FormItem>
-                      )}
-                    />
+                          {index > 0 && (
+                            <Button type="button" onClick={() => remove(index)}>
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          append({ value: "" }); // Append a new tag with an empty value
+                        }}>
+                        Add Tag
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -206,7 +242,15 @@ export const ProductsForm = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Price</FormLabel>
-                        <Input type="number" placeholder="0" {...field} />
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value))
+                            }
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -217,7 +261,13 @@ export const ProductsForm = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Quantity</FormLabel>
-                        <Input type="number" placeholder="0" {...field} />
+                        <Input
+                          type="number"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value))
+                          }
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -228,7 +278,13 @@ export const ProductsForm = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Discount</FormLabel>
-                        <Input type="number" placeholder="0" {...field} />
+                        <Input
+                          type="number"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value))
+                          }
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -340,6 +396,29 @@ export const ProductsForm = () => {
                         </FormItem>
                       );
                     }}
+                  />
+                </CardContent>
+
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="thumbnails"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thumbnail Images (up to 5)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) =>
+                              field.onChange(Array.from(e.target.files || []))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </CardContent>
               </Card>
