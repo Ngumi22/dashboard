@@ -38,6 +38,20 @@ export async function SubmitAction(
   const thumbnails = data.getAll("thumbnails") as File[];
   formData["thumbnails"] = thumbnails.length > 0 ? thumbnails : [];
 
+  // Extract suppliers as an array of objects
+  const suppliers = Object.keys(formData)
+    .filter((key) => key.startsWith("suppliers["))
+    .map((key) => JSON.parse(formData[key].toString()));
+
+  formData["suppliers"] = suppliers.length > 0 ? suppliers : [];
+
+  // Extract specifications as an array of objects
+  const specifications = Object.keys(formData)
+    .filter((key) => key.startsWith("specifications["))
+    .map((key) => JSON.parse(formData[key].toString()));
+
+  formData["specifications"] = specifications.length > 0 ? specifications : [];
+
   // Zod validation and processing
   const parsed = NewProductSchema.safeParse(formData);
 

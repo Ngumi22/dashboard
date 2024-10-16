@@ -185,4 +185,20 @@ export const NewProductSchema = z.object({
       }
     })
     .pipe(z.custom<File>()),
+
+  suppliers: z.array(
+    z.object({
+      id: z.number().int().positive().optional(),
+      name: z.string().min(1, "Supplier name is required"),
+      email: z.string().email("Invalid email").optional(),
+      phone_number: z.string().optional(),
+      location: z.string().optional(),
+    })
+  ),
+  specifications: z.array(
+    z.object({
+      name: z.string().min(1, "Specification name is required"),
+      value: z.string().min(1, "Specification value is required"),
+    })
+  ),
 });

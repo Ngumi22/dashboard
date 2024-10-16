@@ -208,7 +208,6 @@ export async function dbsetupTables() {
           value VARCHAR(255) NOT NULL, -- The value of the specification (e.g., "16GB")
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          -- Index for faster querying based on product-specification pairs
           INDEX idx_product_specification (product_id, specification_id),
           FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
           FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE
@@ -242,79 +241,42 @@ export async function dbsetupTables() {
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags relationship';
     `);
 
-    // Create the variant_types table with an additional variant type for height
+    // Create the variant_types table
     await connection.query(`
-    CREATE TABLE IF NOT EXISTS variant_types (
-        variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL UNIQUE,
-        description VARCHAR(255),
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP NULL,
-        created_by INT DEFAULT NULL,
-        updated_by INT DEFAULT NULL,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-        INDEX idx_name (name)
-    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Types of variants for products';
-  `);
+      CREATE TABLE IF NOT EXISTS variant_types (
+          variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
+          category_id INT NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          description VARCHAR(255),
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
+          UNIQUE KEY category_variant (category_id, name)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant types associated with categories';
+    `);
 
     // Create the variants table to hold each product variant
     await connection.query(`
-    CREATE TABLE IF NOT EXISTS variants (
+      CREATE TABLE IF NOT EXISTS variants (
         variant_id INT AUTO_INCREMENT PRIMARY KEY,
         product_id INT NOT NULL,
         variant_type_id INT NOT NULL,
-        value VARCHAR(255) NOT NULL,
+        value VARCHAR(255) NOT NULL,  -- Stores the actual value (e.g., "16GB", "Red", "Core i7")
         price DECIMAL(10, 2) DEFAULT 0.00,
         quantity INT DEFAULT 0,
         status ENUM('active', 'inactive') DEFAULT 'active',
+        variant_image MEDIUMBLOB NULL,  -- Optional image for the variant
+        variant_thumbnail1 MEDIUMBLOB NULL,  -- Optional thumbnails (if you want to allow multiple images)
+        variant_thumbnail2 MEDIUMBLOB NULL,  -- Additional optional thumbnails
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL,
-        created_by INT DEFAULT NULL,
-        updated_by INT DEFAULT NULL,
         FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
-        FOREIGN KEY (variant_type_id) REFERENCES variant_types(variant_type_id),
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (variant_type_id) REFERENCES variant_types(variant_type_id) ON DELETE CASCADE,
         INDEX idx_product_id (product_id),
         INDEX idx_variant_type_id (variant_type_id)
-    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants';
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants with optional images';
   `);
-
-    // Create the variant_attributes table to hold attributes for each variant
-    await connection.query(`
-    CREATE TABLE IF NOT EXISTS variant_attributes (
-        variant_attribute_id INT AUTO_INCREMENT PRIMARY KEY,
-        variant_id INT NOT NULL,
-        attribute_name VARCHAR(255) NOT NULL,
-        attribute_value VARCHAR(255),
-        FOREIGN KEY (variant_id) REFERENCES variants(variant_id) ON DELETE CASCADE
-    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Attributes for each variant';
-  `);
-
-    // Create the product_variant_images table to hold images for variants
-    await connection.query(`
-    CREATE TABLE IF NOT EXISTS product_variant_images (
-        product_variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
-        variant_id INT NOT NULL,
-        variant_image MEDIUMBLOB,
-        variant_thumbnail1 MEDIUMBLOB,
-        variant_thumbnail2 MEDIUMBLOB,
-        variant_thumbnail3 MEDIUMBLOB,
-        variant_thumbnail4 MEDIUMBLOB,
-        variant_thumbnail5 MEDIUMBLOB,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP NULL,
-        created_by INT DEFAULT NULL,
-        updated_by INT DEFAULT NULL,
-        FOREIGN KEY (variant_id) REFERENCES variants(variant_id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id)
-    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images associated with product variants';
-`);
 
     // Customer-related tables
     await connection.query(`
