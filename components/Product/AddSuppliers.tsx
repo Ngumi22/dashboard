@@ -16,17 +16,30 @@ import { Label } from "@/components/ui/label";
 
 // Mock existing suppliers data (This should be fetched from your API in a real application)
 const existingSuppliers = [
-  { id: 1, name: "Supplier A" },
-  { id: 2, name: "Supplier B" },
+  {
+    id: 1,
+    name: "Supplier A",
+    email: "supplierA@example.com",
+    phone_number: "123-456-7890",
+    location: "City A",
+  },
+  {
+    id: 2,
+    name: "Supplier B",
+    email: "supplierB@example.com",
+    phone_number: "098-765-4321",
+    location: "City B",
+  },
 ];
 
 interface Supplier {
   id?: number;
-  name: string;
-  email?: string; // Allow email to be optional
-  phone_number?: string; // Allow phone_number to be optional
-  location?: string; // Allow location to be optional
+  name?: string;
+  email?: string;
+  phone_number?: string;
+  location?: string;
 }
+
 interface AddSuppliersProps {
   onSuppliersChange: (suppliers: Supplier[]) => void;
   initialSuppliers?: Supplier[];
@@ -71,9 +84,9 @@ export default function AddSuppliers({
         append({
           id: existingSupplier.id,
           name: existingSupplier.name,
-          email: "",
-          phone_number: "",
-          location: "",
+          email: existingSupplier.email || "",
+          phone_number: existingSupplier.phone_number || "",
+          location: existingSupplier.location || "",
         });
       }
     } else {
