@@ -220,6 +220,6 @@ export const NewProductSchema = z.object({
     })
   ),
 
-  variantTypes: z.array(variantTypeSchema),
-  variants: z.array(variantSchema),
+  // variantTypes: z.array(variantTypeSchema),
+  // variants: z.array(variantSchema),
 });

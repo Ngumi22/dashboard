@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -23,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "../ui/card";
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -35,16 +34,13 @@ import { SubmitAction } from "@/lib/productSubmit";
 import { NewProductSchema } from "@/lib/ProductSchema";
 import AddSpecifications from "./AddSpecs";
 import AddSuppliers from "./AddSuppliers";
+import Image from "next/image";
 
 type FormValues = z.infer<typeof NewProductSchema>;
 
-export const ProductsForm = () => {
+export function ProductsForm() {
   const formRef = useRef<HTMLFormElement>(null);
-
-  const [state, formAction] = useFormState(SubmitAction, {
-    message: "",
-  });
-
+  const [state, formAction] = useFormState(SubmitAction, { message: "" });
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [thumbnailsPreview, setThumbnailsPreview] = useState<string[]>([]);
   const [categoryImagePreview, setCategoryImagePreview] = useState<
@@ -88,89 +84,54 @@ export const ProductsForm = () => {
     name: "tags",
   });
 
-  const {
-    fields: supplierFields,
-    append: appendSupplier,
-    remove: removeSupplier,
-  } = useFieldArray({
-    control: form.control,
-    name: "suppliers",
-  });
-
-  const {
-    fields: specificationFields,
-    append: appendSpecification,
-    remove: removeSpecification,
-  } = useFieldArray({
-    control: form.control,
-    name: "specifications",
-  });
-
-  // Handling image preview
-  const handleMainImageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setMainImagePreview(url);
-    }
-  };
-
-  const handleCategoryImageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCategoryImagePreview(url);
-    }
-  };
-
-  const handleBrandImageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setBrandImagePreview(url);
-    }
-  };
+  const handleImageChange =
+    (setter: React.Dispatch<React.SetStateAction<string | null>>) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setter(url);
+      }
+    };
 
   const handleThumbnailsChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = Array.from(event.target.files || []);
     const urls = files.map((file) => URL.createObjectURL(file));
-    setThumbnailsPreview(urls);
+    setThumbnailsPreview((prevPreviews) => [...prevPreviews, ...urls]);
+    form.setValue("thumbnails", [...form.getValues("thumbnails"), ...files]);
+  };
+
+  const removeThumbnail = (index: number) => {
+    setThumbnailsPreview((prevPreviews) =>
+      prevPreviews.filter((_, i) => i !== index)
+    );
+    form.setValue(
+      "thumbnails",
+      form.getValues("thumbnails").filter((_, i) => i !== index)
+    );
   };
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     form.handleSubmit((data: any) => {
       const formData = new FormData(formRef.current!);
-      // Append other form fields
       Object.keys(data).forEach((key) => {
         if (key !== "thumbnails") {
           formData.append(key, data[key]);
         }
       });
-
-      // Append thumbnails as multiple files
       if (data.thumbnails) {
         data.thumbnails.forEach((file: File) => {
           formData.append("thumbnails", file);
         });
       }
-
-      // Append suppliers as an array (if it's an array in your form data)
       if (data.suppliers) {
         data.suppliers.forEach((supplier: any, index: number) => {
           formData.append(`suppliers[${index}]`, JSON.stringify(supplier));
         });
       }
-
-      // Append specifications as an array (if it's an array in your form data)
       if (data.specifications) {
         data.specifications.forEach((spec: any, index: number) => {
           formData.append(`specifications[${index}]`, JSON.stringify(spec));
@@ -211,21 +172,24 @@ export const ProductsForm = () => {
   );
 
   return (
-    <Card className="space-y-4">
+    <Card className="w-full mx-auto">
       <CardHeader>
-        <CardTitle>Create Product</CardTitle>
+        <CardTitle className="text-2xl font-bold">Create Product</CardTitle>
+        <CardDescription>
+          Fill in the details to create a new product.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           {state?.message !== "" && !state.issues && (
-            <div className="text-red-500">{state.message}</div>
+            <div className="text-red-500 mb-4">{state.message}</div>
           )}
           {state?.issues && (
-            <div className="text-red-500">
+            <div className="text-red-500 mb-4">
               <ul>
                 {state.issues.map((issue) => (
-                  <li key={issue} className="flex gap-1">
-                    <X fill="red" />
+                  <li key={issue} className="flex items-center gap-2">
+                    <X className="h-4 w-4" />
                     {issue}
                   </li>
                 ))}
@@ -239,15 +203,18 @@ export const ProductsForm = () => {
             onSubmit={onSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="h-fit">
-                <CardContent className="space-y-4">
+                <CardHeader>
+                  <CardTitle>Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
-                      <FormItem className="w-full">
+                      <FormItem>
                         <FormLabel>Product Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="" {...field} />
+                          <Input placeholder="Enter product name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -257,10 +224,10 @@ export const ProductsForm = () => {
                     control={form.control}
                     name="sku"
                     render={({ field }) => (
-                      <FormItem className="w-full">
+                      <FormItem>
                         <FormLabel>SKU</FormLabel>
                         <FormControl>
-                          <Input placeholder="" {...field} />
+                          <Input placeholder="Enter SKU" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -273,8 +240,35 @@ export const ProductsForm = () => {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Input placeholder="" {...field} />
+                          <Input
+                            placeholder="Enter product description"
+                            {...field}
+                          />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -282,101 +276,11 @@ export const ProductsForm = () => {
                 </CardContent>
               </Card>
 
-              <div className="space-y-4">
-                <Card className="h-fit">
-                  <CardHeader>
-                    <CardTitle>Status</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Select
-                            {...field}
-                            value={field.value}
-                            onValueChange={(value) => field.onChange(value)}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="approved">Approved</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tags</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div>
-                      {fields.map((field, index) => (
-                        <div
-                          key={field.id}
-                          className="flex flex-row gap-3 items-center">
-                          <Input
-                            className="my-2"
-                            {...register(`tags.${index}.value` as const)} // Correctly registering the tag value
-                            defaultValue={field.value} // ensures the value is controlled by react-hook-form
-                          />
-                          {index > 0 && (
-                            <Button type="button" onClick={() => remove(index)}>
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          append({ value: "" }); // Append a new tag with an empty value
-                        }}>
-                        Add Tag
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Product Specifications</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AddSpecifications
-                      onSpecificationsChange={handleSpecificationsChange}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Product Suppliers</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AddSuppliers
-                      onSuppliersChange={handleSuppliersChange}
-                      initialSuppliers={form.watch("suppliers")}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="h-fit">
+              <Card>
                 <CardHeader>
-                  <CardTitle>Product Pricing</CardTitle>
+                  <CardTitle>Pricing and Inventory</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
                     name="price"
@@ -386,6 +290,7 @@ export const ProductsForm = () => {
                         <FormControl>
                           <Input
                             type="number"
+                            placeholder="0.00"
                             {...field}
                             onChange={(e) =>
                               field.onChange(parseFloat(e.target.value))
@@ -402,13 +307,15 @@ export const ProductsForm = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Quantity</FormLabel>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
-                        />
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value))
+                            }
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -419,13 +326,15 @@ export const ProductsForm = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Discount</FormLabel>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
-                        />
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value))
+                            }
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -433,11 +342,11 @@ export const ProductsForm = () => {
                 </CardContent>
               </Card>
 
-              <Card className="h-fit">
+              <Card>
                 <CardHeader>
-                  <CardTitle>Brand</CardTitle>
+                  <CardTitle>Brand Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
                     name="brandName"
@@ -445,7 +354,7 @@ export const ProductsForm = () => {
                       <FormItem>
                         <FormLabel>Brand Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="" {...field} />
+                          <Input placeholder="Enter brand name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -454,42 +363,40 @@ export const ProductsForm = () => {
                   <FormField
                     control={form.control}
                     name="brandImage"
-                    render={({ field }) => {
-                      return (
-                        <FormItem>
-                          <FormLabel>brandImage</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              {...brandImageRef}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                handleBrandImageChange(e);
-                              }}
-                            />
-                          </FormControl>
-                          {brandImagePreview && (
-                            <div className="mt-2">
-                              <img
-                                src={brandImagePreview}
-                                alt="Brand Image Preview"
-                                className="w-32 h-32 object-cover"
-                              />
-                            </div>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Brand Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            {...brandImageRef}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleImageChange(setBrandImagePreview)(e);
+                            }}
+                          />
+                        </FormControl>
+                        {brandImagePreview && (
+                          <Image
+                            height={20}
+                            width={20}
+                            src={brandImagePreview}
+                            alt="Brand Preview"
+                            className="mt-2 object-contain rounded h-20 w-20"
+                          />
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </CardContent>
               </Card>
 
-              <Card className="h-fit">
+              <Card>
                 <CardHeader>
-                  <CardTitle>Category Name</CardTitle>
+                  <CardTitle>Category Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
                     name="categoryName"
@@ -497,7 +404,7 @@ export const ProductsForm = () => {
                       <FormItem>
                         <FormLabel>Category Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="" {...field} />
+                          <Input placeholder="Enter category name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -510,7 +417,10 @@ export const ProductsForm = () => {
                       <FormItem>
                         <FormLabel>Category Description</FormLabel>
                         <FormControl>
-                          <Input placeholder="" {...field} />
+                          <Input
+                            placeholder="Enter category description"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -519,33 +429,29 @@ export const ProductsForm = () => {
                   <FormField
                     control={form.control}
                     name="categoryImage"
-                    render={({ field }) => {
-                      return (
-                        <FormItem>
-                          <FormLabel>Category Image</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              {...categoryImageRef}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                handleCategoryImageChange(e);
-                              }}
-                            />
-                          </FormControl>
-                          {categoryImagePreview && (
-                            <div className="mt-2">
-                              <img
-                                src={categoryImagePreview}
-                                alt="category Image Preview"
-                                className="w-32 h-32 object-cover"
-                              />
-                            </div>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            {...categoryImageRef}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleImageChange(setCategoryImagePreview)(e);
+                            }}
+                          />
+                        </FormControl>
+                        {categoryImagePreview && (
+                          <img
+                            src={categoryImagePreview}
+                            alt="Category Preview"
+                            className="mt-2 w-32 h-32 object-cover rounded"
+                          />
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </CardContent>
               </Card>
@@ -554,8 +460,7 @@ export const ProductsForm = () => {
                 <CardHeader>
                   <CardTitle>Product Images</CardTitle>
                 </CardHeader>
-
-                <CardContent>
+                <CardContent className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="mainImage"
@@ -569,26 +474,22 @@ export const ProductsForm = () => {
                             {...mainImageRef}
                             onChange={(e) => {
                               field.onChange(e);
-                              handleMainImageChange(e);
+                              handleImageChange(setMainImagePreview)(e);
                             }}
+                            className=""
                           />
                         </FormControl>
                         {mainImagePreview && (
-                          <div className="mt-2">
-                            <img
-                              src={mainImagePreview}
-                              alt="Main Image Preview"
-                              className="w-32 h-32 object-cover"
-                            />
-                          </div>
+                          <img
+                            src={mainImagePreview}
+                            alt="Main Preview"
+                            className="mt-2 w-20 h-fit object-contain rounded mx-auto"
+                          />
                         )}
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </CardContent>
-
-                <CardContent>
                   <FormField
                     control={form.control}
                     name="thumbnails"
@@ -601,19 +502,27 @@ export const ProductsForm = () => {
                             accept="image/*"
                             multiple
                             onChange={(e) => {
-                              field.onChange(Array.from(e.target.files || []));
                               handleThumbnailsChange(e);
                             }}
                           />
                         </FormControl>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {thumbnailsPreview.map((preview, index) => (
-                            <img
-                              key={index}
-                              src={preview}
-                              alt={`Thumbnail ${index + 1}`}
-                              className="w-20 h-20 object-cover"
-                            />
+                            <div key={index} className="relative">
+                              <img
+                                src={preview}
+                                alt={`Thumbnail ${index + 1}`}
+                                className="w-16 h-16 object-cover rounded"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-0 right-0 h-6 w-6"
+                                onClick={() => removeThumbnail(index)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           ))}
                         </div>
                         <FormMessage />
@@ -622,11 +531,63 @@ export const ProductsForm = () => {
                   />
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {fields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="flex items-center space-x-2">
+                        <Input
+                          {...register(`tags.${index}.value` as const)}
+                          defaultValue={field.value}
+                          placeholder="Enter tag"
+                        />
+                        {index > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove tag</span>
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => append({ value: "" })}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Tag
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <AddSuppliers
+                onSuppliersChange={handleSuppliersChange}
+                initialSuppliers={form.watch("suppliers")}
+              />
+
+              <AddSpecifications
+                onSpecificationsChange={handleSpecificationsChange}
+              />
             </div>
-            <Button type="submit">Submit</Button>
+
+            <Button type="submit" className="w-full">
+              Submit Product
+            </Button>
           </form>
         </Form>
       </CardContent>
     </Card>
   );
-};
+}

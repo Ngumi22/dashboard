@@ -38,6 +38,7 @@ interface Supplier {
   email?: string;
   phone_number?: string;
   location?: string;
+  isNew?: boolean;
 }
 
 interface AddSuppliersProps {
@@ -45,7 +46,7 @@ interface AddSuppliersProps {
   initialSuppliers?: Supplier[];
 }
 
-export default function AddSuppliers({
+export default function Component({
   onSuppliersChange,
   initialSuppliers = [],
 }: AddSuppliersProps) {
@@ -84,13 +85,17 @@ export default function AddSuppliers({
         append({
           id: existingSupplier.id,
           name: existingSupplier.name,
-          email: existingSupplier.email || "",
-          phone_number: existingSupplier.phone_number || "",
-          location: existingSupplier.location || "",
+          email: existingSupplier.email,
+          phone_number: existingSupplier.phone_number,
+          location: existingSupplier.location,
+          isNew: false,
         });
       }
-    } else {
-      append(newSupplier);
+    } else if (newSupplier.name) {
+      append({
+        ...newSupplier,
+        isNew: true,
+      });
     }
 
     setValue("selectedSupplier", "");
@@ -103,7 +108,7 @@ export default function AddSuppliers({
   });
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>Add Product Suppliers</CardTitle>
       </CardHeader>
@@ -133,7 +138,7 @@ export default function AddSuppliers({
           />
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="newSupplierName">Or Add a New Supplier</Label>
           <Controller
             name="newSupplier.name"
@@ -146,10 +151,7 @@ export default function AddSuppliers({
               />
             )}
           />
-        </div>
 
-        <div>
-          <Label htmlFor="newSupplierEmail">Email</Label>
           <Controller
             name="newSupplier.email"
             control={control}
@@ -162,10 +164,7 @@ export default function AddSuppliers({
               />
             )}
           />
-        </div>
 
-        <div>
-          <Label htmlFor="newSupplierPhone">Phone Number</Label>
           <Controller
             name="newSupplier.phone_number"
             control={control}
@@ -177,10 +176,7 @@ export default function AddSuppliers({
               />
             )}
           />
-        </div>
 
-        <div>
-          <Label htmlFor="newSupplierLocation">Location</Label>
           <Controller
             name="newSupplier.location"
             control={control}
@@ -194,20 +190,20 @@ export default function AddSuppliers({
           />
         </div>
 
-        <Button type="button" onClick={handleAddSupplier}>
+        <Button type="button" onClick={handleAddSupplier} className="w-full">
           Add Supplier
         </Button>
 
         <div className="mt-4">
-          <h4 className="font-semibold">Added Suppliers:</h4>
+          <h4 className="font-semibold mb-2">Added Suppliers:</h4>
           {fields.length > 0 ? (
             <ul className="space-y-2">
               {fields.map((supplier, index) => (
                 <li
                   key={supplier.id}
-                  className="flex items-center justify-between">
+                  className="flex items-center justify-between p-2 bg-secondary rounded-md">
                   <span>
-                    {supplier.name} {supplier.id ? "(Existing)" : "(New)"}
+                    {supplier.name} ({supplier.isNew ? "New" : "Existing"})
                   </span>
                   <Button
                     type="button"
@@ -220,7 +216,7 @@ export default function AddSuppliers({
               ))}
             </ul>
           ) : (
-            <p>No suppliers added yet.</p>
+            <p className="text-muted-foreground">No suppliers added yet.</p>
           )}
         </div>
       </CardContent>

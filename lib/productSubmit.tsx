@@ -1,6 +1,18 @@
 "use server";
 
+import { getConnection } from "./database";
+import { z } from "zod";
 import { NewProductSchema } from "./ProductSchema";
+import { dbsetupTables } from "./MysqlTables";
+import {
+  addCategory,
+  addBrand,
+  createSupplier,
+  createProductImages,
+  manageProductTags,
+  createProductSpecifications,
+  createProductSupplierMapping,
+} from "./product_actions";
 
 export type FormState = {
   message: string;
@@ -8,17 +20,36 @@ export type FormState = {
   issues?: string[];
 };
 
-// Helper function for parsing numeric fields from FormData
-function parseNumberField(formData: FormData, key: string): number | undefined {
-  const value = formData.get(key);
-  if (typeof value === "string") {
-    const parsedValue = Number(value);
-    if (isNaN(parsedValue)) {
-      throw new Error(`Invalid ${key} data: not a number.`);
-    }
-    return parsedValue;
+type ParsedProductData = z.infer<typeof NewProductSchema> & {
+  category_id?: number;
+  brand_id?: number;
+};
+
+async function insertProduct(parsedData: ParsedProductData) {
+  const connection = await getConnection();
+  try {
+    console.log("Starting product insertion...");
+    const [result] = await connection.query(
+      `INSERT INTO products (name, sku, description, price, quantity, discount, status, category_id, brand_id, created_by, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        parsedData.name,
+        parsedData.sku,
+        parsedData.description,
+        parsedData.price,
+        parsedData.quantity,
+        parsedData.discount,
+        parsedData.status,
+        parsedData.category_id,
+        parsedData.brand_id,
+      ]
+    );
+    console.log("Product inserted successfully.");
+    return (result as any).insertId;
+  } catch (error) {
+    console.error("Error inserting product:", error);
+    throw error;
   }
-  return undefined;
 }
 
 export async function SubmitAction(
@@ -55,12 +86,6 @@ export async function SubmitAction(
   // Zod validation and processing
   const parsed = NewProductSchema.safeParse(formData);
 
-  if (parsed.success) {
-    console.log("Parsed Data:", parsed.data);
-  } else {
-    console.log("Validation Errors:", parsed.error.issues);
-  }
-
   if (!parsed.success) {
     const fields: Record<string, string> = {};
     for (const key of Object.keys(formData)) {
@@ -73,5 +98,56 @@ export async function SubmitAction(
     };
   }
 
-  return { message: "Product added successfully" };
+  const connection = await getConnection();
+  await connection.beginTransaction();
+
+  try {
+    console.log("Starting transaction...");
+    await dbsetupTables();
+    console.log("Tables checked/created.");
+
+    const parsedData: ParsedProductData = parsed.data;
+
+    // Perform all insertions
+    const categoryResponse = await addCategory(data);
+    const categoryData = await categoryResponse.json();
+    parsedData.category_id = categoryData.categoryId;
+
+    const brandResponse = await addBrand(data);
+    const brandData = await brandResponse.json();
+    parsedData.brand_id = brandData.brandId;
+
+    const supplierResponse = await createSupplier(data);
+    const supplierData = await supplierResponse.json();
+
+    const productId = await insertProduct(parsedData);
+
+    await createProductSupplierMapping(productId, supplierData.supplierId);
+    await createProductImages(data, productId);
+    await manageProductTags(data, productId);
+    await createProductSpecifications(data, productId, categoryData.categoryId);
+
+    // Commit the transaction if everything works
+    await connection.commit();
+
+    return { message: "Product submitted successfully" };
+  } catch (error) {
+    // Rollback in case of any errors
+    await connection.rollback();
+    console.error("Error in SubmitAction:", error);
+
+    if (error instanceof z.ZodError) {
+      return {
+        message: "Invalid form data",
+        issues: error.issues.map((issue) => issue.message),
+      };
+    }
+
+    return {
+      message: "An error occurred while submitting the product",
+      issues: [error instanceof Error ? error.message : String(error)],
+    };
+  } finally {
+    connection.release();
+  }
 }
