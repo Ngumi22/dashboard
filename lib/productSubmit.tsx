@@ -11,7 +11,6 @@ import {
   createProductImages,
   manageProductTags,
   createProductSpecifications,
-  createProductSupplierMapping,
 } from "./product_actions";
 
 export type FormState = {
@@ -31,15 +30,15 @@ async function insertProduct(parsedData: ParsedProductData) {
     console.log("Starting product insertion...");
     const [result] = await connection.query(
       `INSERT INTO products (name, sku, description, price, quantity, discount, status, category_id, brand_id, created_by, updated_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, NULL), COALESCE(?, NULL), ?, ?)`,
       [
-        parsedData.name,
-        parsedData.sku,
-        parsedData.description,
-        parsedData.price,
-        parsedData.quantity,
-        parsedData.discount,
-        parsedData.status,
+        parsedData.product_name,
+        parsedData.product_sku,
+        parsedData.product_description,
+        parsedData.product_price,
+        parsedData.product_quantity,
+        parsedData.product_discount,
+        parsedData.product_status,
         parsedData.category_id,
         parsedData.brand_id,
       ]
@@ -108,6 +107,8 @@ export async function SubmitAction(
 
     const parsedData: ParsedProductData = parsed.data;
 
+    console.log(parsedData);
+
     // Perform all insertions
     const categoryResponse = await addCategory(data);
     const categoryData = await categoryResponse.json();
@@ -122,7 +123,6 @@ export async function SubmitAction(
 
     const productId = await insertProduct(parsedData);
 
-    await createProductSupplierMapping(productId, supplierData.supplierId);
     await createProductImages(data, productId);
     await manageProductTags(data, productId);
     await createProductSpecifications(data, productId, categoryData.categoryId);

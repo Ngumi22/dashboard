@@ -33,8 +33,12 @@ import {
 import { SubmitAction } from "@/lib/productSubmit";
 import { NewProductSchema } from "@/lib/ProductSchema";
 import AddSpecifications from "./AddSpecs";
-import AddSuppliers from "./AddSuppliers";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const AddSuppliers = dynamic(() => import("./AddSuppliers"), {
+  ssr: false,
+});
 
 type FormValues = z.infer<typeof NewProductSchema>;
 
@@ -53,21 +57,21 @@ export function ProductsForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(NewProductSchema),
     defaultValues: {
-      name: "",
-      sku: "",
-      description: "",
-      price: 0,
-      quantity: 0,
-      discount: 0,
-      status: "draft",
+      product_name: "",
+      product_sku: "",
+      product_description: "",
+      product_price: 0,
+      product_quantity: 0,
+      product_discount: 0,
+      product_status: "draft",
       tags: [{ value: "" }],
       thumbnails: [],
-      mainImage: undefined,
-      brandName: "",
-      brandImage: undefined,
-      categoryName: "",
-      categoryDescription: "",
-      categoryImage: undefined,
+      main_image: undefined,
+      brand_name: "",
+      brand_image: undefined,
+      category_name: "",
+      category_description: "",
+      category_image: undefined,
       suppliers: [],
       specifications: [],
       ...(state?.fields ?? {}),
@@ -75,9 +79,9 @@ export function ProductsForm() {
   });
 
   const { register } = form;
-  const brandImageRef = form.register("brandImage");
-  const categoryImageRef = form.register("categoryImage");
-  const mainImageRef = form.register("mainImage");
+  const brandImageRef = form.register("brand_image");
+  const categoryImageRef = form.register("category_image");
+  const mainImageRef = form.register("main_image");
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -145,7 +149,11 @@ export function ProductsForm() {
 
   const handleSpecificationsChange = useCallback(
     (
-      specifications: { name: string; value: string; category_id: string }[]
+      specifications: {
+        specification_name: string;
+        specification_value: string;
+        category_id: string;
+      }[]
     ) => {
       if (
         JSON.stringify(specifications) !==
@@ -209,7 +217,7 @@ export function ProductsForm() {
                 <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="product_name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Product Name</FormLabel>
@@ -222,7 +230,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="sku"
+                    name="product_sku"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>SKU</FormLabel>
@@ -235,7 +243,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="description"
+                    name="product_description"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Description</FormLabel>
@@ -251,7 +259,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="status"
+                    name="product_status"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
@@ -283,7 +291,7 @@ export function ProductsForm() {
                 <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
-                    name="price"
+                    name="product_price"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Price</FormLabel>
@@ -303,7 +311,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="quantity"
+                    name="product_quantity"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Quantity</FormLabel>
@@ -322,7 +330,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="discount"
+                    name="product_discount"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Discount</FormLabel>
@@ -349,7 +357,7 @@ export function ProductsForm() {
                 <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
-                    name="brandName"
+                    name="brand_name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Brand Name</FormLabel>
@@ -362,7 +370,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="brandImage"
+                    name="brand_image"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Brand Image</FormLabel>
@@ -399,7 +407,7 @@ export function ProductsForm() {
                 <CardContent className="grid gap-4">
                   <FormField
                     control={form.control}
-                    name="categoryName"
+                    name="category_name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category Name</FormLabel>
@@ -412,7 +420,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="categoryDescription"
+                    name="category_description"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category Description</FormLabel>
@@ -428,7 +436,7 @@ export function ProductsForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="categoryImage"
+                    name="category_image"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category Image</FormLabel>
@@ -463,7 +471,7 @@ export function ProductsForm() {
                 <CardContent className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="mainImage"
+                    name="main_image"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Main Image</FormLabel>

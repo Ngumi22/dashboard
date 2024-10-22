@@ -27,8 +27,8 @@ const categories = [
 ];
 
 interface Specification {
-  name: string;
-  value: string;
+  specification_name: string;
+  specification_value: string;
   category_id: string;
 }
 
@@ -79,7 +79,8 @@ export default function AddSpecifications({
     if ((selectedSpec || newSpecName) && specValue) {
       const existingSpec = specifications.find(
         (spec) =>
-          spec.name === specName && spec.category_id === selectedCategory
+          spec.specification_name === specName &&
+          spec.category_id === selectedCategory
       );
 
       if (existingSpec) {
@@ -88,8 +89,8 @@ export default function AddSpecifications({
       }
 
       append({
-        name: specName,
-        value: specValue,
+        specification_name: specName,
+        specification_value: specValue,
         category_id: selectedCategory,
       });
 
@@ -193,7 +194,7 @@ export default function AddSpecifications({
               {fields.map((spec, index) => (
                 <li key={spec.id} className="flex items-center justify-between">
                   <span>
-                    {spec.name}: {spec.value}
+                    {spec.specification_name}: {spec.specification_value}
                   </span>
                   <Button
                     type="button"

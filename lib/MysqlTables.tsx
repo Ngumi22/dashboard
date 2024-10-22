@@ -81,14 +81,14 @@ export async function dbsetupTables() {
           updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-          INDEX idx_name (name)
+          INDEX idx_name (category_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product categories';
     `);
 
     await connection.query(`
         CREATE TABLE IF NOT EXISTS brands (
             brand_id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
+            brand_name VARCHAR(255) NOT NULL,
             brandImage MEDIUMBLOB NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -97,17 +97,17 @@ export async function dbsetupTables() {
             updated_by INT DEFAULT NULL,
             FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
             FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-            INDEX idx_name (name)
+            INDEX idx_name (brand_name)
         ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product brands';
     `);
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS suppliers (
           supplier_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) NOT NULL UNIQUE,
-          phone_number VARCHAR(255) NOT NULL,
-          location TEXT NOT NULL,
+          supplier_name VARCHAR(255) NOT NULL,
+          supplier_email VARCHAR(255) NOT NULL UNIQUE,
+          supplier_phone_number VARCHAR(255) NOT NULL,
+          supplier_location TEXT NOT NULL,
           created_at TIMESTAMP NULL DEFAULT NULL,
           updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -115,20 +115,20 @@ export async function dbsetupTables() {
           updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-          INDEX idx_name (name)
+          INDEX idx_name (supplier_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Suppliers and their contact information';
     `);
 
     await connection.query(`
         CREATE TABLE IF NOT EXISTS products (
           product_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          sku VARCHAR(255) NOT NULL UNIQUE,
-          description TEXT,
-          price DECIMAL(10, 2) NOT NULL,
-          discount DECIMAL(10, 2) DEFAULT 0.00,
-          quantity INT DEFAULT 0,
-          status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
+          product_name VARCHAR(255) NOT NULL,
+          product_sku VARCHAR(255) NOT NULL UNIQUE,
+          product_description TEXT,
+          product_price DECIMAL(10, 2) NOT NULL,
+          product_discount DECIMAL(10, 2) DEFAULT 0.00,
+          product_quantity INT DEFAULT 0,
+          product_status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
           category_id INT NOT NULL,
           brand_id INT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -136,12 +136,12 @@ export async function dbsetupTables() {
           deleted_at TIMESTAMP NULL,
           created_by INT DEFAULT NULL,
           updated_by INT DEFAULT NULL,
-          FOREIGN KEY (category_id) REFERENCES categories(category_id),
-          FOREIGN KEY (brand_id) REFERENCES brands(brand_id),
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-          INDEX idx_name (name),
-          INDEX idx_sku (sku),
+          FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE ON UPDATE CASCADE,
+          FOREIGN KEY (brand_id) REFERENCES brands(brand_id) ON DELETE SET NULL ON UPDATE CASCADE,
+          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL ON UPDATE CASCADE,
+          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL ON UPDATE CASCADE,
+          INDEX idx_name (product_name),
+          INDEX idx_sku (product_sku),
           INDEX idx_category_id (category_id)
         ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
     `);
@@ -183,7 +183,7 @@ export async function dbsetupTables() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS specifications (
           specification_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL UNIQUE, -- Name of the specification (e.g., "RAM")
+          specification_name VARCHAR(255) NOT NULL UNIQUE, -- Name of the specification (e.g., "RAM")
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -217,7 +217,7 @@ export async function dbsetupTables() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS tags (
           tag_id INT AUTO_INCREMENT PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
+          tag_name VARCHAR(255) NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
@@ -225,7 +225,7 @@ export async function dbsetupTables() {
           updated_by INT DEFAULT NULL,
           FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
           FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-          INDEX idx_name (name)
+          INDEX idx_name (tag_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Tags for products';
     `);
 
@@ -246,12 +246,12 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS variant_types (
           variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
           category_id INT NOT NULL,
-          name VARCHAR(255) NOT NULL,
-          description VARCHAR(255),
+          variant_type_name VARCHAR(255) NOT NULL,
+          variant_type_description VARCHAR(255),
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
-          UNIQUE KEY category_variant (category_id, name)
+          UNIQUE KEY category_variant (category_id, variant_type_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant types associated with categories';
     `);
 
@@ -261,10 +261,10 @@ export async function dbsetupTables() {
         variant_id INT AUTO_INCREMENT PRIMARY KEY,
         product_id INT NOT NULL,
         variant_type_id INT NOT NULL,
-        value VARCHAR(255) NOT NULL,  -- Stores the actual value (e.g., "16GB", "Red", "Core i7")
-        price DECIMAL(10, 2) DEFAULT 0.00,
-        quantity INT DEFAULT 0,
-        status ENUM('active', 'inactive') DEFAULT 'active',
+        variant_value VARCHAR(255) NOT NULL,  -- Stores the actual value (e.g., "16GB", "Red", "Core i7")
+        variant_price DECIMAL(10, 2) DEFAULT 0.00,
+        variant_quantity INT DEFAULT 0,
+        variant_status ENUM('active', 'inactive') DEFAULT 'active',
         variant_image MEDIUMBLOB NULL,  -- Optional image for the variant
         variant_thumbnail1 MEDIUMBLOB NULL,  -- Optional thumbnails (if you want to allow multiple images)
         variant_thumbnail2 MEDIUMBLOB NULL,  -- Additional optional thumbnails
@@ -282,17 +282,17 @@ export async function dbsetupTables() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS customers (
           customer_id INT AUTO_INCREMENT PRIMARY KEY,
-          first_name VARCHAR(100) NOT NULL,
-          last_name VARCHAR(100) NOT NULL,
-          email VARCHAR(255) NOT NULL UNIQUE,
-          password_hash TEXT NOT NULL,
+          customer_first_name VARCHAR(100) NOT NULL,
+          customer_last_name VARCHAR(100) NOT NULL,
+          customer_email VARCHAR(255) NOT NULL UNIQUE,
+          customer_password_hash TEXT NOT NULL,
           active BOOLEAN DEFAULT TRUE,
           registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
           created_by INT DEFAULT NULL,
           updated_by INT DEFAULT NULL,
-          INDEX idx_email (email)
+          INDEX idx_customer_email (customer_email)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Customer accounts';
     `);
 
@@ -302,7 +302,7 @@ export async function dbsetupTables() {
           customer_id INT NOT NULL,
           address_line1 TEXT NOT NULL,
           address_line2 TEXT,
-          phone_number VARCHAR(255) NOT NULL,
+          customer_phone_number VARCHAR(255) NOT NULL,
           dial_code VARCHAR(100) NOT NULL,
           country VARCHAR(255) NOT NULL,
           postal_code VARCHAR(255) NOT NULL,

@@ -11,7 +11,6 @@ import {
   createProductImages,
   manageProductTags,
   createProductSpecifications,
-  createProductSupplierMapping,
 } from "./product_actions";
 
 export type FormState = {
@@ -132,7 +131,6 @@ export async function submitProduct(
 
     const productId = await insertProduct(parsedData);
 
-    await createProductSupplierMapping(productId, supplierData.supplierId);
     await createProductImages(formData, productId);
     await manageProductTags(formData, productId);
     await createProductSpecifications(

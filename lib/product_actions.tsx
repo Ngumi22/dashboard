@@ -12,6 +12,7 @@ import {
   schema,
   supplierSchema,
 } from "./formSchema";
+import { NewProductSchema } from "./ProductSchema";
 
 // Custom error class for better error handling
 class CustomError extends Error {
@@ -21,34 +22,6 @@ class CustomError extends Error {
     this.statusCode = statusCode;
   }
 }
-
-// TypeScript types for supplier schema
-type SupplierData = {
-  supplier?: {
-    supplier_id?: number;
-    name?: string;
-    contact_info?: {
-      email: string;
-      phone?: string;
-      address?: string;
-    } | null;
-    created_at?: string;
-    updated_at?: string;
-    deleted_at?: string;
-    created_by?: number;
-    updated_by?: number;
-  };
-  newSupplier?: {
-    name: string;
-    contact_info?: {
-      email: string;
-      phone?: string;
-      address?: string;
-    } | null;
-    created_by?: number | null;
-    updated_by?: number | null;
-  };
-};
 
 // Helper function for database operations
 async function dbOperation<T>(
@@ -103,36 +76,49 @@ function parseNumberField(formData: FormData, key: string): number | undefined {
 
 export async function addCategory(formData: FormData) {
   const categoryData = {
-    categoryName: formData.get("categoryName"),
-    categoryDescription: formData.get("categoryDescription"),
-    categoryImage: formData.get("categoryImage"),
+    categoryName: formData.get("category_name"),
+    categoryDescription: formData.get("category_Nescription"),
+    categoryImage: formData.get("category_image"),
   };
 
   try {
-    const validatedData = categorySchema.parse(categoryData);
+    // Validate the input data
+    const validatedData = NewProductSchema.parse(categoryData);
 
     return dbOperation(async (connection) => {
+      // Check if the category already exists
       const [existingCategory] = await connection.query(
         "SELECT category_id FROM categories WHERE category_name = ?",
-        [validatedData.categoryName]
+        [validatedData.category_name]
       );
+
       if (existingCategory.length > 0) {
-        throw new CustomError("Category already exists", 400);
+        // Instead of throwing an error, return the existing category ID
+        return NextResponse.json({
+          success: true,
+          message: "Category already exists",
+          categoryId: existingCategory[0].category_id,
+        });
       }
 
+      // Convert categoryImage to buffer
       const categoryImageBuffer = await fileToBuffer(
-        validatedData.categoryImage
+        validatedData.category_image
       );
+
+      // Insert the new category into the database
       const [result] = await connection.query(
-        "INSERT INTO categories (category_name, category_image, category_description, created_by, updated_by) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO categories (category_name, category_image, category_description, created_by, updated_by) VALUES (?, ?, ?, null, null)",
         [
-          validatedData.categoryName,
+          validatedData.category_name,
           categoryImageBuffer,
-          validatedData.categoryDescription,
+          validatedData.category_description,
           parseNumberField(formData, "created_by"),
           parseNumberField(formData, "updated_by"),
         ]
       );
+
+      // Return the new category ID
       return NextResponse.json({
         success: true,
         message: "Category created successfully",
@@ -141,6 +127,7 @@ export async function addCategory(formData: FormData) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // Handle validation errors
       const errorMessages = error.errors
         .map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
@@ -152,7 +139,9 @@ export async function addCategory(formData: FormData) {
         { status: 400 }
       );
     }
+
     if (error instanceof CustomError) {
+      // Handle custom errors (e.g., custom validation issues)
       return NextResponse.json(
         {
           success: false,
@@ -161,6 +150,8 @@ export async function addCategory(formData: FormData) {
         { status: error.statusCode }
       );
     }
+
+    // Log and handle any other unexpected errors
     console.error("Error in addCategory:", error);
     return NextResponse.json(
       {
@@ -174,38 +165,45 @@ export async function addCategory(formData: FormData) {
 
 export async function addBrand(formData: FormData) {
   const brandData = {
-    brandName: formData.get("brandName"),
-    brandImage: formData.get("brandImage"),
+    brandName: formData.get("brand_name"),
+    brandImage: formData.get("brand_image"),
   };
 
   try {
     // Validate brand data
-    const validatedData = brandSchema.parse(brandData);
+    const validatedData = NewProductSchema.parse(brandData);
 
     return dbOperation(async (connection) => {
       // Check if the brand already exists
       const [existingBrand] = await connection.query(
-        "SELECT brand_id FROM brands WHERE name = ?",
-        [validatedData.brandName]
+        "SELECT brand_id FROM brands WHERE brand_name = ?",
+        [validatedData.brand_name]
       );
+
+      // If the brand exists, return the existing brand_id
       if (existingBrand.length > 0) {
-        throw new CustomError("Brand already exists", 400);
+        return NextResponse.json({
+          success: true,
+          message: "Brand already exists",
+          brandId: existingBrand[0].brand_id,
+        });
       }
 
       // Convert the brand image to a buffer
-      const brandImageBuffer = await fileToBuffer(validatedData.brandImage);
+      const brandImageBuffer = await fileToBuffer(validatedData.brand_image);
 
       // Insert the new brand into the database
       const [result] = await connection.query(
-        "INSERT INTO brands (name, brandImage, created_by, updated_by) VALUES (?, ?, ?, ?)",
+        "INSERT INTO brands (brand_name, brandImage, created_by, updated_by) VALUES (?, ?, null, null)",
         [
-          validatedData.brandName,
+          validatedData.brand_name,
           brandImageBuffer,
           parseNumberField(formData, "created_by"),
           parseNumberField(formData, "updated_by"),
         ]
       );
 
+      // Return the newly inserted brand's ID
       return NextResponse.json({
         success: true,
         message: "Brand created successfully",
@@ -247,63 +245,93 @@ export async function addBrand(formData: FormData) {
   }
 }
 
+// Define a schema to validate supplier data
+const SupplierSchema = z.object({
+  supplierId: z.string().optional(),
+  supplierName: z.string(),
+  supplierEmail: z.string().email(),
+  supplierPhoneNumber: z.string(),
+  supplierLocation: z.string(),
+});
+
 export async function createSupplier(formData: FormData) {
+  // Extract supplier data from formData
+  const supplierData = {
+    supplierId: formData.get("suppliers.supplier_id"),
+    supplierName: formData.get("suppliers.supplier_name"),
+    supplierEmail: formData.get("suppliers.supplier_email"),
+    supplierPhoneNumber: formData.get("suppliers.supplier_phone_number"),
+    supplierLocation: formData.get("suppliers.supplier_location"),
+  };
+
   try {
-    // Parse the raw supplier data from the form
-    const rawSupplierData = formData.get("supplier");
-    if (typeof rawSupplierData !== "string") {
-      throw new Error("Invalid supplier data");
-    }
-    const supplierData = JSON.parse(rawSupplierData);
-    console.log("Raw supplier data:", supplierData);
+    // Validate supplier data against the schema
+    const validatedSupplierData = SupplierSchema.parse(supplierData);
 
-    // Validate supplier data using the supplierSchema
-    const validatedData = supplierSchema.parse(supplierData);
-    console.log("Validated supplier data:", validatedData);
-
-    // Check if we're dealing with a new supplier
-    if (validatedData.newSupplier) {
-      const { name, contact_info, created_by, updated_by } =
-        validatedData.newSupplier;
-
-      return await dbOperation(async (connection) => {
-        const [result] = await connection.execute(
-          "INSERT INTO suppliers (name, contact_info, created_by, updated_by) VALUES (?, ?, ?, ?)",
-          [
-            name,
-            JSON.stringify(contact_info || null),
-            created_by || null,
-            updated_by || null,
-          ]
-        );
-
-        if ("insertId" in result) {
-          return NextResponse.json({
-            success: true,
-            message: "Supplier created successfully",
-            supplierId: result.insertId,
-          });
-        } else {
-          throw new Error("Failed to insert supplier");
-        }
-      });
-    } else if (validatedData.supplier) {
-      // This case is for updating an existing supplier, which we're not handling in this function
-      throw new Error(
-        "Updating existing suppliers is not supported in this function"
+    return dbOperation(async (connection) => {
+      // Check if the supplier already exists in the database
+      const [existingSupplier] = await connection.query(
+        "SELECT supplier_id FROM suppliers WHERE supplier_name = ? OR supplier_email = ?",
+        [
+          validatedSupplierData.supplierName,
+          validatedSupplierData.supplierEmail,
+        ]
       );
-    } else {
-      throw new Error("Invalid supplier data: newSupplier is required");
-    }
+
+      // If the supplier exists, return the existing supplier ID
+      if (existingSupplier.length > 0) {
+        return NextResponse.json({
+          success: true,
+          message: "Supplier already exists",
+          supplierId: existingSupplier[0].supplier_id,
+        });
+      }
+
+      // Insert new supplier into the database
+      const [result] = await connection.query(
+        `INSERT INTO suppliers
+          (supplier_name, supplier_email, supplier_phone_number, supplier_location, created_by, updated_by)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          validatedSupplierData.supplierName,
+          validatedSupplierData.supplierEmail,
+          validatedSupplierData.supplierPhoneNumber,
+          validatedSupplierData.supplierLocation,
+          parseNumberField(formData, "created_by"),
+          parseNumberField(formData, "updated_by"),
+        ]
+      );
+
+      // Return the newly inserted supplier's ID
+      return NextResponse.json({
+        success: true,
+        message: "Supplier created successfully",
+        supplierId: result.insertId,
+      });
+    });
   } catch (error) {
-    console.error("Error processing supplier:", error);
+    // Handle validation errors
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.errors
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
+        .join(", ");
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Validation error: ${errorMessages}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle custom or other unexpected errors
+    console.error("Error in createSupplier:", error);
     return NextResponse.json(
       {
         success: false,
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
+        message: "An unexpected error occurred while adding the supplier",
       },
-      { status: 400 }
+      { status: 500 }
     );
   }
 }
@@ -386,7 +414,7 @@ export async function manageProductTags(formData: FormData, productId: number) {
     const tagIds = await Promise.all(
       uniqueTags.map(async (tag) => {
         const [result] = await connection.query(
-          "INSERT INTO tags (name) VALUES (?) ON DUPLICATE KEY UPDATE tag_id = LAST_INSERT_ID(tag_id)",
+          "INSERT INTO tags (tag_name) VALUES (?) ON DUPLICATE KEY UPDATE tag_id = LAST_INSERT_ID(tag_id)",
           [tag]
         );
         return result.insertId;

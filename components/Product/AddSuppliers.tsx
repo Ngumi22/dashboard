@@ -17,27 +17,27 @@ import { Label } from "@/components/ui/label";
 // Mock existing suppliers data (This should be fetched from your API in a real application)
 const existingSuppliers = [
   {
-    id: 1,
-    name: "Supplier A",
-    email: "supplierA@example.com",
-    phone_number: "123-456-7890",
-    location: "City A",
+    supplier_id: 1,
+    supplier_name: "Supplier A",
+    supplier_email: "supplierA@example.com",
+    supplier_phone_number: "123-456-7890",
+    supplier_location: "City A",
   },
   {
-    id: 2,
-    name: "Supplier B",
-    email: "supplierB@example.com",
-    phone_number: "098-765-4321",
-    location: "City B",
+    supplier_id: 2,
+    supplier_name: "Supplier B",
+    supplier_email: "supplierB@example.com",
+    supplier_phone_number: "098-765-4321",
+    supplier_location: "City B",
   },
 ];
 
 interface Supplier {
-  id?: number;
-  name?: string;
-  email?: string;
-  phone_number?: string;
-  location?: string;
+  supplier_id?: number;
+  supplier_name?: string;
+  supplier_email?: string;
+  supplier_phone_number?: string;
+  supplier_location?: string;
   isNew?: boolean;
 }
 
@@ -54,10 +54,10 @@ export default function Component({
     defaultValues: {
       selectedSupplier: "",
       newSupplier: {
-        name: "",
-        email: "",
-        phone_number: "",
-        location: "",
+        supplier_name: "",
+        supplier_email: "",
+        supplier_phone_number: "",
+        supplier_location: "",
       },
       suppliers: initialSuppliers,
     },
@@ -79,19 +79,19 @@ export default function Component({
   const handleAddSupplier = handleSubmit(() => {
     if (selectedSupplier) {
       const existingSupplier = existingSuppliers.find(
-        (s) => s.id.toString() === selectedSupplier
+        (s) => s.supplier_id.toString() === selectedSupplier
       );
       if (existingSupplier) {
         append({
-          id: existingSupplier.id,
-          name: existingSupplier.name,
-          email: existingSupplier.email,
-          phone_number: existingSupplier.phone_number,
-          location: existingSupplier.location,
+          supplier_id: existingSupplier.supplier_id,
+          supplier_name: existingSupplier.supplier_name,
+          supplier_email: existingSupplier.supplier_email,
+          supplier_phone_number: existingSupplier.supplier_phone_number,
+          supplier_location: existingSupplier.supplier_location,
           isNew: false,
         });
       }
-    } else if (newSupplier.name) {
+    } else if (newSupplier.supplier_name) {
       append({
         ...newSupplier,
         isNew: true,
@@ -100,10 +100,10 @@ export default function Component({
 
     setValue("selectedSupplier", "");
     setValue("newSupplier", {
-      name: "",
-      email: "",
-      phone_number: "",
-      location: "",
+      supplier_name: "",
+      supplier_email: "",
+      supplier_phone_number: "",
+      supplier_location: "",
     });
   });
 
@@ -127,9 +127,9 @@ export default function Component({
                 <SelectContent>
                   {existingSuppliers.map((supplier) => (
                     <SelectItem
-                      key={supplier.id}
-                      value={supplier.id.toString()}>
-                      {supplier.name}
+                      key={supplier.supplier_id}
+                      value={supplier.supplier_id.toString()}>
+                      {supplier.supplier_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -141,7 +141,7 @@ export default function Component({
         <div className="space-y-2">
           <Label htmlFor="newSupplierName">Or Add a New Supplier</Label>
           <Controller
-            name="newSupplier.name"
+            name="newSupplier.supplier_name"
             control={control}
             render={({ field }) => (
               <Input
@@ -153,7 +153,7 @@ export default function Component({
           />
 
           <Controller
-            name="newSupplier.email"
+            name="newSupplier.supplier_email"
             control={control}
             render={({ field }) => (
               <Input
@@ -166,7 +166,7 @@ export default function Component({
           />
 
           <Controller
-            name="newSupplier.phone_number"
+            name="newSupplier.supplier_phone_number"
             control={control}
             render={({ field }) => (
               <Input
@@ -178,7 +178,7 @@ export default function Component({
           />
 
           <Controller
-            name="newSupplier.location"
+            name="newSupplier.supplier_location"
             control={control}
             render={({ field }) => (
               <Input
@@ -203,7 +203,8 @@ export default function Component({
                   key={supplier.id}
                   className="flex items-center justify-between p-2 bg-secondary rounded-md">
                   <span>
-                    {supplier.name} ({supplier.isNew ? "New" : "Existing"})
+                    {supplier.supplier_name} (
+                    {supplier.isNew ? "New" : "Existing"})
                   </span>
                   <Button
                     type="button"

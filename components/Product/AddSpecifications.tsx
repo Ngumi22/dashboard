@@ -28,7 +28,11 @@ const categories = [
 
 interface AddSpecificationsProps {
   onSpecificationsChange: (
-    specifications: { name: string; value: string; category_id: string }[]
+    specifications: {
+      specification_name: string;
+      specification_value: string;
+      category_id: string;
+    }[]
   ) => void;
 }
 
@@ -41,7 +45,11 @@ const AddSpecifications = ({
   const [newSpecName, setNewSpecName] = useState<string>(""); // New spec name
   const [specValue, setSpecValue] = useState<string>(""); // Specification value
   const [specs, setSpecs] = useState<
-    { name: string; value: string; category_id: string }[]
+    {
+      specification_name: string;
+      specification_value: string;
+      category_id: string;
+    }[]
   >([]); // Added specifications
 
   // Update specifications when category changes
@@ -59,7 +67,8 @@ const AddSpecifications = ({
       const specName = selectedSpec || newSpecName; // Use selected spec or new spec name
       const existingSpec = specs.find(
         (spec) =>
-          spec.name === specName && spec.category_id === selectedCategory
+          spec.specification_name === specName &&
+          spec.category_id === selectedCategory
       );
 
       // Check if the spec already exists for the selected category
@@ -69,8 +78,8 @@ const AddSpecifications = ({
       }
 
       const spec = {
-        name: specName,
-        value: specValue,
+        specification_name: specName,
+        specification_value: specValue,
         category_id: selectedCategory, // Include category_id
       };
 
@@ -169,7 +178,7 @@ const AddSpecifications = ({
             <ul>
               {specs.map((spec, index) => (
                 <li key={index}>
-                  {spec.name}: {spec.value}
+                  {spec.specification_name}: {spec.specification_value}
                 </li>
               ))}
             </ul>
