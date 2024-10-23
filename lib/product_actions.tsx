@@ -76,14 +76,17 @@ function parseNumberField(formData: FormData, key: string): number | undefined {
 
 export async function addCategory(formData: FormData) {
   const categoryData = {
-    categoryName: formData.get("category_name"),
-    categoryDescription: formData.get("category_Nescription"),
-    categoryImage: formData.get("category_image"),
+    category_name: formData.get("category_name"),
+    category_description: formData.get("category_description"),
+    category_image: formData.get("category_image"), // Get the image from formData
   };
 
   try {
-    // Validate the input data
-    const validatedData = NewProductSchema.parse(categoryData);
+    // Validate the input data (excluding image for now)
+    const validatedData = NewProductSchema.pick({
+      category_name: true,
+      category_description: true,
+    }).parse(categoryData);
 
     return dbOperation(async (connection) => {
       // Check if the category already exists
@@ -93,7 +96,6 @@ export async function addCategory(formData: FormData) {
       );
 
       if (existingCategory.length > 0) {
-        // Instead of throwing an error, return the existing category ID
         return NextResponse.json({
           success: true,
           message: "Category already exists",
@@ -101,9 +103,9 @@ export async function addCategory(formData: FormData) {
         });
       }
 
-      // Convert categoryImage to buffer
+      // Convert the image to buffer (handle it manually)
       const categoryImageBuffer = await fileToBuffer(
-        validatedData.category_image
+        categoryData.category_image as File // Ensure correct type
       );
 
       // Insert the new category into the database
@@ -118,7 +120,6 @@ export async function addCategory(formData: FormData) {
         ]
       );
 
-      // Return the new category ID
       return NextResponse.json({
         success: true,
         message: "Category created successfully",
@@ -165,13 +166,15 @@ export async function addCategory(formData: FormData) {
 
 export async function addBrand(formData: FormData) {
   const brandData = {
-    brandName: formData.get("brand_name"),
-    brandImage: formData.get("brand_image"),
+    brand_name: formData.get("brand_name"),
+    brand_image: formData.get("brand_image"),
   };
 
   try {
-    // Validate brand data
-    const validatedData = NewProductSchema.parse(brandData);
+    // Validate the input data (excluding image for now)
+    const validatedData = NewProductSchema.pick({
+      brand_name: true,
+    }).parse(brandData);
 
     return dbOperation(async (connection) => {
       // Check if the brand already exists
@@ -180,7 +183,6 @@ export async function addBrand(formData: FormData) {
         [validatedData.brand_name]
       );
 
-      // If the brand exists, return the existing brand_id
       if (existingBrand.length > 0) {
         return NextResponse.json({
           success: true,
@@ -189,12 +191,14 @@ export async function addBrand(formData: FormData) {
         });
       }
 
-      // Convert the brand image to a buffer
-      const brandImageBuffer = await fileToBuffer(validatedData.brand_image);
+      // Convert the brand image to buffer
+      const brandImageBuffer = await fileToBuffer(
+        brandData.brand_image as File // Ensure correct type
+      );
 
       // Insert the new brand into the database
       const [result] = await connection.query(
-        "INSERT INTO brands (brand_name, brandImage, created_by, updated_by) VALUES (?, ?, null, null)",
+        "INSERT INTO brands (brand_name, brand_image, created_by, updated_by) VALUES (?, ?, null, null)",
         [
           validatedData.brand_name,
           brandImageBuffer,
@@ -203,7 +207,6 @@ export async function addBrand(formData: FormData) {
         ]
       );
 
-      // Return the newly inserted brand's ID
       return NextResponse.json({
         success: true,
         message: "Brand created successfully",
@@ -245,40 +248,29 @@ export async function addBrand(formData: FormData) {
   }
 }
 
-// Define a schema to validate supplier data
-const SupplierSchema = z.object({
-  supplierId: z.string().optional(),
-  supplierName: z.string(),
-  supplierEmail: z.string().email(),
-  supplierPhoneNumber: z.string(),
-  supplierLocation: z.string(),
-});
-
 export async function createSupplier(formData: FormData) {
-  // Extract supplier data from formData
   const supplierData = {
-    supplierId: formData.get("suppliers.supplier_id"),
-    supplierName: formData.get("suppliers.supplier_name"),
-    supplierEmail: formData.get("suppliers.supplier_email"),
-    supplierPhoneNumber: formData.get("suppliers.supplier_phone_number"),
-    supplierLocation: formData.get("suppliers.supplier_location"),
+    supplier_id: formData.get("supplier_id"),
+    supplier_name: formData.get("supplier_name"),
+    supplier_email: formData.get("supplier_email"),
+    supplier_phone_number: formData.get("supplier_phone_number"),
+    supplier_location: formData.get("supplier_location"),
   };
 
   try {
-    // Validate supplier data against the schema
+    // Extract only the supplier part from NewProductSchema
+    const SupplierSchema = NewProductSchema.shape.suppliers.element;
+
+    // Validate supplier data using the extracted SupplierSchema
     const validatedSupplierData = SupplierSchema.parse(supplierData);
 
     return dbOperation(async (connection) => {
-      // Check if the supplier already exists in the database
+      // Check if the supplier already exists
       const [existingSupplier] = await connection.query(
-        "SELECT supplier_id FROM suppliers WHERE supplier_name = ? OR supplier_email = ?",
-        [
-          validatedSupplierData.supplierName,
-          validatedSupplierData.supplierEmail,
-        ]
+        "SELECT supplier_id FROM suppliers WHERE supplier_name = ?",
+        [validatedSupplierData.supplier_name]
       );
 
-      // If the supplier exists, return the existing supplier ID
       if (existingSupplier.length > 0) {
         return NextResponse.json({
           success: true,
@@ -287,18 +279,14 @@ export async function createSupplier(formData: FormData) {
         });
       }
 
-      // Insert new supplier into the database
+      // Insert the new supplier into the database
       const [result] = await connection.query(
-        `INSERT INTO suppliers
-          (supplier_name, supplier_email, supplier_phone_number, supplier_location, created_by, updated_by)
-          VALUES (?, ?, ?, ?, ?, ?)`,
+        "INSERT INTO suppliers (supplier_name, supplier_email, supplier_phone_number, supplier_location, created_by, updated_by) VALUES (?, ?, ?, ?, null, null)",
         [
-          validatedSupplierData.supplierName,
-          validatedSupplierData.supplierEmail,
-          validatedSupplierData.supplierPhoneNumber,
-          validatedSupplierData.supplierLocation,
-          parseNumberField(formData, "created_by"),
-          parseNumberField(formData, "updated_by"),
+          validatedSupplierData.supplier_name,
+          validatedSupplierData.supplier_email,
+          validatedSupplierData.supplier_phone_number,
+          validatedSupplierData.supplier_location,
         ]
       );
 
@@ -310,7 +298,6 @@ export async function createSupplier(formData: FormData) {
       });
     });
   } catch (error) {
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors
         .map((err) => `${err.path.join(".")}: ${err.message}`)
@@ -324,8 +311,7 @@ export async function createSupplier(formData: FormData) {
       );
     }
 
-    // Handle custom or other unexpected errors
-    console.error("Error in createSupplier:", error);
+    console.error("Error in addSupplier:", error);
     return NextResponse.json(
       {
         success: false,
@@ -372,15 +358,17 @@ export async function createProductImages(
   productId: number
 ) {
   const imageData = {
-    mainImage: formData.get("mainImage"),
+    mainImage: formData.get("main_image"),
     thumbnails: formData.getAll("thumbnails"),
   };
 
-  const validatedData = imageSchema.parse(imageData);
+  const validatedData = NewProductSchema.parse(imageData);
   const validatedProductId = z.number().positive().parse(productId);
 
   return dbOperation(async (connection) => {
-    const mainImageBuffer = await fileToBuffer(validatedData.mainImage as File);
+    const mainImageBuffer = await fileToBuffer(
+      validatedData.main_image as File
+    );
     const thumbnailBuffers = await Promise.all(
       (validatedData.thumbnails as File[]).map((thumbnail) =>
         fileToBuffer(thumbnail)
@@ -400,36 +388,83 @@ export async function createProductImages(
   });
 }
 
-export async function manageProductTags(formData: FormData, productId: number) {
-  const tagsData = parseJsonField(formData, "tags");
-  const validatedData = schema.shape.tags.parse(tagsData);
-  const validatedProductId = z.number().positive().parse(productId);
+export async function createProductTags(formData: FormData, productId: number) {
+  // Extract tags as an array of objects
+  const tagsArray = formData.getAll("tags") as unknown as Array<{
+    value: string;
+  }>;
+  console.log("Tags Array:", tagsArray); // Log the tags for debugging
 
-  return dbOperation(async (connection) => {
-    if (!validatedData || validatedData.length === 0) {
+  try {
+    // Check if tagsArray is empty
+    if (!tagsArray || tagsArray.length === 0) {
       return NextResponse.json({ success: false, message: "No tags provided" });
     }
 
-    const uniqueTags = Array.from(new Set(validatedData));
-    const tagIds = await Promise.all(
-      uniqueTags.map(async (tag) => {
-        const [result] = await connection.query(
-          "INSERT INTO tags (tag_name) VALUES (?) ON DUPLICATE KEY UPDATE tag_id = LAST_INSERT_ID(tag_id)",
-          [tag]
-        );
-        return result.insertId;
-      })
+    // Extract unique tag values, filtering out undefined values
+    const uniqueTags = Array.from(
+      new Set(tagsArray.map((tag) => tag.value).filter((value) => value))
     );
 
-    await connection.query(
-      "INSERT IGNORE INTO product_tags (product_id, tag_id) VALUES ?",
-      [tagIds.map((tagId) => [validatedProductId, tagId])]
-    );
-    return NextResponse.json({
-      success: true,
-      message: "Product tags managed successfully",
+    console.log("Unique Tags:", uniqueTags); // Log unique tags for debugging
+
+    return dbOperation(async (connection) => {
+      const tagIds: number[] = [];
+
+      for (const tagName of uniqueTags) {
+        if (!tagName) {
+          console.error("Empty tag name, skipping insertion."); // Log if the tagName is empty
+          continue; // Skip if tagName is undefined or empty
+        }
+
+        console.log("Checking if tag exists:", tagName);
+        const [tagRows] = await connection.query(
+          "SELECT tag_id FROM tags WHERE tag_name = ? FOR UPDATE",
+          [tagName]
+        );
+        console.log("Tag Rows:", tagRows);
+
+        let tagId: number;
+
+        if (tagRows.length === 0) {
+          console.log(`Inserting new tag: ${tagName}`);
+          const [tagResult]: [any, any] = await connection.query(
+            "INSERT INTO tags (tag_name) VALUES (?)",
+            [tagName]
+          );
+          tagId = tagResult.insertId; // Get the inserted tag ID
+          console.log(`Inserted new tag: ${tagName} with ID: ${tagId}`);
+        } else {
+          tagId = tagRows[0].tag_id;
+          console.log(`Found existing tag: ${tagName} with ID: ${tagId}`);
+        }
+
+        tagIds.push(tagId);
+      }
+
+      // Insert into product_tags table
+      const productTagRelations = tagIds.map((tagId) => [productId, tagId]);
+
+      await connection.query(
+        "INSERT IGNORE INTO product_tags (product_id, tag_id) VALUES ?",
+        [productTagRelations]
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "Product tags inserted successfully",
+      });
     });
-  });
+  } catch (error) {
+    console.error("Error in createProductTags:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "An unexpected error occurred while adding the tags",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function createProductSpecifications(

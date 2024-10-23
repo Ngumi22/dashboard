@@ -89,7 +89,7 @@ export async function dbsetupTables() {
         CREATE TABLE IF NOT EXISTS brands (
             brand_id INT AUTO_INCREMENT PRIMARY KEY,
             brand_name VARCHAR(255) NOT NULL,
-            brandImage MEDIUMBLOB NOT NULL,
+            brand_image MEDIUMBLOB NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at TIMESTAMP NULL,
@@ -129,7 +129,7 @@ export async function dbsetupTables() {
           product_discount DECIMAL(10, 2) DEFAULT 0.00,
           product_quantity INT DEFAULT 0,
           product_status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
-          category_id INT NOT NULL,
+          category_id INT,
           brand_id INT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -156,14 +156,7 @@ export async function dbsetupTables() {
           thumbnail_image3 MEDIUMBLOB NOT NULL,
           thumbnail_image4 MEDIUMBLOB NOT NULL,
           thumbnail_image5 MEDIUMBLOB NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT DEFAULT NULL,
-          updated_by INT DEFAULT NULL,
           FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_product_id (product_id)
         ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product images and thumbnails';
       `);
@@ -218,13 +211,6 @@ export async function dbsetupTables() {
       CREATE TABLE IF NOT EXISTS tags (
           tag_id INT AUTO_INCREMENT PRIMARY KEY,
           tag_name VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT DEFAULT NULL,
-          updated_by INT DEFAULT NULL,
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
           INDEX idx_name (tag_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Tags for products';
     `);

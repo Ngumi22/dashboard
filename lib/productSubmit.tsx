@@ -9,8 +9,9 @@ import {
   addBrand,
   createSupplier,
   createProductImages,
-  manageProductTags,
+  createProductTags,
   createProductSpecifications,
+  createProductSupplierMapping,
 } from "./product_actions";
 
 export type FormState = {
@@ -22,15 +23,20 @@ export type FormState = {
 type ParsedProductData = z.infer<typeof NewProductSchema> & {
   category_id?: number;
   brand_id?: number;
+  created_by?: number | null;
+  updated_by?: number | null;
 };
 
-async function insertProduct(parsedData: ParsedProductData) {
+async function insertProduct(
+  parsedData: ParsedProductData,
+  formData: FormData
+) {
   const connection = await getConnection();
   try {
     console.log("Starting product insertion...");
     const [result] = await connection.query(
-      `INSERT INTO products (name, sku, description, price, quantity, discount, status, category_id, brand_id, created_by, updated_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, NULL), COALESCE(?, NULL), ?, ?)`,
+      `INSERT INTO products (product_name, product_sku, product_description, product_price, product_quantity, product_discount, product_status, category_id, brand_id, created_by, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         parsedData.product_name,
         parsedData.product_sku,
@@ -41,10 +47,18 @@ async function insertProduct(parsedData: ParsedProductData) {
         parsedData.product_status,
         parsedData.category_id,
         parsedData.brand_id,
+        parsedData.created_by || null,
+        parsedData.updated_by || null,
       ]
     );
-    console.log("Product inserted successfully.");
-    return (result as any).insertId;
+
+    const productId = (result as any).insertId;
+    console.log("Product inserted successfully with ID:", productId);
+
+    // Insert tags here
+    await createProductTags(formData, productId);
+
+    return productId;
   } catch (error) {
     console.error("Error inserting product:", error);
     throw error;
@@ -106,7 +120,6 @@ export async function SubmitAction(
     console.log("Tables checked/created.");
 
     const parsedData: ParsedProductData = parsed.data;
-
     console.log(parsedData);
 
     // Perform all insertions
@@ -120,11 +133,11 @@ export async function SubmitAction(
 
     const supplierResponse = await createSupplier(data);
     const supplierData = await supplierResponse.json();
+    const productId = await insertProduct(parsedData, data);
 
-    const productId = await insertProduct(parsedData);
-
+    await createProductSupplierMapping(productId, supplierData.supplierId);
     await createProductImages(data, productId);
-    await manageProductTags(data, productId);
+    await createProductTags(data, productId);
     await createProductSpecifications(data, productId, categoryData.categoryId);
 
     // Commit the transaction if everything works
