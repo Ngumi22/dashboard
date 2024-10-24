@@ -30,12 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SubmitAction } from "@/lib/productSubmit";
 import { NewProductSchema } from "@/lib/ProductSchema";
 import AddSpecifications from "./AddSpecs";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-
+import { SubmitAction } from "@/lib/productSubmit";
 const AddSuppliers = dynamic(() => import("./AddSuppliers"), {
   ssr: false,
 });
@@ -141,6 +140,14 @@ export function ProductsForm() {
           formData.append(`specifications[${index}]`, JSON.stringify(spec));
         });
       }
+
+      // Append tags if present
+      if (data.tags) {
+        data.tags.forEach((tag: any, index: number) => {
+          formData.append(`tags[${index}]`, JSON.stringify(tag)); // Stringify each tag object
+        });
+      }
+
       SubmitAction({ message: "" }, formData).then((response) => {
         console.log("Server Response:", response);
       });

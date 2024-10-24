@@ -55,9 +55,6 @@ async function insertProduct(
     const productId = (result as any).insertId;
     console.log("Product inserted successfully with ID:", productId);
 
-    // Insert tags here
-    await createProductTags(formData, productId);
-
     return productId;
   } catch (error) {
     console.error("Error inserting product:", error);
@@ -73,10 +70,10 @@ export async function SubmitAction(
 
   // Extract and add the tags
   const tags = Object.keys(formData)
-    .filter((key) => key.startsWith("tags.") && key.endsWith(".value"))
-    .map((key) => ({ value: formData[key].toString() }));
+    .filter((key) => key.startsWith("tags["))
+    .map((key) => JSON.parse(formData[key].toString())); // Parse each tag as an object
 
-  formData["tags"] = tags;
+  formData["tags"] = tags; // Assign the extracted tags array to formData
 
   // Ensure thumbnails are appended correctly as an array of files
   const thumbnails = data.getAll("thumbnails") as File[];
@@ -120,7 +117,7 @@ export async function SubmitAction(
     console.log("Tables checked/created.");
 
     const parsedData: ParsedProductData = parsed.data;
-    console.log(parsedData);
+    console.log("Parsed Data: ", parsedData);
 
     // Perform all insertions
     const categoryResponse = await addCategory(data);
