@@ -128,9 +128,9 @@ export async function SubmitAction(
     const brandData = await brandResponse.json();
     parsedData.brand_id = brandData.brandId;
 
-    const supplierResponse = await createSupplier(data);
-    const supplierData = await supplierResponse.json();
     const productId = await insertProduct(parsedData, data);
+    const supplierResponse = await createSupplier(data, productId);
+    const supplierData = await supplierResponse.json();
 
     await createProductSupplierMapping(productId, supplierData.supplierId);
     await createProductImages(data, productId);

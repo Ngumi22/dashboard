@@ -25,7 +25,7 @@ const existingSuppliers = [
   },
   {
     supplier_id: 2,
-    supplier_name: "Supplier B",
+    supplier_name: "Supplier BB",
     supplier_email: "supplierB@example.com",
     supplier_phone_number: "098-765-4321",
     supplier_location: "City B",
