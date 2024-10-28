@@ -11,8 +11,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Plus, Trash2, X } from "lucide-react";
 
 // Mock existing suppliers data (This should be fetched from your API in a real application)
 const existingSuppliers = [
@@ -108,38 +107,33 @@ export default function Component({
   });
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Add Product Suppliers</CardTitle>
-      </CardHeader>
+    <div className="border p-2 space-y-2 shadow rounded">
+      <h2>Add Product Suppliers</h2>
 
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="supplier">Select Existing Supplier</Label>
-          <Controller
-            name="selectedSupplier"
-            control={control}
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger id="supplier">
-                  <SelectValue placeholder="Select a supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {existingSuppliers.map((supplier) => (
-                    <SelectItem
-                      key={supplier.supplier_id}
-                      value={supplier.supplier_id.toString()}>
-                      {supplier.supplier_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </div>
+      <div className="space-y-4">
+        <Controller
+          name="selectedSupplier"
+          control={control}
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value}>
+              <SelectTrigger id="supplier">
+                <SelectValue placeholder="Select a supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                {existingSuppliers.map((supplier) => (
+                  <SelectItem
+                    key={supplier.supplier_id}
+                    value={supplier.supplier_id.toString()}>
+                    {supplier.supplier_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
 
         <div className="space-y-2">
-          <Label htmlFor="newSupplierName">Or Add a New Supplier</Label>
+          <h2>Add New</h2>
           <Controller
             name="newSupplier.supplier_name"
             control={control}
@@ -190,12 +184,16 @@ export default function Component({
           />
         </div>
 
-        <Button type="button" onClick={handleAddSupplier} className="w-full">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleAddSupplier}
+          className="h-9 rounded-md px-3 border bg-gray-300 mx-auto">
+          <Plus className="mr-2 h-4 w-4" />
           Add Supplier
         </Button>
 
         <div className="mt-4">
-          <h4 className="font-semibold mb-2">Added Suppliers:</h4>
           {fields.length > 0 ? (
             <ul className="space-y-2">
               {fields.map((supplier, index) => (
@@ -211,7 +209,8 @@ export default function Component({
                     variant="destructive"
                     size="sm"
                     onClick={() => remove(index)}>
-                    Remove
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Remove Supplier</span>
                   </Button>
                 </li>
               ))}
@@ -220,7 +219,7 @@ export default function Component({
             <p className="text-muted-foreground">No suppliers added yet.</p>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
