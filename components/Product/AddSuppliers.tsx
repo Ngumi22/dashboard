@@ -186,9 +186,9 @@ export default function Component({
 
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           onClick={handleAddSupplier}
-          className="h-9 rounded-md px-3 border bg-gray-300 mx-auto">
+          className="">
           <Plus className="mr-2 h-4 w-4" />
           Add Supplier
         </Button>

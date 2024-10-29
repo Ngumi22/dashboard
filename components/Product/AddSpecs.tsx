@@ -234,11 +234,7 @@ export default function AddSpecifications({
                 )}
               </div>
 
-              <Button
-                variant="outline"
-                type="button"
-                onClick={handleAddSpec}
-                className="h-9 rounded-md px-3 border bg-gray-300 mx-auto">
+              <Button variant="secondary" type="button" onClick={handleAddSpec}>
                 <Plus className="mr-2 h-4 w-4" /> Add Specification
               </Button>
             </div>
@@ -294,7 +290,7 @@ export default function AddSpecifications({
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>No specifications added</AlertTitle>
               <AlertDescription>
-                Add specifications using the form above to see them listed here.
+                Specifications will be listed here.
               </AlertDescription>
             </Alert>
           )}

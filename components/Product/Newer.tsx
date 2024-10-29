@@ -425,7 +425,7 @@ export function ProductsForm() {
                               size="icon"
                               className="absolute top-0 right-0 h-6 w-6"
                               onClick={() => removeThumbnail(index)}>
-                              <X className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         ))}
@@ -519,9 +519,8 @@ export function ProductsForm() {
                 ))}
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="h-9 rounded-md px-3 border bg-gray-300 mx-auto"
                   onClick={() => append({ value: "" })}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Tag

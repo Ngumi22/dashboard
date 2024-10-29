@@ -1,50 +1,70 @@
-import { dbOperation } from "@/lib/product_actions";
+import {
+  fetchByTag,
+  fetchFilteredProductsFromDb,
+  fetchProductsByBrandFromDb,
+  fetchUniqueBrands,
+} from "@/lib/Data/product";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+// Helper function to convert buffer data to Base64 format
+function bufferToBase64(bufferData: any, mimeType = "image/png") {
+  const base64String = bufferData.toString("base64");
+  return `data:${mimeType};base64,${base64String}`;
+}
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const currentPage = Number(url.searchParams.get("page")) || 1;
+  const brandsParam = url.searchParams.get("brand");
+  const tag = url.searchParams.get("tag");
+  const status = url.searchParams.get("status");
+  const categories = url.searchParams.get("categories");
+
+  // Construct filter object
+  const filter: Record<string, string | null> = {};
+  if (status) filter["status"] = status;
+  if (categories) filter["categories"] = categories;
+
   try {
-    // Fetch all products ordered by id in ascending order
-    return dbOperation(async (connection) => {
-      const [products] = await connection.query(
-        `
-        SELECT
-            p.product_id,
-            p.product_name,
-            p.product_sku,
-            p.product_description,
-            p.product_price,
-            p.product_discount,
-            p.product_quantity,
-            p.product_status,
-            b.brand_name,
-            c.category_name,
-            sup.supplier_name,
-            GROUP_CONCAT(DISTINCT CONCAT(spec.specification_name, ': ', ps.value) ORDER BY spec.specification_name SEPARATOR ', ') AS specifications,
-            GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ', ') AS tags
-        FROM products p
-        LEFT JOIN categories c ON p.category_id = c.category_id
-        LEFT JOIN brands b ON p.brand_id = b.brand_id
-        LEFT JOIN product_suppliers psup ON p.product_id = psup.product_id
-        LEFT JOIN suppliers sup ON psup.supplier_id = sup.supplier_id
-        LEFT JOIN product_specifications ps ON p.product_id = ps.product_id
-        LEFT JOIN specifications spec ON ps.specification_id = spec.specification_id
-        LEFT JOIN product_tags pt ON p.product_id = pt.product_id
-        LEFT JOIN tags t ON pt.tag_id = t.tag_id
-        GROUP BY p.product_id, b.brand_name, c.category_name, sup.supplier_name
-        ORDER BY p.product_id;
-        `
-      );
+    let products;
 
-      // Return the products data as a JSON response
-      return new Response(JSON.stringify(products), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    });
+    if (tag) {
+      // Fetch products by tag if "tag" query parameter is provided
+      products = await fetchByTag(tag);
+
+      if (products.length === 0) {
+        return NextResponse.json(
+          { error: "No products found for this tag" },
+          { status: 404 }
+        );
+      }
+    } else if (brandsParam === "all") {
+      // Fetch products grouped by each brand
+      const uniqueBrands = await fetchUniqueBrands();
+      const productsByBrand = await Promise.all(
+        uniqueBrands.map(async (brand) => {
+          const brandProducts = await fetchProductsByBrandFromDb(brand);
+          return { brand, products: brandProducts };
+        })
+      );
+      products = productsByBrand;
+    } else {
+      // Apply filters (like status and categories) if provided
+      products = await fetchFilteredProductsFromDb(currentPage, filter);
+    }
+
+    // Cache-control header
+    const response = NextResponse.json(products);
+    response.headers.set(
+      "Cache-Control",
+      "s-maxage=3600, stale-while-revalidate"
+    );
+    return response;
   } catch (error) {
     console.error("Error fetching products:", error);
-    return new Response(JSON.stringify({ error: "Failed to fetch products" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(
+      { error: "Failed to fetch products" },
+      { status: 500 }
+    );
   }
 }
