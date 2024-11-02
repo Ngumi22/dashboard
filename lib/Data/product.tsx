@@ -9,6 +9,8 @@ const LIMITS = {
   default: 10,
 };
 
+type ProductStatus = "draft" | "pending" | "approved";
+
 // Define `SearchParams` interface with more explicit typing for query handling.
 export interface SearchParams {
   productId?: string;
@@ -19,7 +21,7 @@ export interface SearchParams {
   name?: string;
   brand?: string;
   category?: string;
-  status?: number;
+  status?: string;
   stock?: number;
   tags?: string;
   type?: "brand" | "category" | "default";
@@ -40,7 +42,7 @@ export interface ProductRow extends RowDataPacket, ImageFields {
   discount: number;
   quantity: number;
   category: string;
-  status: string;
+  status: ProductStatus;
   description: string;
   brand: string;
   createdAt: string;
@@ -61,7 +63,7 @@ export interface Product {
   discount: number;
   quantity: number;
   category: string;
-  status: string;
+  status: ProductStatus;
   description: string;
   brand: string;
   createdAt: string;
@@ -83,7 +85,7 @@ function mapProductRow(row: ProductRow): Product {
     discount: row.discount,
     quantity: row.quantity,
     category: row.category,
-    status: row.status,
+    status: row.status as ProductStatus,
     description: row.description,
     brand: row.brand,
     createdAt: row.createdAt,
@@ -152,7 +154,7 @@ export async function fetchFilteredProductsFromDb(
     if (filter.status !== undefined)
       queryConditions.push("p.product_status = ?"),
         queryParams.push(filter.status);
-    if (filter.stock !== undefined)
+    if (filter.stock)
       queryConditions.push("p.product_quantity >= ?"),
         queryParams.push(filter.stock);
     if (filter.tags) {
@@ -169,13 +171,24 @@ export async function fetchFilteredProductsFromDb(
 
     const query = `
       SELECT
-        p.product_id, p.product_name AS name, p.product_sku AS sku, p.product_price AS price,
-        p.product_discount AS discount, p.product_quantity AS quantity, c.category_name AS category,
-        p.product_status AS status, p.product_description AS description, b.brand_name AS brand,
-        p.created_at AS createdAt, p.updated_at AS updatedAt,
-        MAX(pi.main_image) AS mainImage, MAX(pi.thumbnail_image1) AS thumbnail1,
-        MAX(pi.thumbnail_image2) AS thumbnail2, MAX(pi.thumbnail_image3) AS thumbnail3,
-        MAX(pi.thumbnail_image4) AS thumbnail4, MAX(pi.thumbnail_image5) AS thumbnail5,
+        p.product_id,
+        p.product_name AS name,
+        p.product_sku AS sku,
+        p.product_price AS price,
+        p.product_discount AS discount,
+        p.product_quantity AS quantity,
+        c.category_name AS category,
+        p.product_status AS status,
+        p.product_description AS description,
+        b.brand_name AS brand,
+        p.created_at AS createdAt,
+        p.updated_at AS updatedAt,
+        MAX(pi.main_image) AS mainImage,
+        MAX(pi.thumbnail_image1) AS thumbnail1,
+        MAX(pi.thumbnail_image2) AS thumbnail2,
+        MAX(pi.thumbnail_image3) AS thumbnail3,
+        MAX(pi.thumbnail_image4) AS thumbnail4,
+        MAX(pi.thumbnail_image5) AS thumbnail5,
         COALESCE(GROUP_CONCAT(DISTINCT t.tag_name SEPARATOR ','), '') AS tags
       FROM products p
       LEFT JOIN product_images pi ON p.product_id = pi.product_id

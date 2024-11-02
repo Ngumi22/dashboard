@@ -46,7 +46,7 @@ interface ProductResponse {
   discount: number;
   quantity: number;
   category: string;
-  status: string;
+  status: "approved" | "draft" | "pending";
   description: string;
   brand: string;
   createdAt: string;
@@ -214,9 +214,9 @@ export default function ProductsList() {
           <div className="flex items-center">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="approved">Approved</TabsTrigger>
               <TabsTrigger value="draft">Draft</TabsTrigger>
-              <TabsTrigger value="archived">Archived</TabsTrigger>
+              <TabsTrigger value="pending">Pending</TabsTrigger>
             </TabsList>
             <div className="ml-auto flex items-center gap-2 my-2">
               <DropdownMenu>
@@ -364,7 +364,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               {/* Badge component for status */}
               <Badge
                 variant={
-                  product.status === "active"
+                  product.status === "approved"
                     ? "default"
                     : product.status === "draft"
                     ? "secondary"
