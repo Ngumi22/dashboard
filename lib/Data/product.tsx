@@ -110,9 +110,6 @@ export async function fetchFilteredProductsFromDb(
   filter: SearchParams
 ): Promise<{
   products: Product[];
-  uniqueTags: string[];
-  uniqueCategories: string[];
-  uniqueBrands: string[];
   errorMessage?: string;
 }> {
   const cacheKey = `filtered_products_${currentPage}_${JSON.stringify(filter)}`;
@@ -206,20 +203,72 @@ export async function fetchFilteredProductsFromDb(
     const [rows] = await connection.query<ProductRow[]>(query, queryParams);
     const products = rows.map(mapProductRow);
 
-    const [tags] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT t.tag_name FROM tags t JOIN product_tags pt ON t.tag_id = pt.tag_id`);
-    const uniqueTags = tags.map((tag) => tag.tag_name);
+    const result = { products };
+    setCache(cacheKey, result, { ttl: 300 });
+    return result;
+  } catch (error) {
+    console.error("Error fetching filtered products:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
 
+export async function getUniqueCategories() {
+  const connection = await getConnection();
+  try {
     const [categories] = await connection.query<RowDataPacket[]>(`
       SELECT DISTINCT c.category_name FROM categories c`);
     const uniqueCategories = categories.map((cat) => cat.category_name);
+    const result = { uniqueCategories };
+    return result;
+  } catch (error) {
+    console.error("Error fetching filtered products:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
 
+export async function getUniqueBrands() {
+  const connection = await getConnection();
+  try {
     const [brands] = await connection.query<RowDataPacket[]>(`
       SELECT DISTINCT b.brand_name FROM brands b`);
     const uniqueBrands = brands.map((brand) => brand.brand_name);
+    const result = { uniqueBrands };
+    return result;
+  } catch (error) {
+    console.error("Error fetching filtered products:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
 
-    const result = { products, uniqueTags, uniqueCategories, uniqueBrands };
-    setCache(cacheKey, result, { ttl: 300 });
+export async function getUniqueTags() {
+  const connection = await getConnection();
+  try {
+    const [tags] = await connection.query<RowDataPacket[]>(`
+      SELECT DISTINCT t.tag_name FROM tags t JOIN product_tags pt ON t.tag_id = pt.tag_id`);
+    const uniqueTags = tags.map((tag) => tag.tag_name);
+    const result = { uniqueTags };
+    return result;
+  } catch (error) {
+    console.error("Error fetching filtered products:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getUniqueSuppliers() {
+  const connection = await getConnection();
+  try {
+    const [suppliers] = await connection.query<RowDataPacket[]>(`
+      SELECT DISTINCT s.supplier_name FROM suppliers s JOIN product_suppliers ps ON s.supplier_id = ps.supplier_id`);
+    const uniquesuppliers = suppliers.map((supplier) => supplier.supplier_name);
+    const result = { uniquesuppliers };
     return result;
   } catch (error) {
     console.error("Error fetching filtered products:", error);
