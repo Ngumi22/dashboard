@@ -234,7 +234,7 @@ export async function getUniqueBrands() {
   const connection = await getConnection();
   try {
     const [brands] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT b.brand_name FROM brands b`);
+      SELECT DISTINCT b.brand_name, b.brand_image FROM brands b`);
     const uniqueBrands = brands.map((brand) => brand.brand_name);
     const result = { uniqueBrands };
     return result;
@@ -265,10 +265,17 @@ export async function getUniqueTags() {
 export async function getUniqueSuppliers() {
   const connection = await getConnection();
   try {
-    const [suppliers] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT s.supplier_name FROM suppliers s JOIN product_suppliers ps ON s.supplier_id = ps.supplier_id`);
-    const uniquesuppliers = suppliers.map((supplier) => supplier.supplier_name);
-    const result = { uniquesuppliers };
+    const [supplier] = await connection.query<RowDataPacket[]>(`
+      SELECT DISTINCT
+        s.supplier_id,
+        s.supplier_name,
+        s.supplier_email,
+        s.supplier_phone_number,
+        s.supplier_location
+        FROM suppliers s
+        JOIN product_suppliers ps
+        ON s.supplier_id = ps.supplier_id`);
+    const result = { supplier };
     return result;
   } catch (error) {
     console.error("Error fetching filtered products:", error);

@@ -6,8 +6,6 @@ import { ToastAction } from "@/components/ui/toast";
 
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import ProductForm from "@/components/Product/AddProductsForm";
 
 interface Category {
   id: number;
@@ -97,7 +95,6 @@ export default function CategoryList() {
       <div>
         <Link href="/dashboard/products/create"></Link>
       </div>
-      <ProductForm />
     </div>
   );
 }

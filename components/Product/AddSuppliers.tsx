@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,25 +11,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, X } from "lucide-react";
-
-// Mock existing suppliers data (This should be fetched from your API in a real application)
-const existingSuppliers = [
-  {
-    supplier_id: 1,
-    supplier_name: "Supplier A",
-    supplier_email: "supplierA@example.com",
-    supplier_phone_number: "123-456-7890",
-    supplier_location: "City A",
-  },
-  {
-    supplier_id: 2,
-    supplier_name: "Supplier BB",
-    supplier_email: "supplierB@example.com",
-    supplier_phone_number: "098-765-4321",
-    supplier_location: "City B",
-  },
-];
+import { Plus, Trash2 } from "lucide-react";
 
 interface Supplier {
   supplier_id?: number;
@@ -49,6 +31,8 @@ export default function Component({
   onSuppliersChange,
   initialSuppliers = [],
 }: AddSuppliersProps) {
+  const [existingSuppliers, setExistingSuppliers] = useState<Supplier[]>([]);
+
   const { control, watch, setValue, handleSubmit } = useForm({
     defaultValues: {
       selectedSupplier: "",
@@ -75,10 +59,26 @@ export default function Component({
     onSuppliersChange(suppliers);
   }, [suppliers, onSuppliersChange]);
 
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/supplier");
+        const data = await response.json();
+        if (data.suppliers && data.suppliers.supplier) {
+          setExistingSuppliers(data.suppliers.supplier);
+        }
+      } catch (error) {
+        console.error("Failed to fetch suppliers:", error);
+      }
+    };
+
+    fetchSuppliers();
+  }, []);
+
   const handleAddSupplier = handleSubmit(() => {
     if (selectedSupplier) {
       const existingSupplier = existingSuppliers.find(
-        (s) => s.supplier_id.toString() === selectedSupplier
+        (s) => s.supplier_id?.toString() === selectedSupplier
       );
       if (existingSupplier) {
         append({
@@ -122,8 +122,12 @@ export default function Component({
               <SelectContent>
                 {existingSuppliers.map((supplier) => (
                   <SelectItem
-                    key={supplier.supplier_id}
-                    value={supplier.supplier_id.toString()}>
+                    key={supplier.supplier_id ?? "no-id"}
+                    value={
+                      supplier.supplier_id
+                        ? supplier.supplier_id.toString()
+                        : ""
+                    }>
                     {supplier.supplier_name}
                   </SelectItem>
                 ))}

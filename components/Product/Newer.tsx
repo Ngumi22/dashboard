@@ -414,10 +414,12 @@ export function ProductsForm() {
                       <div className="flex flex-wrap gap-2 mt-2">
                         {thumbnailsPreview.map((preview, index) => (
                           <div key={index} className="relative">
-                            <img
+                            <Image
                               src={preview}
                               alt={`Thumbnail ${index + 1}`}
                               className="w-16 h-16 object-cover rounded"
+                              height={100}
+                              width={100}
                             />
                             <Button
                               type="button"
@@ -484,10 +486,12 @@ export function ProductsForm() {
                           />
                         </FormControl>
                         {categoryImagePreview && (
-                          <img
+                          <Image
                             src={categoryImagePreview}
                             alt="Category Preview"
                             className="mt-2 w-32 h-32 object-cover rounded"
+                            height={100}
+                            width={100}
                           />
                         )}
                         <FormMessage />

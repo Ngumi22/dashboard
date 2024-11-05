@@ -72,13 +72,10 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const {
-      products,
-      uniqueTags,
-      uniqueCategories,
-      uniqueBrands,
-      errorMessage,
-    } = await fetchFilteredProductsFromDb(currentPage, filter);
+    const { products, errorMessage } = await fetchFilteredProductsFromDb(
+      currentPage,
+      filter
+    );
 
     if (errorMessage) {
       return NextResponse.json({ error: errorMessage }, { status: 404 });
@@ -101,9 +98,6 @@ export async function GET(req: NextRequest) {
 
     const response = NextResponse.json({
       products: formattedProducts,
-      uniqueTags,
-      uniqueCategories,
-      uniqueBrands,
     });
     response.headers.set(
       "Cache-Control",
