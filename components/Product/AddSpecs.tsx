@@ -11,33 +11,15 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  Plus,
-  Laptop,
-  Smartphone,
-  Printer,
-  X,
-  AlertCircle,
-  Check,
-  Trash2,
-} from "lucide-react";
+import { Plus, Check, AlertCircle, Minus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 
-const placeholderCategorySpecs: { [key: string]: string[] } = {
-  laptops: ["RAM", "Processor", "Storage"],
-  phones: ["Screen Size", "Battery", "Camera"],
-  printers: ["Print Speed", "Paper Size"],
-};
-
-const categories = [
-  { id: "laptops", name: "Laptops", icon: Laptop },
-  { id: "phones", name: "Phones", icon: Smartphone },
-  { id: "printers", name: "Printers", icon: Printer },
-];
+interface Category {
+  id: string;
+  name: string;
+}
 
 interface Specification {
   specification_name: string;
@@ -55,6 +37,9 @@ export default function AddSpecifications({
   initialSpecifications = [],
 }: AddSpecificationsProps) {
   const [message, setMessage] = useState("");
+  const [categorySpecs, setCategorySpecs] = useState<string[]>([]); // To hold real data for specifications
+  const [categories, setCategories] = useState<Category[]>([]); // Fetch real categories
+  const [categoryNames, setCategoryNames] = useState<string[]>([]); // Store only category names
 
   const {
     control,
@@ -83,6 +68,56 @@ export default function AddSpecifications({
   const specValue = watch("specValue");
   const specifications = watch("specifications");
 
+  // Fetch categories from the database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`/api/category`);
+        const data = await response.json();
+
+        // Assuming categories is an array and we only need the names
+        const categoryNames = data.categories.map(
+          (category: { category_name: string }) => category.category_name
+        );
+
+        console.log(categoryNames);
+        setCategories(data.categories); // Store the full category data (with IDs)
+        setCategoryNames(categoryNames); // Store just the category names
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Fetch category-specific specifications from the database
+  useEffect(() => {
+    if (selectedCategory) {
+      const fetchCategorySpecs = async () => {
+        try {
+          // Fetch specifications based on the selected category name
+          const response = await fetch(
+            `/api/category/catSpec?categoryName=${selectedCategory}`
+          );
+          const data = await response.json();
+
+          // Correctly extract catSpecs from the response
+          const categorySpecifications = data.specs.catSpecs.map(
+            (spec: { specification_name: string }) => spec.specification_name
+          );
+
+          setCategorySpecs(categorySpecifications); // Set category specs to the state
+        } catch (error) {
+          console.error("Error fetching category specifications:", error);
+        }
+      };
+
+      fetchCategorySpecs();
+    }
+  }, [selectedCategory]);
+
+  // Clear fields when the category changes
   useEffect(() => {
     if (selectedCategory) {
       setValue("selectedSpec", "");
@@ -91,10 +126,12 @@ export default function AddSpecifications({
     }
   }, [selectedCategory, setValue]);
 
+  // Send updated specifications to parent
   useEffect(() => {
     onSpecificationsChange(specifications);
   }, [specifications, onSpecificationsChange]);
 
+  // Show message on spec selection
   useEffect(() => {
     if (selectedSpec) {
       setMessage(`Specification "${selectedSpec}" selected`);
@@ -102,9 +139,10 @@ export default function AddSpecifications({
     }
   }, [selectedSpec]);
 
+  // Handle spec addition
   const handleAddSpec = handleSubmit(() => {
     const specName = selectedSpec || newSpecName;
-    if ((selectedSpec || newSpecName) && specValue) {
+    if (specName && specValue) {
       const existingSpec = specifications.find(
         (spec) =>
           spec.specification_name === specName &&
@@ -148,15 +186,13 @@ export default function AddSpecifications({
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center">
-                        {category.icon && (
-                          <category.icon className="mr-2 h-4 w-4" />
-                        )}
-                        {category.name}
-                      </div>
+                <SelectContent className="text-red-600 text-lg">
+                  {categoryNames.map((categoryName) => (
+                    <SelectItem
+                      key={categoryName}
+                      value={categoryName}
+                      className="text-red-600 text-lg">
+                      {categoryName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -185,13 +221,11 @@ export default function AddSpecifications({
                         <SelectValue placeholder="Select a specification" />
                       </SelectTrigger>
                       <SelectContent>
-                        {placeholderCategorySpecs[selectedCategory]?.map(
-                          (spec, index) => (
-                            <SelectItem key={index} value={spec}>
-                              {spec}
-                            </SelectItem>
-                          )
-                        )}
+                        {categorySpecs.map((spec, index) => (
+                          <SelectItem key={index} value={spec}>
+                            {spec}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -265,34 +299,21 @@ export default function AddSpecifications({
               {fields.map((spec, index) => (
                 <li
                   key={spec.id}
-                  className="flex items-center justify-between p-3 bg-secondary rounded-md">
-                  <div>
-                    <Badge variant="outline" className="mb-1">
-                      {categories.find((c) => c.id === spec.category_id)?.name}
-                    </Badge>
-                    <p className="font-medium">
-                      {spec.specification_name}: {spec.specification_value}
-                    </p>
-                  </div>
+                  className="flex items-center justify-between p-2 border rounded">
+                  <span>
+                    {spec.specification_name}: {spec.specification_value}
+                  </span>
                   <Button
-                    type="button"
                     variant="destructive"
                     size="icon"
                     onClick={() => remove(index)}>
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Remove Spec</span>
+                    <Minus className="h-4 w-4" />
                   </Button>
                 </li>
               ))}
             </ul>
           ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>No specifications added</AlertTitle>
-              <AlertDescription>
-                Specifications will be listed here.
-              </AlertDescription>
-            </Alert>
+            <p>No specifications added yet.</p>
           )}
         </div>
       </div>

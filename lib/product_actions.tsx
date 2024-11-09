@@ -251,35 +251,28 @@ export async function createSupplier(formData: FormData, productId: number) {
       supplier_location: string;
     }> = [];
 
-    // Get all the keys from FormData
+    // Get all keys from FormData
     const keys = Array.from(formData.keys());
 
-    // Loop through the keys to extract suppliers
+    // Loop through keys to extract suppliers
     keys.forEach((key) => {
       if (key.startsWith("suppliers[")) {
         const value = formData.get(key);
         if (value) {
-          // Parse supplier fields (assumes data is JSON serialized in each field)
           const supplier = JSON.parse(value.toString());
           suppliersArray.push(supplier);
         }
       }
     });
 
-    console.log("Suppliers Array:", suppliersArray);
-
-    // Check if suppliersArray is empty
-    if (!suppliersArray || suppliersArray.length === 0) {
+    if (suppliersArray.length === 0) {
       return NextResponse.json({
         success: false,
         message: "No suppliers provided",
       });
     }
 
-    // Process each supplier in suppliersArray
     return dbOperation(async (connection) => {
-      let supplierId: number;
-
       for (const supplierData of suppliersArray) {
         const {
           supplier_name,
@@ -294,6 +287,8 @@ export async function createSupplier(formData: FormData, productId: number) {
           [supplier_name]
         );
 
+        let supplierId;
+
         if (existingSupplier.length > 0) {
           supplierId = existingSupplier[0].supplier_id;
           console.log(
@@ -301,7 +296,7 @@ export async function createSupplier(formData: FormData, productId: number) {
           );
         } else {
           // Insert new supplier
-          const [result]: [any, any] = await connection.query(
+          const [result] = await connection.query(
             "INSERT INTO suppliers (supplier_name, supplier_email, supplier_phone_number, supplier_location, created_by, updated_by) VALUES (?, ?, ?, ?, null, null)",
             [
               supplier_name,
@@ -310,13 +305,13 @@ export async function createSupplier(formData: FormData, productId: number) {
               supplier_location,
             ]
           );
-          supplierId = result.insertId; // Get the inserted supplier ID
+          supplierId = result.insertId;
           console.log(
             `Inserted new supplier: ${supplier_name} with ID: ${supplierId}`
           );
         }
 
-        // Insert into product_supplier table for mapping
+        // Map product to supplier, directly or by calling createProductSupplierMapping
         await connection.query(
           "INSERT IGNORE INTO product_suppliers (product_id, supplier_id) VALUES (?, ?)",
           [productId, supplierId]
@@ -518,18 +513,6 @@ export async function createProductTags(formData: FormData, productId: number) {
     );
   }
 }
-
-// Define validation schema for input
-const ProductSpecificationSchema = z.object({
-  productId: z.number().positive(),
-  categoryId: z.number().positive(), // New field to check against category specifications
-  specifications: z.array(
-    z.object({
-      specification_name: z.string().min(1), // Ensure specification name is not empty
-      specification_value: z.string().min(1), // Ensure specification value is not empty
-    })
-  ),
-});
 
 export async function createProductSpecifications(
   formData: FormData,

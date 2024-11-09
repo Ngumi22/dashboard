@@ -278,7 +278,51 @@ export async function getUniqueSuppliers() {
     const result = { supplier };
     return result;
   } catch (error) {
-    console.error("Error fetching filtered products:", error);
+    console.error("Error fetching filtered suppliers:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getCategorySpecs(categoryName: string) {
+  const connection = await getConnection();
+  try {
+    // Query to fetch category and its specifications
+    const [result] = await connection.query<RowDataPacket[]>(
+      `
+      SELECT
+        c.category_name,
+        CONCAT(
+          '[',
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'category_id', c.category_id,
+              'specification_name', s.specification_name
+            ) ORDER BY s.specification_name
+          ),
+          ']'
+        ) AS catSpecs
+      FROM categories c
+      JOIN category_specifications cs ON c.category_id = cs.category_id
+      JOIN specifications s ON cs.specification_id = s.specification_id
+      WHERE c.category_name = ?
+      GROUP BY c.category_id
+    `,
+      [categoryName]
+    );
+
+    // Ensure result is an array and has at least one element
+    if (Array.isArray(result) && result.length > 0) {
+      return {
+        category_name: result[0].category_name, // Access category_name safely
+        catSpecs: JSON.parse(result[0].catSpecs), // Parse the JSON string into an object
+      };
+    } else {
+      return null; // If no matching category is found
+    }
+  } catch (error) {
+    console.error("Error fetching catSpecs:", error);
     throw error;
   } finally {
     connection.release();
