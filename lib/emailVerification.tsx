@@ -5,6 +5,14 @@ import VerifyEmail from "./templates/email";
 export async function sendVerificationEmail(email: string, token: string) {
   const { EMAIL_USER, EMAIL_PASS } = process.env;
 
+  // Check if required environment variables are set
+  if (!EMAIL_USER || !EMAIL_PASS || !process.env.BASE_URL) {
+    console.error("Missing required environment variables");
+    return;
+  }
+
+  console.log("Using email:", EMAIL_USER);
+
   // Create nodemailer transport
   const transport = nodemailer.createTransport({
     service: "gmail",
@@ -17,6 +25,7 @@ export async function sendVerificationEmail(email: string, token: string) {
   try {
     // Verify SMTP connection
     await transport.verify();
+    console.log("SMTP connection successful");
   } catch (error) {
     console.error("SMTP connection error:", error);
     return;
@@ -33,7 +42,7 @@ export async function sendVerificationEmail(email: string, token: string) {
       from: EMAIL_USER,
       to: email,
       subject: "Please verify your email",
-      html: emailHtml, // Awaited the promise here
+      html: emailHtml,
     };
 
     // Send the email
