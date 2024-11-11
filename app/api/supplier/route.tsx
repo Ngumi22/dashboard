@@ -1,7 +1,7 @@
 import { getUniqueSuppliers } from "@/lib/Data/product";
 import { NextResponse } from "next/server";
 
-export async function GET(res: NextResponse) {
+export async function handler(res: NextResponse) {
   try {
     const suppliers = await getUniqueSuppliers();
 
