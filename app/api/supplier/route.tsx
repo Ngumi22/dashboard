@@ -1,18 +1,23 @@
 import { getUniqueSuppliers } from "@/lib/Data/product";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export async function handler(res: NextResponse) {
+export async function GET(request: NextRequest) {
   try {
     const suppliers = await getUniqueSuppliers();
 
-    const res = NextResponse.json({
+    const response = NextResponse.json({
       suppliers,
     });
 
-    res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate");
+    response.headers.set(
+      "Cache-Control",
+      "s-maxage=3600, stale-while-revalidate"
+    );
 
-    return res;
+    return response;
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    return NextResponse.json({ error: "An error occurred" }, { status: 500 });
   }
 }
