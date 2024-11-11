@@ -1,20 +1,17 @@
 import { getUniqueSuppliers } from "@/lib/Data/product";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(res: NextResponse) {
   try {
     const suppliers = await getUniqueSuppliers();
 
-    const response = NextResponse.json({
+    const res = NextResponse.json({
       suppliers,
     });
 
-    response.headers.set(
-      "Cache-Control",
-      "s-maxage=3600, stale-while-revalidate"
-    );
+    res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate");
 
-    return response;
+    return res;
   } catch (error) {
     console.log(error);
   }
