@@ -328,3 +328,26 @@ export async function getCategorySpecs(categoryName: string) {
     connection.release();
   }
 }
+
+// Define the Category type
+type Category = {
+  category_name: string;
+  category_image: Buffer | null;
+  category_description: string;
+};
+
+export async function getCategory(): Promise<Category[]> {
+  const connection = await getConnection();
+  try {
+    const [categories] = await connection.query<RowDataPacket[]>(
+      "SELECT category_name, category_image, category_description FROM categories"
+    );
+
+    return categories as Category[];
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  } finally {
+    connection.release();
+  }
+}

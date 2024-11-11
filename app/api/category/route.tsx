@@ -1,20 +1,7 @@
-import { getConnection } from "@/lib/database";
-import { FieldPacket, RowDataPacket } from "mysql2/promise";
+import { getCategory } from "@/lib/Data/product";
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 
-// Define the Category type with a correct property name
-type Category = {
-  category_name: string;
-  category_image: Buffer | null; // Keep as Buffer, we will convert to Base64 later
-  category_description: string;
-};
-
-/**
- * Compresses and converts an image buffer to a smaller Base64-encoded string.
- * @param buffer - The image buffer to compress and encode.
- * @returns A Base64 string of the compressed image, or null if the buffer is null.
- */
 async function compressAndEncodeBase64(
   buffer: Buffer | null
 ): Promise<string | null> {
@@ -33,21 +20,20 @@ async function compressAndEncodeBase64(
   }
 }
 
+/**
+ * Handles GET requests to fetch and format categories.
+ * @param req - The incoming NextRequest object.
+ * @returns The response containing formatted category data.
+ */
 export async function GET(req: NextRequest) {
-  const connection = await getConnection();
-
   try {
-    // Correctly type the query result
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-      "SELECT * FROM categories"
-    );
+    const cats = await getCategory();
 
     // Compress and convert image Buffers to Base64 strings for client-side compatibility
     const formattedCategories = await Promise.all(
-      rows.map(async (cat) => ({
+      cats.map(async (cat) => ({
         category_name: cat.category_name,
         category_description: cat.category_description,
-        // Use the correct property name here
         category_image: await compressAndEncodeBase64(cat.category_image),
       }))
     );
