@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { decrypt } from "./lib/sessions";
 
-// Define allowed origins for CORS in production
+// Define allowed origins for CORS
 const allowedOrigins = ["https://bernzz-front.vercel.app"];
 
 // Specify protected and public routes
@@ -21,11 +21,11 @@ export default async function middleware(req: NextRequest) {
   );
 
   // Handle CORS for all routes, particularly API routes
-  const origin = req.headers.get("origin") ?? ""; // Avoid null by defaulting to an empty string
+  const origin = req.headers.get("origin") || ""; // Default to empty string if no origin
   const response = NextResponse.next();
 
   if (process.env.NODE_ENV === "development") {
-    // Allow all origins in development for CORS
+    // Allow all origins in development
     response.headers.set("Access-Control-Allow-Origin", "*");
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     response.headers.set(
@@ -39,7 +39,7 @@ export default async function middleware(req: NextRequest) {
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization"
     );
-  } else {
+  } else if (origin) {
     // Reject requests from disallowed origins in production
     console.log(`Origin "${origin}" not allowed by CORS policy`);
     return new NextResponse("Forbidden", { status: 403 });
@@ -47,10 +47,10 @@ export default async function middleware(req: NextRequest) {
 
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    return new Response(null, {
+    return new NextResponse(null, {
       status: 204,
       headers: {
-        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Origin": origin || "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
@@ -58,20 +58,14 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Check for session and redirect if needed
-  const cookie = cookies().get("session")?.value;
+  const sessionCookie = cookies().get("session")?.value;
   let session;
   try {
-    session = cookie ? await decrypt(cookie) : null;
+    session = sessionCookie ? await decrypt(sessionCookie) : null;
   } catch (error) {
     console.error("Error decrypting session:", error);
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
-
-  // Debugging logs to track the session and path
-  console.log("Session:", session);
-  console.log("Path:", path);
-  console.log("isProtectedRoute:", isProtectedRoute);
-  console.log("isPublicRoute:", isPublicRoute);
 
   // Redirect based on session state and route type
   if (isProtectedRoute && !session?.userId) {
