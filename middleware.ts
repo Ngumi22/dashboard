@@ -1,31 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { decrypt } from "./lib/sessions";
 
 // Define allowed origins for CORS
 const allowedOrigins = ["https://bernzz-front.vercel.app"];
 
-// Specify protected and public routes
-const protectedRoutes = ["/", "/dashboard", "/dashboard/:path*"];
+// Specify protected, public, and unprotected API routes
+const protectedRoutes = ["/", "/dashboard", "/dashboard/:path*", "/api/:path*"];
 const publicRoutes = ["/login", "/signup"];
+const unprotectedApiRoutes = [
+  "/api/products",
+  "/api/categories",
+  "/api/verify",
+];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Determine if the route is protected or public
+  // Determine if the route is protected, public, or an unprotected API route
   const isProtectedRoute = protectedRoutes.some((route) =>
     new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
   );
   const isPublicRoute = publicRoutes.some((route) =>
     new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
   );
+  const isUnprotectedApiRoute = unprotectedApiRoutes.some((route) =>
+    new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
+  );
 
   // Handle CORS for all routes, particularly API routes
-  const origin = req.headers.get("origin") || ""; // Default to empty string if no origin
+  const origin = req.headers.get("origin") || "";
   const response = NextResponse.next();
 
   if (process.env.NODE_ENV === "development") {
-    // Allow all origins in development
     response.headers.set("Access-Control-Allow-Origin", "*");
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     response.headers.set(
@@ -40,7 +46,6 @@ export default async function middleware(req: NextRequest) {
       "Content-Type, Authorization"
     );
   } else if (origin) {
-    // Reject requests from disallowed origins in production
     console.log(`Origin "${origin}" not allowed by CORS policy`);
     return new NextResponse("Forbidden", { status: 403 });
   }
@@ -57,8 +62,8 @@ export default async function middleware(req: NextRequest) {
     });
   }
 
-  // Check for session and redirect if needed
-  const sessionCookie = cookies().get("session")?.value;
+  // Check for session and handle protected routes
+  const sessionCookie = req.cookies.get("session")?.value;
   let session;
   try {
     session = sessionCookie ? await decrypt(sessionCookie) : null;
@@ -67,10 +72,15 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Redirect based on session state and route type
-  if (isProtectedRoute && !session?.userId) {
+  // Redirect or return 401 for protected routes, except for unprotected API routes
+  if (isProtectedRoute && !isUnprotectedApiRoute && !session?.userId) {
+    if (path.startsWith("/api")) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
+
+  // Redirect logged-in users accessing public routes to the dashboard
   if (
     isPublicRoute &&
     session?.userId &&

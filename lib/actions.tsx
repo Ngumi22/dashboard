@@ -5,7 +5,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { signUpSchema, validateFiles } from "./utils";
 import { getConnection } from "./db";
 import bcrypt from "bcryptjs";
-import { createSession, deleteSession } from "./sessions";
+import {
+  createSession,
+  createVerificationToken,
+  deleteSession,
+} from "./sessions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import validator from "validator";
@@ -651,7 +655,6 @@ export async function signUp(
   formData: FormData
 ): Promise<FormState> {
   const connection = await getConnection();
-
   const validatedFields = signUpSchema.safeParse({
     first_name: formData.get("first_name")?.toString() ?? "",
     last_name: formData.get("last_name")?.toString() ?? "",
@@ -662,9 +665,7 @@ export async function signUp(
   });
 
   if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
+    return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
   const { first_name, last_name, role, email, password } = validatedFields.data;
@@ -672,54 +673,34 @@ export async function signUp(
   try {
     await connection.beginTransaction();
 
-    await setupTables();
-
-    const [existingUserRows]: [RowDataPacket[], FieldPacket[]] =
-      await connection.query("SELECT * FROM users WHERE email = ?", [email]);
-
+    const [existingUserRows] = await connection.query<RowDataPacket[]>(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
     if (existingUserRows.length > 0) {
       await connection.rollback();
-      return {
-        errors: { email: ["Email is already in use."] },
-      };
-    }
-
-    const [adminCountResult]: [RowDataPacket[], FieldPacket[]] =
-      await connection.query(
-        "SELECT COUNT(*) as adminCount FROM users WHERE role = 'Admin'"
-      );
-    const adminCount = adminCountResult[0].adminCount;
-
-    if (role === "Admin" && adminCount >= 2) {
-      await connection.rollback();
-      return { errors: { role: ["Maximum admin accounts reached."] } };
+      return { errors: { email: ["Email is already in use."] } };
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const [userResult]: [RowDataPacket[], FieldPacket[]] =
-      await connection.query(
-        `INSERT INTO users (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)`,
-        [first_name, last_name, role, email, hashedPassword]
-      );
+    const [userResult] = await connection.query<RowDataPacket[]>(
+      "INSERT INTO users (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)",
+      [first_name, last_name, role, email, hashedPassword]
+    );
 
     const userId = (userResult as any).insertId;
+    const verificationToken = await createVerificationToken(userId);
 
-    const sessionToken = await createSession(userId.toString());
-
-    await sendVerificationEmail(email, sessionToken);
-
+    await sendVerificationEmail(email, verificationToken);
     await connection.commit();
 
     return {
       success: true,
       message:
         "User signed up successfully. A verification email has been sent.",
-      userId,
     };
-  } catch (error: any) {
+  } catch (error) {
     await connection.rollback();
-    console.error("Sign-up error:", error);
     return {
       errors: {
         server: ["An error occurred while signing up. Please try again."],

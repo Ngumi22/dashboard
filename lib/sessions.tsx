@@ -7,17 +7,19 @@ import { redirect } from "next/navigation";
 const secretKey = process.env.JWT_SECRET;
 const key = new TextEncoder().encode(secretKey);
 
-export async function encrypt(payload: SessionPayload) {
+// Encrypt payload with an expiration
+export async function encrypt(payload: SessionPayload, expiresIn: string) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("12hr")
+    .setExpirationTime(expiresIn)
     .sign(key);
 }
 
-export async function decrypt(session: string | undefined = "") {
+// Decrypt the token
+export async function decrypt(token: string | undefined = "") {
   try {
-    const { payload } = await jwtVerify(session, key, {
+    const { payload } = await jwtVerify(token, key, {
       algorithms: ["HS256"],
     });
     return payload;
@@ -26,48 +28,37 @@ export async function decrypt(session: string | undefined = "") {
   }
 }
 
+// Create session token
 export async function createSession(userId: string) {
-  const expiresAt = new Date(Date.now() + 12 * 12 * 60 * 60 * 1000);
-  const session = await encrypt({ userId, expiresAt });
+  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12-hour expiration
+  const sessionToken = await encrypt({ userId, expiresAt }, "12hr");
 
-  cookies().set("session", session, {
+  cookies().set("session", sessionToken, {
     httpOnly: true,
     secure: true,
-    expires: expiresAt,
     sameSite: "lax",
     path: "/",
   });
 
-  return session;
+  return sessionToken;
 }
 
+// Verify session
 export async function verifySession() {
   const cookie = cookies().get("session")?.value;
   const session = await decrypt(cookie);
 
-  if (!session?.userId) {
+  if (!session || !session.userId) {
     redirect("/login");
   }
 
   return { isAuth: true, userId: Number(session.userId) };
 }
 
-export async function updateSession() {
-  const session = cookies().get("session")?.value;
-  const payload = await decrypt(session);
-
-  if (!session || !payload) {
-    return null;
-  }
-
-  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  cookies().set("session", session, {
-    httpOnly: true,
-    secure: true,
-    expires: expires,
-    sameSite: "lax",
-    path: "/",
-  });
+// Create a verification token
+export async function createVerificationToken(userId: string) {
+  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2-hour expiration
+  return encrypt({ userId, expiresAt }, "2h");
 }
 
 export function deleteSession() {
