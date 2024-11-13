@@ -7,6 +7,7 @@ import { z } from "zod";
 import { dbsetupTables } from "./MysqlTables";
 import { schema } from "./formSchema";
 import { NewProductSchema } from "./ProductSchema";
+import { CategorySchema } from "./ZodSchemas/categorySchema";
 
 // Custom error class for better error handling
 class CustomError extends Error {
@@ -77,7 +78,7 @@ export async function addCategory(formData: FormData) {
 
   try {
     // Validate the input data (excluding image for now)
-    const validatedData = NewProductSchema.pick({
+    const validatedData = CategorySchema.pick({
       category_name: true,
       category_description: true,
     }).parse(categoryData);

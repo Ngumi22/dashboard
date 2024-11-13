@@ -456,7 +456,7 @@ export async function dbsetupTables() {
     console.error("Error creating tables:", err);
     await connection.rollback();
   } finally {
-    await connection.release();
+    connection.release();
   }
 }
 

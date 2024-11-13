@@ -1,174 +1,120 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { ToastAction } from "@/components/ui/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ProductData, CategoryData } from "@/lib/definitions";
+import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import Image from "next/image";
-
+import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import CategoryForm from "@/components/Categories/create";
 
-export default function CategoryList() {
-  const [categories, setCategories] = useState<CategoryData[]>([]);
-  const [productsByCategory, setProductsByCategory] = useState<{
-    [key: string]: ProductData[];
-  }>({});
-  const [loading, setLoading] = useState<boolean>(true);
+interface Category {
+  category_id: number;
+  category_name: string;
+  category_image: string;
+  category_description: string;
+}
+
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const fetchedCategories = useRef(new Set<string>());
-
-  const fetchProducts = useCallback(
-    async (categoryName: string) => {
-      if (fetchedCategories.current.has(categoryName)) {
-        return;
-      }
-      fetchedCategories.current.add(categoryName);
-
-      try {
-        const res = await fetch(`/api/productss?category=${categoryName}`);
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch products");
-        }
-
-        const data = await res.json();
-
-        if (data.length === 0) {
-          await fetch(`/api/productss?categories=${categoryName}`, {
-            method: "DELETE",
-          });
-          setCategories((prevCategories) =>
-            prevCategories.filter((category) => category.name !== categoryName)
-          );
-        } else {
-          setProductsByCategory((prev) => ({ ...prev, [categoryName]: data }));
-        }
-      } catch (err) {
-        console.error(err);
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage,
-          action: <ToastAction altText="Try again">Try again</ToastAction>,
-        });
-      }
-    },
-    [toast]
-  );
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCategories = async () => {
       try {
-        const resCategories = await fetch("/api/category");
-
-        if (!resCategories.ok) {
+        setIsLoading(true);
+        const response = await fetch("http://localhost:3000/api/category");
+        if (!response.ok) {
           throw new Error("Failed to fetch categories");
         }
+        const data = await response.json();
 
-        const categoriesData = await resCategories.json();
-        setCategories(categoriesData);
-
-        categoriesData.forEach((category: CategoryData) => {
-          fetchProducts(category.name);
-        });
-      } catch (err) {
-        console.error(err);
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage,
-          action: <ToastAction altText="Try again">Try again</ToastAction>,
-        });
+        setCategories(data.categories);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+        setError("Failed to load categories. Please try again later.");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, [toast, fetchProducts]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+    fetchCategories();
+  }, []);
 
   return (
-    <section className="py-8 sm:px-8 flex min-h-screen w-full flex-col bg-muted/40">
-      <Tabs defaultValue={categories[0]?.name}>
-        <TabsList className="grid grid-flow-col">
-          {categories.map((category) => (
-            <TabsTrigger key={category.id} value={category.name}>
-              {category.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {categories.map((category) => (
-          <TabsContent key={category.id} value={category.name}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Image</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Stock</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="container">
-                {productsByCategory[category.name]?.length > 0 ? (
-                  productsByCategory[category.name].map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <Image
-                          loading="lazy"
-                          className="h-14 w-14"
-                          src={`data:image/jpeg;base64,${product.images.main}`}
-                          alt={product.name}
-                          height={100}
-                          width={100}
-                        />
-                      </TableCell>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell>{product.status}</TableCell>
-                      <TableCell>{product.price}</TableCell>
-                      <TableCell>{product.brand}</TableCell>
-                      <TableCell>{product.quantity}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      No products found in this category.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TabsContent>
-        ))}
-      </Tabs>
-    </section>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Categories</h1>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Add Category
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[40rem]">
+            <DialogHeader>
+              <DialogTitle>Add New Category</DialogTitle>
+              <DialogDescription>
+                Create a new category here. Click save when you're done.
+              </DialogDescription>
+            </DialogHeader>
+            <CategoryForm />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center">Loading categories...</div>
+      ) : error ? (
+        <div className="text-center text-red-500">{error}</div>
+      ) : categories.length === 0 ? (
+        <div className="text-center">
+          No categories found. Add one to get started!
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categories.map((category, category_id) => {
+            return (
+              <Card key={category_id} className="overflow-hidden">
+                <CardHeader className="p-0">
+                  <Image
+                    src={`data:image/jpeg;base64,${category.category_image}`}
+                    alt={category.category_name}
+                    width={400}
+                    height={200}
+                    className="w-full h-48 object-cover"
+                  />
+                </CardHeader>
+                <CardContent className="p-4">
+                  <CardTitle>{category.category_name}</CardTitle>
+                  <p className="text-sm text-gray-500 mt-2">
+                    {category.category_description}
+                  </p>
+                </CardContent>
+                <CardFooter className="bg-gray-50 p-4">
+                  <Button variant="outline" className="w-full">
+                    View Products
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

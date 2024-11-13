@@ -1,5 +1,5 @@
 import { RowDataPacket } from "mysql2/promise";
-import { getCache, setCache } from "../cache";
+import { cache, getCache, setCache } from "../cache";
 import { getConnection } from "../database";
 import { Buffer } from "buffer"; // Import buffer for better type consistency
 
@@ -125,9 +125,6 @@ export async function fetchFilteredProductsFromDb(
     const queryConditions: string[] = [];
     const queryParams: (string | number)[] = [];
 
-    if (filter.productId)
-      queryConditions.push("p.product_id = ?"),
-        queryParams.push(filter.productId);
     if (filter.minPrice)
       queryConditions.push("p.product_price >= ?"),
         queryParams.push(filter.minPrice);
@@ -214,16 +211,66 @@ export async function fetchFilteredProductsFromDb(
   }
 }
 
-export async function getUniqueCategories() {
+export async function fetchProductByIdFromDb(
+  productId: string
+): Promise<Product | null> {
+  // Define cache key and TTL (time-to-live)
+  const cacheKey = `product:${productId}`;
+  const ttl = 300; // Cache for 5 minutes
+
+  // Check if the product is already cached
+  const cachedProduct = getCache(cacheKey);
+  if (cachedProduct) {
+    return cachedProduct as Product;
+  }
+
   const connection = await getConnection();
+
   try {
-    const [categories] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT c.category_name FROM categories c`);
-    const uniqueCategories = categories.map((cat) => cat.category_name);
-    const result = { uniqueCategories };
-    return result;
+    const query = `
+      SELECT
+        p.product_id,
+        p.product_name AS name,
+        p.product_sku AS sku,
+        p.product_price AS price,
+        p.product_discount AS discount,
+        p.product_quantity AS quantity,
+        c.category_name AS category,
+        p.product_status AS status,
+        p.product_description AS description,
+        b.brand_name AS brand,
+        p.created_at AS createdAt,
+        p.updated_at AS updatedAt,
+        MAX(pi.main_image) AS mainImage,
+        MAX(pi.thumbnail_image1) AS thumbnail1,
+        MAX(pi.thumbnail_image2) AS thumbnail2,
+        MAX(pi.thumbnail_image3) AS thumbnail3,
+        MAX(pi.thumbnail_image4) AS thumbnail4,
+        MAX(pi.thumbnail_image5) AS thumbnail5,
+        COALESCE(GROUP_CONCAT(DISTINCT t.tag_name SEPARATOR ','), '') AS tags
+      FROM products p
+      LEFT JOIN product_images pi ON p.product_id = pi.product_id
+      LEFT JOIN categories c ON p.category_id = c.category_id
+      LEFT JOIN brands b ON p.brand_id = b.brand_id
+      LEFT JOIN product_tags pt ON p.product_id = pt.product_id
+      LEFT JOIN tags t ON pt.tag_id = t.tag_id
+      WHERE p.product_id = ?
+      GROUP BY p.product_id
+    `;
+
+    const [rows] = await connection.query<RowDataPacket[]>(query, [productId]);
+    if (rows.length === 0) {
+      return null; // No product found
+    }
+
+    const product = mapProductRow(rows[0] as ProductRow);
+
+    // Cache the result for future requests
+    setCache(cacheKey, product, { ttl });
+
+    return product;
   } catch (error) {
-    console.error("Error fetching filtered products:", error);
+    console.error("Error fetching product by ID:", error);
     throw error;
   } finally {
     connection.release();
@@ -323,29 +370,6 @@ export async function getCategorySpecs(categoryName: string) {
     }
   } catch (error) {
     console.error("Error fetching catSpecs:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-// Define the Category type
-type Category = {
-  category_name: string;
-  category_image: Buffer | null;
-  category_description: string;
-};
-
-export async function getCategory(): Promise<Category[]> {
-  const connection = await getConnection();
-  try {
-    const [categories] = await connection.query<RowDataPacket[]>(
-      "SELECT category_name, category_image, category_description FROM categories"
-    );
-
-    return categories as Category[];
-  } catch (error) {
-    console.error("Error fetching categories:", error);
     throw error;
   } finally {
     connection.release();

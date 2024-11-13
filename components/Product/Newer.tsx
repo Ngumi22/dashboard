@@ -63,9 +63,7 @@ export function ProductsForm() {
       main_image: undefined,
       brand_name: "",
       brand_image: undefined,
-      category_name: "",
-      category_description: "",
-      category_image: undefined,
+
       suppliers: [],
       specifications: [],
       ...(state?.fields ?? {}),
@@ -74,7 +72,6 @@ export function ProductsForm() {
 
   const { register } = form;
   const brandImageRef = form.register("brand_image");
-  const categoryImageRef = form.register("category_image");
   const mainImageRef = form.register("main_image");
 
   const { fields, append, remove } = useFieldArray({
@@ -437,69 +434,7 @@ export function ProductsForm() {
                   )}
                 />
               </div>
-              <div className="border p-4 rounded-md space-y-2 shadow">
-                <h2>Category</h2>
-                <div className="grid grid-flow-col gap-3">
-                  <FormField
-                    control={form.control}
-                    name="category_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input placeholder="Enter category name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="category_description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter category description"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="w-56">
-                  <FormField
-                    control={form.control}
-                    name="category_image"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category Image</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="file"
-                            {...categoryImageRef}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleImageChange(setCategoryImagePreview)(e);
-                            }}
-                          />
-                        </FormControl>
-                        {categoryImagePreview && (
-                          <Image
-                            src={categoryImagePreview}
-                            alt="Category Preview"
-                            className="mt-2 w-32 h-32 object-cover rounded"
-                            height={100}
-                            width={100}
-                          />
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+
               <div className="border p-4 rounded-md space-y-2 my-4 shadow">
                 <h2>Products Tags</h2>
                 {fields.map((field, index) => (
