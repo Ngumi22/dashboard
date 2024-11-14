@@ -4,6 +4,7 @@ import sharp from "sharp";
 
 // Define the Category type
 type Category = {
+  category_id: string;
   category_name: string;
   category_image: Buffer | null;
   category_description: string;
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
     // Compress and convert image Buffers to Base64 strings for client-side compatibility
     const formattedCategories = await Promise.all(
       cats.map(async (cat: Category) => ({
+        category_id: cat.category_id,
         category_name: cat.category_name,
         category_description: cat.category_description,
         category_image: await compressAndEncodeBase64(cat.category_image),

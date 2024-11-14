@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFormState } from "react-dom";
 import { Plus, Trash2, X } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,14 +36,21 @@ const AddSuppliers = dynamic(() => import("./AddSuppliers"), {
 
 type FormValues = z.infer<typeof NewProductSchema>;
 
+interface Category {
+  category_id: string;
+  category_name: string;
+  category_image: string;
+  category_description: string;
+}
+
 export function ProductsForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useFormState(SubmitAction, { message: "" });
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [thumbnailsPreview, setThumbnailsPreview] = useState<string[]>([]);
-  const [categoryImagePreview, setCategoryImagePreview] = useState<
-    string | null
-  >(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [brandImagePreview, setBrandImagePreview] = useState<string | null>(
     null
   );
@@ -63,7 +70,7 @@ export function ProductsForm() {
       main_image: undefined,
       brand_name: "",
       brand_image: undefined,
-
+      category_id: 0,
       suppliers: [],
       specifications: [],
       ...(state?.fields ?? {}),
@@ -107,6 +114,28 @@ export function ProductsForm() {
       form.getValues("thumbnails").filter((_, i) => i !== index)
     );
   };
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("http://localhost:3000/api/category");
+        if (!response.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+        const data = await response.json();
+
+        setCategories(data.categories);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+        setError("Failed to load categories. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -358,6 +387,46 @@ export function ProductsForm() {
                     )}
                   />
                 </div>
+              </div>
+
+              <div className="border p-4 rounded-md shadow">
+                <FormField
+                  control={form.control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        value={field.value ? String(field.value) : ""}
+                        onValueChange={(value) =>
+                          field.onChange(Number(value))
+                        }>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category">
+                              {/* Display selected category name if available */}
+                              {categories.find(
+                                (category) =>
+                                  Number(category.category_id) === field.value
+                              )?.category_name || "Select a category"}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem
+                              key={category.category_id}
+                              value={String(category.category_id)}>
+                              {category.category_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="grid grid-flow-col gap-3 border p-4 rounded-md shadow">

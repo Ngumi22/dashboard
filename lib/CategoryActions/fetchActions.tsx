@@ -4,6 +4,7 @@ import { getConnection } from "../database";
 
 // Define the Category type
 type Category = {
+  category_id: string;
   category_name: string;
   category_image: Buffer | null;
   category_description: string;
@@ -26,11 +27,12 @@ export async function getUniqueCategories() {
   try {
     // Fetch all unique categories with name, image, and description
     const [categories] = await connection.query<RowDataPacket[]>(
-      `SELECT category_name, category_image, category_description FROM categories`
+      `SELECT category_id, category_name, category_image, category_description FROM categories`
     );
 
     // Map the result to include the full category details
     const uniqueCategories: Category[] = categories.map((cat) => ({
+      category_id: cat.category_id,
       category_name: cat.category_name,
       category_image: cat.category_image,
       category_description: cat.category_description,
