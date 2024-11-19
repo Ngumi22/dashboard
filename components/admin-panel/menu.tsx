@@ -60,7 +60,7 @@ export function Menu({ isOpen }: MenuProps) {
                   </Tooltip>
                 </TooltipProvider>
               ) : (
-                <p className="pb-2">Toollll</p>
+                <p className="pb-2">Tool</p>
               )}
               {menus.map(
                 ({ href, label, icon: Icon, active, submenus }, index) =>

@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { z } from "zod";
-
 import {
   Select,
   SelectContent,
@@ -30,6 +29,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { SubmitAction } from "@/lib/productSubmit";
 import { Textarea } from "../ui/textarea";
+
 const AddSuppliers = dynamic(() => import("./AddSuppliers"), {
   ssr: false,
 });
@@ -43,7 +43,7 @@ interface Category {
   category_description: string;
 }
 
-export function ProductsForm() {
+export default function ProductsForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useFormState(SubmitAction, { message: "" });
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
@@ -70,14 +70,14 @@ export function ProductsForm() {
       main_image: undefined,
       brand_name: "",
       brand_image: undefined,
-      category_id: 0,
+      category_id: "",
       suppliers: [],
       specifications: [],
       ...(state?.fields ?? {}),
     },
   });
 
-  const { register } = form;
+  const { register, watch, setValue } = form;
   const brandImageRef = form.register("brand_image");
   const mainImageRef = form.register("main_image");
 
@@ -85,6 +85,8 @@ export function ProductsForm() {
     control: form.control,
     name: "tags",
   });
+
+  const selectedCategory = watch("category_id");
 
   const handleImageChange =
     (setter: React.Dispatch<React.SetStateAction<string | null>>) =>
@@ -119,12 +121,11 @@ export function ProductsForm() {
     const fetchCategories = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("http://localhost:3000/api/category");
+        const response = await fetch("/api/category");
         if (!response.ok) {
           throw new Error("Failed to fetch categories");
         }
         const data = await response.json();
-
         setCategories(data.categories);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
@@ -137,10 +138,18 @@ export function ProductsForm() {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    console.log("Category changed to:", selectedCategory);
+  }, [selectedCategory]);
+
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     form.handleSubmit((data: any) => {
+      console.log("Submitting form with category_id:", data.category_id);
       const formData = new FormData(formRef.current!);
+      if (data.category_id && typeof data.category_id === "string") {
+        formData.append("category_id", data.category_id);
+      }
       Object.keys(data).forEach((key) => {
         if (key !== "thumbnails") {
           formData.append(key, data[key]);
@@ -161,11 +170,9 @@ export function ProductsForm() {
           formData.append(`specifications[${index}]`, JSON.stringify(spec));
         });
       }
-
-      // Append tags if present
       if (data.tags) {
         data.tags.forEach((tag: any, index: number) => {
-          formData.append(`tags[${index}]`, JSON.stringify(tag)); // Stringify each tag object
+          formData.append(`tags[${index}]`, JSON.stringify(tag));
         });
       }
 
@@ -207,6 +214,13 @@ export function ProductsForm() {
     [form]
   );
 
+  const handleCategoryChange = useCallback(
+    (categoryId: string) => {
+      setValue("category_id", categoryId);
+    },
+    [setValue]
+  );
+
   return (
     <section className="m-2">
       <h2 className="text-lg font-semibold my-4">Add a New Product</h2>
@@ -233,6 +247,7 @@ export function ProductsForm() {
           onSubmit={onSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
+              {/* Product Information */}
               <div className="border p-4 rounded-md space-y-3 shadow">
                 <h2>Product Information</h2>
                 <div className="grid grid-flow-col gap-2">
@@ -278,6 +293,39 @@ export function ProductsForm() {
                 />
               </div>
 
+              {/* Category Selection */}
+              <div className="border p-4 rounded-md shadow">
+                <h2 className="text-lg font-semibold">Category</h2>
+                <FormField
+                  control={form.control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem
+                              key={category.category_id}
+                              value={category.category_id}>
+                              {category.category_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Pricing */}
               <div className="border p-4 rounded-md shadow">
                 <h2 className="text-lg font-semibold">Pricing</h2>
                 <div className="grid grid-flow-col gap-4">
@@ -342,6 +390,7 @@ export function ProductsForm() {
                 </div>
               </div>
 
+              {/* Brand */}
               <div className="border p-4 rounded-md shadow">
                 <h2>Brand</h2>
                 <div className="grid grid-flow-col gap-3">
@@ -389,46 +438,7 @@ export function ProductsForm() {
                 </div>
               </div>
 
-              <div className="border p-4 rounded-md shadow">
-                <FormField
-                  control={form.control}
-                  name="category_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select
-                        value={field.value ? String(field.value) : ""}
-                        onValueChange={(value) =>
-                          field.onChange(Number(value))
-                        }>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category">
-                              {/* Display selected category name if available */}
-                              {categories.find(
-                                (category) =>
-                                  Number(category.category_id) === field.value
-                              )?.category_name || "Select a category"}
-                            </SelectValue>
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem
-                              key={category.category_id}
-                              value={String(category.category_id)}>
-                              {category.category_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
+              {/* Images */}
               <div className="grid grid-flow-col gap-3 border p-4 rounded-md shadow">
                 <FormField
                   control={form.control}
@@ -504,6 +514,7 @@ export function ProductsForm() {
                 />
               </div>
 
+              {/* Tags */}
               <div className="border p-4 rounded-md space-y-2 my-4 shadow">
                 <h2>Products Tags</h2>
                 {fields.map((field, index) => (
@@ -537,6 +548,7 @@ export function ProductsForm() {
             </div>
 
             <div className="space-y-4">
+              {/* Product Status */}
               <div className="border p-4 rounded-md space-y-5 shadow">
                 <h2>Product Status</h2>
                 <FormField
@@ -564,9 +576,12 @@ export function ProductsForm() {
                 />
               </div>
 
+              {/* Specifications */}
               <AddSpecifications
                 onSpecificationsChange={handleSpecificationsChange}
               />
+
+              {/* Suppliers */}
               <AddSuppliers
                 onSuppliersChange={handleSuppliersChange}
                 initialSuppliers={form.watch("suppliers")}

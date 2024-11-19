@@ -19,6 +19,13 @@ import { z } from "zod";
 import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
 import Image from "next/image";
 import { CategorySubmitAction } from "@/lib/CategoryActions/postActions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function CategoryForm() {
   const [state, formAction] = useFormState(CategorySubmitAction, {
@@ -35,6 +42,7 @@ export default function CategoryForm() {
       category_name: "",
       category_description: "",
       category_image: undefined,
+      status: "active",
       ...(state?.fields ?? {}),
     },
   });
@@ -109,6 +117,30 @@ export default function CategoryForm() {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Select
+                    value={field.value} // Controlled value
+                    onValueChange={field.onChange} // Update form state
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="w-56">
             <FormField
               control={form.control}

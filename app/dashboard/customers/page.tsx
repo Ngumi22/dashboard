@@ -1,4 +1,4 @@
-import { ProductsForm } from "@/components/Product/Newer";
+import ProductsForm from "@/components/Product/Newer";
 
 export default function Customers() {
   return (

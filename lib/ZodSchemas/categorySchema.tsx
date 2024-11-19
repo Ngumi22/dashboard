@@ -8,6 +8,7 @@ export const CategorySchema = z.object({
     message:
       "category Description is required and must be at least 2 characters.",
   }),
+  status: z.enum(["active", "inactive"]),
   category_image: z
     .custom<FileList>()
     .transform((val) => {

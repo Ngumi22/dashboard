@@ -8,6 +8,7 @@ type Category = {
   category_name: string;
   category_image: Buffer | null;
   category_description: string;
+  status: "active" | "inactive";
 };
 
 async function compressAndEncodeBase64(
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
         category_id: cat.category_id,
         category_name: cat.category_name,
         category_description: cat.category_description,
+        status: cat.status,
         category_image: await compressAndEncodeBase64(cat.category_image),
       }))
     );

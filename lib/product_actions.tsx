@@ -1,11 +1,8 @@
 "use server";
-
-import { FieldPacket, ResultSetHeader } from "mysql2/promise";
 import { getConnection } from "./database";
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { z, ZodInvalidTypeIssue } from "zod";
 import { dbsetupTables } from "./MysqlTables";
-import { schema } from "./formSchema";
 import { NewProductSchema } from "./ProductSchema";
 import { CategorySchema } from "./ZodSchemas/categorySchema";
 
@@ -43,20 +40,6 @@ export async function fileToBuffer(file: File): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-// Helper functions for parsing form data
-function parseJsonField(formData: FormData, key: string): any {
-  const value = formData.get(key);
-  if (typeof value === "string") {
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      console.error(`Error parsing ${key}:`, error);
-      throw new Error(`Failed to parse ${key} data.`);
-    }
-  }
-  return undefined;
-}
-
 function parseNumberField(formData: FormData, key: string): number | undefined {
   const value = formData.get(key);
   if (typeof value === "string") {
@@ -74,6 +57,7 @@ export async function addCategory(formData: FormData) {
     category_name: formData.get("category_name"),
     category_description: formData.get("category_description"),
     category_image: formData.get("category_image"), // Get the image from formData
+    status: formData.get("status"),
   };
 
   try {
@@ -81,6 +65,7 @@ export async function addCategory(formData: FormData) {
     const validatedData = CategorySchema.pick({
       category_name: true,
       category_description: true,
+      status: true,
     }).parse(categoryData);
 
     return dbOperation(async (connection) => {
@@ -105,11 +90,12 @@ export async function addCategory(formData: FormData) {
 
       // Insert the new category into the database
       const [result] = await connection.query(
-        "INSERT INTO categories (category_name, category_image, category_description, created_by, updated_by) VALUES (?, ?, ?, null, null)",
+        "INSERT INTO categories (category_name, category_image, category_description, status, created_by, updated_by) VALUES (?, ?, ?, ?, null, null)",
         [
           validatedData.category_name,
           categoryImageBuffer,
           validatedData.category_description,
+          validatedData.status,
           parseNumberField(formData, "created_by"),
           parseNumberField(formData, "updated_by"),
         ]
@@ -252,16 +238,19 @@ export async function createSupplier(formData: FormData, productId: number) {
       supplier_location: string;
     }> = [];
 
-    // Get all keys from FormData
-    const keys = Array.from(formData.keys());
-
-    // Loop through keys to extract suppliers
-    keys.forEach((key) => {
+    // Extract suppliers from FormData
+    Array.from(formData.keys()).forEach((key) => {
       if (key.startsWith("suppliers[")) {
         const value = formData.get(key);
         if (value) {
-          const supplier = JSON.parse(value.toString());
-          suppliersArray.push(supplier);
+          try {
+            const supplier = JSON.parse(value.toString());
+            suppliersArray.push(supplier);
+          } catch (error) {
+            throw new Error(
+              `Invalid supplier data format for key: ${key}. Expected JSON string.`
+            );
+          }
         }
       }
     });
@@ -269,11 +258,14 @@ export async function createSupplier(formData: FormData, productId: number) {
     if (suppliersArray.length === 0) {
       return NextResponse.json({
         success: false,
-        message: "No suppliers provided",
+        message: "No suppliers provided.",
+        supplierIds: [],
       });
     }
 
     return dbOperation(async (connection) => {
+      const supplierIds: number[] = [];
+
       for (const supplierData of suppliersArray) {
         const {
           supplier_name,
@@ -282,19 +274,16 @@ export async function createSupplier(formData: FormData, productId: number) {
           supplier_location,
         } = supplierData;
 
+        let supplierId;
+
         // Check if supplier exists
         const [existingSupplier] = await connection.query(
           "SELECT supplier_id FROM suppliers WHERE supplier_name = ? FOR UPDATE",
           [supplier_name]
         );
 
-        let supplierId;
-
         if (existingSupplier.length > 0) {
           supplierId = existingSupplier[0].supplier_id;
-          console.log(
-            `Found existing supplier: ${supplier_name} with ID: ${supplierId}`
-          );
         } else {
           // Insert new supplier
           const [result] = await connection.query(
@@ -307,12 +296,17 @@ export async function createSupplier(formData: FormData, productId: number) {
             ]
           );
           supplierId = result.insertId;
-          console.log(
-            `Inserted new supplier: ${supplier_name} with ID: ${supplierId}`
+        }
+
+        if (!supplierId) {
+          throw new Error(
+            `Failed to derive supplierId for supplier: ${supplier_name}`
           );
         }
 
-        // Map product to supplier, directly or by calling createProductSupplierMapping
+        supplierIds.push(supplierId);
+
+        // Map product to supplier
         await connection.query(
           "INSERT IGNORE INTO product_suppliers (product_id, supplier_id) VALUES (?, ?)",
           [productId, supplierId]
@@ -321,7 +315,8 @@ export async function createSupplier(formData: FormData, productId: number) {
 
       return NextResponse.json({
         success: true,
-        message: "Suppliers inserted and mapped to product successfully",
+        message: "Suppliers added and mapped to product successfully.",
+        supplierIds,
       });
     });
   } catch (error) {
@@ -329,78 +324,11 @@ export async function createSupplier(formData: FormData, productId: number) {
     return NextResponse.json(
       {
         success: false,
-        message: "An unexpected error occurred while adding suppliers",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// Define validation schema for input
-const ProductSupplierSchema = z.object({
-  productId: z.number().positive(),
-  supplierId: z.number().positive(),
-});
-
-export async function createProductSupplierMapping(
-  productId: number,
-  supplierId: number
-) {
-  try {
-    // Validate productId and supplierId
-    const validatedData = ProductSupplierSchema.parse({
-      productId,
-      supplierId,
-    });
-
-    return dbOperation(async (connection) => {
-      // Check if the mapping already exists
-      const [existingMapping] = await connection.query(
-        "SELECT 1 FROM product_suppliers WHERE product_id = ? AND supplier_id = ?",
-        [validatedData.productId, validatedData.supplierId]
-      );
-
-      if (existingMapping.length > 0) {
-        // If mapping exists, respond without creating a new row
-        return NextResponse.json({
-          success: true,
-          message: "Product-supplier mapping already exists",
-        });
-      }
-
-      // Insert new mapping if it doesn't exist
-      await connection.query(
-        "INSERT INTO product_suppliers (product_id, supplier_id) VALUES (?, ?)",
-        [validatedData.productId, validatedData.supplierId]
-      );
-
-      return NextResponse.json({
-        success: true,
-        message: "Product-supplier mapping created successfully",
-      });
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error(
-        "Validation error in createProductSupplierMapping:",
-        error.issues
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid input data",
-          errors: error.issues,
-        },
-        { status: 400 }
-      );
-    }
-
-    console.error("Error in createProductSupplierMapping:", error);
-    return NextResponse.json(
-      {
-        success: false,
         message:
-          error instanceof Error ? error.message : "An unknown error occurred",
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while adding suppliers.",
+        supplierIds: [],
       },
       { status: 500 }
     );
@@ -539,7 +467,7 @@ export async function createProductSpecifications(
       }
     });
 
-    console.log("Specifications Array:", specificationsArray);
+    // console.log("Specifications Array:", specificationsArray);
 
     // Check if specificationsArray is empty
     if (!specificationsArray || specificationsArray.length === 0) {
@@ -571,9 +499,9 @@ export async function createProductSpecifications(
               [specification_name]
             );
             specificationId = result.insertId; // Get the inserted specification ID
-            console.log(
-              `Inserted new specification: ${specification_name} with ID: ${specificationId}`
-            );
+            // console.log(
+            //   `Inserted new specification: ${specification_name} with ID: ${specificationId}`
+            // );
 
             // Step 2: Insert into category_specifications if it doesn't exist
             const [categorySpecRows] = await connection.query(
@@ -586,9 +514,9 @@ export async function createProductSpecifications(
                 "INSERT INTO category_specifications (category_id, specification_id) VALUES (?, ?)",
                 [categoryId, specificationId]
               );
-              console.log(
-                `Inserted new category-specification mapping for category ID ${categoryId} and specification ID ${specificationId}`
-              );
+              // console.log(
+              //   `Inserted new category-specification mapping for category ID ${categoryId} and specification ID ${specificationId}`
+              // );
             }
           } catch (insertError: any) {
             console.error(
@@ -602,9 +530,9 @@ export async function createProductSpecifications(
           }
         } else {
           specificationId = specRows[0].specification_id;
-          console.log(
-            `Found existing specification: ${specification_name} with ID: ${specificationId}`
-          );
+          // console.log(
+          //   `Found existing specification: ${specification_name} with ID: ${specificationId}`
+          // );
         }
 
         // Check if the specification is valid for the category
@@ -614,9 +542,9 @@ export async function createProductSpecifications(
         );
 
         if (categorySpecRows.length === 0) {
-          console.log(
-            `Specification "${specification_name}" is not valid for category ID ${categoryId}.`
-          );
+          // console.log(
+          //   `Specification "${specification_name}" is not valid for category ID ${categoryId}.`
+          // );
           continue; // Skip this specification if it's not valid for the category
         }
 

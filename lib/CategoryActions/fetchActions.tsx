@@ -1,6 +1,8 @@
-import { RowDataPacket } from "mysql2/promise";
+"use server";
 import { cache } from "../cache";
 import { getConnection } from "../database";
+import { NextResponse } from "next/server";
+import { FieldPacket, RowDataPacket } from "mysql2/promise";
 
 // Define the Category type
 type Category = {
@@ -8,6 +10,7 @@ type Category = {
   category_name: string;
   category_image: Buffer | null;
   category_description: string;
+  status: "active" | "inactive";
 };
 
 export async function getUniqueCategories() {
@@ -27,7 +30,7 @@ export async function getUniqueCategories() {
   try {
     // Fetch all unique categories with name, image, and description
     const [categories] = await connection.query<RowDataPacket[]>(
-      `SELECT category_id, category_name, category_image, category_description FROM categories`
+      `SELECT category_id, category_name, category_image, category_description, status FROM categories`
     );
 
     // Map the result to include the full category details
@@ -36,6 +39,7 @@ export async function getUniqueCategories() {
       category_name: cat.category_name,
       category_image: cat.category_image,
       category_description: cat.category_description,
+      status: cat.status,
     }));
 
     // Cache the result with an expiry time
@@ -49,6 +53,187 @@ export async function getUniqueCategories() {
     console.error("Error fetching unique categories:", error);
     throw error;
   } finally {
+    connection.release();
+  }
+}
+
+export async function fetchCategoryByIdFromDb(
+  id: string
+): Promise<Category | null> {
+  const cacheKey = `category_${id}`;
+
+  // Check cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Category;
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
+
+  const connection = await getConnection();
+  try {
+    // Query the database
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT category_id, category_name, category_image, category_description, status FROM categories WHERE category_id = ?`,
+      [id]
+    );
+
+    // If no rows are returned, return null
+    if (rows.length === 0) {
+      return null;
+    }
+
+    // Map database results to a Category object
+    const category: Category = {
+      category_id: rows[0].category_id,
+      category_name: rows[0].category_name,
+      category_image: rows[0].category_image,
+      category_description: rows[0].category_description,
+      status: rows[0].status,
+    };
+
+    // Cache the result
+    cache.set(cacheKey, {
+      value: category,
+      expiry: Date.now() + 3600 * 1000, // Cache expiry: 1 hour
+    });
+
+    return category;
+  } catch (error) {
+    console.error("Database query error:", error);
+    throw new Error("Failed to fetch category");
+  } finally {
+    connection.release();
+  }
+}
+
+export async function updateCategory(
+  id: string,
+  updatedData: Partial<{
+    category_name: string;
+    category_image: Buffer | null;
+    category_description: string;
+    status: "active" | "inactive";
+  }>
+): Promise<NextResponse> {
+  const cacheKey = `category_${id}`;
+  const connection = await getConnection();
+
+  try {
+    // Single prepared query with COALESCE for optional updates
+    const query = `
+      UPDATE categories
+      SET
+        category_name = COALESCE(?, category_name),
+        category_image = COALESCE(?, category_image),
+        category_description = COALESCE(?, category_description),
+        status = COALESCE(?, status)
+      WHERE category_id = ?;
+    `;
+
+    const values = [
+      updatedData.category_name || null,
+      updatedData.category_image || null,
+      updatedData.category_description || null,
+      updatedData.status || null,
+      id,
+    ];
+
+    const [result] = await connection.execute(query, values);
+
+    if ((result as any).affectedRows === 0) {
+      return NextResponse.json(
+        { error: "Category not found or no changes made" },
+        { status: 404 }
+      );
+    }
+
+    // Fetch updated data to ensure cache consistency
+    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+      `SELECT * FROM categories WHERE category_id = ?`,
+      [id]
+    );
+
+    const updatedCategory = rows[0];
+
+    cache.set(cacheKey, {
+      value: updatedCategory,
+      expiry: Date.now() + 3600 * 1000, // Cache expiry: 1 hour
+    });
+
+    return NextResponse.json(updatedCategory, { status: 200 });
+  } catch (error) {
+    console.error("Error updating category:", error);
+    return NextResponse.json(
+      { error: "Failed to update category" },
+      { status: 500 }
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deleteCategory(
+  category_id: string
+): Promise<NextResponse> {
+  const cacheKey = `category_${category_id}`;
+  const connection = await getConnection();
+
+  try {
+    // Start a transaction
+    await connection.beginTransaction();
+
+    // Check if the category exists
+    const [categoryRows]: [RowDataPacket[], FieldPacket[]] =
+      await connection.execute(
+        "SELECT category_id FROM categories WHERE category_id = ? FOR UPDATE",
+        [category_id]
+      );
+
+    if (categoryRows.length === 0) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the category (products will be deleted automatically due to ON DELETE CASCADE)
+    const [result] = await connection.execute(
+      `DELETE FROM categories WHERE category_id = ?`,
+      [category_id]
+    );
+
+    // If no rows were deleted, the category does not exist
+    if ((result as any).affectedRows === 0) {
+      return NextResponse.json(
+        { error: "Category not found" },
+        { status: 404 }
+      );
+    }
+
+    // Remove from cache to ensure it does not contain stale data
+    cache.delete(cacheKey);
+
+    // Commit the transaction
+    await connection.commit();
+
+    return NextResponse.json(
+      { message: "Category and associated products deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting category:", error);
+
+    // Rollback the transaction in case of error
+    await connection.rollback();
+
+    return NextResponse.json(
+      { error: "Failed to delete category" },
+      { status: 500 }
+    );
+  } finally {
+    // Release the connection
     connection.release();
   }
 }

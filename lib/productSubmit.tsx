@@ -2,7 +2,7 @@
 
 import { getConnection } from "./database";
 import { z } from "zod";
-import { NewProductSchema } from "./ProductSchema";
+import { NewProductSchemaServer } from "./ProductSchema";
 import { dbsetupTables } from "./MysqlTables";
 import {
   addCategory,
@@ -11,8 +11,9 @@ import {
   createProductImages,
   createProductTags,
   createProductSpecifications,
-  createProductSupplierMapping,
+  dbOperation,
 } from "./product_actions";
+import { NextResponse } from "next/server";
 
 export type FormState = {
   message: string;
@@ -20,7 +21,7 @@ export type FormState = {
   issues?: string[];
 };
 
-type ParsedProductData = z.infer<typeof NewProductSchema> & {
+type ParsedProductData = z.infer<typeof NewProductSchemaServer> & {
   category_id?: number;
   brand_id?: number;
   created_by?: number | null;
@@ -31,31 +32,81 @@ async function insertProduct(
   parsedData: ParsedProductData,
   formData: FormData
 ) {
-  const connection = await getConnection();
+  // Start by using parsedData.brand_id directly
+  let brand_id = parsedData.brand_id;
+
+  if (!brand_id) {
+    const brandResponse = await addBrand(formData);
+    const brandData = await brandResponse.json();
+    parsedData.brand_id = brandData.brandId;
+
+    console.log("Brand ID obtained from addBrand:", brand_id);
+  }
+  const productData = {
+    product_name: formData.get("product_name"),
+    product_sku: formData.get("product_sku"),
+    product_description: formData.get("product_description"),
+    product_status: formData.get("product_status"),
+    product_price: formData.get("product_price"),
+    product_quantity: formData.get("product_quantity"),
+    product_discount: formData.get("product_discount"),
+    category_id: formData.get("category_id"),
+    brand_id: formData.get("brand_id"),
+  };
+
+  console.log(productData.category_id);
   try {
-    console.log("Starting product insertion...");
-    const [result] = await connection.query(
-      `INSERT INTO products (product_name, product_sku, product_description, product_price, product_quantity, product_discount, product_status, category_id, brand_id, created_by, updated_by)
+    // Validate the input data (excluding image for now)
+    const validatedData = NewProductSchemaServer.pick({
+      product_name: true,
+      product_description: true,
+      product_status: true,
+      product_sku: true,
+      product_price: true,
+      product_discount: true,
+      product_quantity: true,
+      category_id: true,
+    }).parse(productData);
+
+    return dbOperation(async (connection) => {
+      // Check if the category already exists
+      const [existingProduct] = await connection.query(
+        "SELECT product_id FROM products WHERE product_sku = ?",
+        [validatedData.product_sku]
+      );
+
+      if (existingProduct.length > 0) {
+        return NextResponse.json({
+          success: true,
+          message: "Product already exists",
+          productId: existingProduct[0].product_id,
+        });
+      }
+
+      const [result] = await connection.query(
+        `INSERT INTO products (product_name, product_sku, product_description, product_price, product_quantity, product_discount, product_status, category_id, brand_id, created_by, updated_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        parsedData.product_name,
-        parsedData.product_sku,
-        parsedData.product_description,
-        parsedData.product_price,
-        parsedData.product_quantity,
-        parsedData.product_discount,
-        parsedData.product_status,
-        parsedData.category_id,
-        parsedData.brand_id,
-        parsedData.created_by || null,
-        parsedData.updated_by || null,
-      ]
-    );
+        [
+          parsedData.product_name,
+          parsedData.product_sku,
+          parsedData.product_description,
+          parsedData.product_price,
+          parsedData.product_quantity,
+          parsedData.product_discount,
+          parsedData.product_status,
+          parsedData.category_id,
+          parsedData.brand_id,
+          parsedData.created_by || null,
+          parsedData.updated_by || null,
+        ]
+      );
 
-    const productId = (result as any).insertId;
-    console.log("Product inserted successfully with ID:", productId);
+      const productId = (result as any).insertId;
+      console.log("Product inserted successfully with ID:", productId);
 
-    return productId;
+      return productId;
+    });
+    // console.log("Starting product insertion...");
   } catch (error) {
     console.error("Error inserting product:", error);
     throw error;
@@ -94,7 +145,7 @@ export async function SubmitAction(
   formData["specifications"] = specifications.length > 0 ? specifications : [];
 
   // Zod validation and processing
-  const parsed = NewProductSchema.safeParse(formData);
+  const parsed = NewProductSchemaServer.safeParse(formData);
 
   if (!parsed.success) {
     const fields: Record<string, string> = {};
@@ -112,12 +163,10 @@ export async function SubmitAction(
   await connection.beginTransaction();
 
   try {
-    console.log("Starting transaction...");
+    // Start transaction: Ensure necessary tables are set up
     await dbsetupTables();
-    console.log("Tables checked/created.");
 
     const parsedData: ParsedProductData = parsed.data;
-    console.log("Parsed Data: ", parsedData);
 
     // Perform all insertions
     const categoryResponse = await addCategory(data);
@@ -129,10 +178,27 @@ export async function SubmitAction(
     parsedData.brand_id = brandData.brandId;
 
     const productId = await insertProduct(parsedData, data);
+
     const supplierResponse = await createSupplier(data, productId);
     const supplierData = await supplierResponse.json();
 
-    await createProductSupplierMapping(productId, supplierData.supplierId);
+    // console.log(supplierData); // Debug supplier data
+    const supplierIds = supplierData.supplierIds;
+
+    if (!supplierIds || supplierIds.length === 0) {
+      throw new Error("No suppliers were added or mapped.");
+    }
+
+    // Insert mappings for all suppliers
+
+    for (const supplierId of supplierIds) {
+      const query = `
+    INSERT INTO product_suppliers (product_id, supplier_id)
+    VALUES (?, ?)
+    ON DUPLICATE KEY UPDATE supplier_id = VALUES(supplier_id)`;
+      await connection.execute(query, [productId, supplierId]);
+    }
+
     await createProductImages(data, productId);
     await createProductTags(data, productId);
     await createProductSpecifications(data, productId, categoryData.categoryId);

@@ -85,6 +85,35 @@ export function getMenuList(pathname: string): Group[] {
         },
 
         {
+          href: "/dashboard/products",
+          label: "Product",
+          active: pathname.includes("products"),
+          icon: Book,
+          submenus: [
+            {
+              href: "/dashboard/products",
+              label: "All Products",
+              active: pathname === "/dashboard/products",
+            },
+            {
+              href: "/dashboard/categories",
+              label: "Categories",
+              active: pathname === "/dashboard/categories",
+            },
+            {
+              href: "/dashboard/brands",
+              label: "Brands",
+              active: pathname === "/dashboard/brands",
+            },
+            {
+              href: "/dashboard/suppliers",
+              label: "Suppliers",
+              active: pathname === "/dashboard/suppliers",
+            },
+          ],
+        },
+
+        {
           href: "/dashboard/blog",
           label: "Blog",
           active: pathname.includes("/dashboard/blog"),

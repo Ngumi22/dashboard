@@ -69,20 +69,21 @@ export async function dbsetupTables() {
 `);
 
     await connection.query(`
-     CREATE TABLE IF NOT EXISTS categories (
-          category_id INT AUTO_INCREMENT PRIMARY KEY,
-          category_name VARCHAR(255) NOT NULL,
-          category_image MEDIUMBLOB NOT NULL,
-          category_description TEXT NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT DEFAULT NULL,
-          updated_by INT DEFAULT NULL,
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
-          INDEX idx_name (category_name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product categories';
+        CREATE TABLE IF NOT EXISTS categories (
+            category_id INT AUTO_INCREMENT PRIMARY KEY,
+            category_name VARCHAR(255) NOT NULL,
+            category_image MEDIUMBLOB NOT NULL,
+            category_description TEXT NOT NULL,
+            status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP NULL,
+            created_by INT DEFAULT NULL,
+            updated_by INT DEFAULT NULL,
+            FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+            FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id) ON DELETE SET NULL,
+            INDEX idx_name (category_name)
+        ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product categories';
     `);
 
     await connection.query(`
@@ -455,39 +456,6 @@ export async function dbsetupTables() {
   } catch (err) {
     console.error("Error creating tables:", err);
     await connection.rollback();
-  } finally {
-    connection.release();
-  }
-}
-
-export async function CreateTriggers() {
-  const connection = await getConnection();
-  try {
-    await connection.beginTransaction();
-    await connection.query(`
-      CREATE PROCEDURE update_at_timestamp()
-      BEGIN
-          SET NEW.updated_at = NOW();
-      END;
-    `);
-    await connection.query(`
-      CREATE TRIGGER category_set_update BEFORE UPDATE ON categories FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER attribute_set_update BEFORE UPDATE ON attributes FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER product_set_update BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER staff_set_update BEFORE UPDATE ON staff_accounts FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER coupon_set_update BEFORE UPDATE ON coupons FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER customer_set_update BEFORE UPDATE ON customers FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER order_set_update BEFORE UPDATE ON orders FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER notification_set_update BEFORE UPDATE ON notifications FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER tag_set_update BEFORE UPDATE ON tags FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER order_status_set_update BEFORE UPDATE ON order_statuses FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-      CREATE TRIGGER supplier_set_update BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE PROCEDURE update_at_timestamp();
-    `);
-  } catch (error) {
-    if (connection) {
-      await connection.rollback();
-    }
-    throw error;
   } finally {
     connection.release();
   }
