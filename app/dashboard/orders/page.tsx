@@ -1,6 +1,7 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { Plus, Search, FileDown, Edit, Trash2, X } from "lucide-react";
+import { Plus, Search, FileDown, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,11 +28,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import CategoryForm from "@/components/Categories/create";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import Image from "next/image";
+import CategoryForm from "@/components/Categories/form";
 
 interface Category {
+  category_id?: number;
+  category_name: string;
+  category_image: string | File;
+  category_description: string;
+  status: "active" | "inactive";
+}
+
+interface CategoryData {
   category_id: number;
   category_name: string;
   category_image: string;
@@ -40,15 +49,20 @@ interface Category {
 }
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<CategoryData[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryData | null>(
+    null
+  );
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,55 +70,43 @@ export default function CategoriesPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading) {
-      filterCategories();
-    }
+    if (!isLoading) filterCategories();
   }, [categories, searchTerm, statusFilter, isLoading]);
 
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
       const response = await fetch("http://localhost:3000/api/category");
-      if (!response.ok) {
-        throw new Error("Failed to fetch categories");
-      }
+      if (!response.ok) throw new Error("Failed to fetch categories");
       const data = await response.json();
       setCategories(data.categories);
     } catch (error) {
-      console.error("Failed to fetch categories:", error);
       setError("Failed to load categories. Please try again later.");
     } finally {
-      setIsLoading(false); // Once the fetch is done, set isLoading to false
+      setIsLoading(false);
     }
   };
 
   const filterCategories = () => {
     let filtered = categories;
-
-    // Normalize the status comparison by converting both to lowercase
     if (statusFilter !== "All") {
       filtered = filtered.filter(
         (category) =>
           category.status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
-
     if (searchTerm) {
       filtered = filtered.filter((category) =>
         category.category_name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
     setFilteredCategories(filtered);
   };
 
-  const handleStatusChange = (value: string) => {
-    setStatusFilter(value);
-  };
+  const handleStatusChange = (value: string) => setStatusFilter(value);
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) =>
     setSearchTerm(event.target.value);
-  };
 
   const handleSelectCategory = (categoryId: number) => {
     setSelectedCategories((prev) =>
@@ -122,32 +124,22 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleEdit = (category: Category) => {
-    setEditingCategory(category);
-    setIsEditDrawerOpen(true);
-  };
-
   const handleDelete = async (categoryId: number) => {
     try {
       const response = await fetch(
         `http://localhost:3000/api/category/${categoryId}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
-      if (!response.ok) {
-        throw new Error("Failed to delete category");
-      }
+      if (!response.ok) throw new Error("Failed to delete category");
       setCategories((prev) => prev.filter((c) => c.category_id !== categoryId));
       toast({
         title: "Category deleted",
-        description: "The category has been successfully deleted.",
+        description: "Successfully deleted.",
       });
-    } catch (error) {
-      console.error("Failed to delete category:", error);
+    } catch {
       toast({
         title: "Error",
-        description: "Failed to delete the category. Please try again.",
+        description: "Failed to delete category.",
         variant: "destructive",
       });
     }
@@ -170,57 +162,20 @@ export default function CategoriesPage() {
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", "categories.csv");
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
   };
 
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Categories</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Add Category
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[40rem]">
-            <DialogHeader>
-              <DialogTitle>Add New Category</DialogTitle>
-              <DialogDescription>
-                Create a new category here. Click save when you are done.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
-
-        {editingCategory && (
-          <Dialog open={isEditDrawerOpen} onOpenChange={setIsEditDrawerOpen}>
-            <DialogContent className="sm:max-w-[40rem]">
-              <DialogHeader>
-                <DialogTitle>Edit Category</DialogTitle>
-                <DialogDescription>
-                  Update the category details below. Click save when done.
-                </DialogDescription>
-              </DialogHeader>
-              {editingCategory && (
-                <Dialog
-                  open={isEditDrawerOpen}
-                  onOpenChange={setIsEditDrawerOpen}>
-                  <DialogContent className="sm:max-w-[40rem]">
-                    <DialogHeader>
-                      <DialogTitle>Edit Category</DialogTitle>
-                      <DialogDescription>
-                        Update the category details below. Click save when done.
-                      </DialogDescription>
-                    </DialogHeader>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </DialogContent>
-          </Dialog>
-        )}
+        <Button
+          onClick={() => {
+            setEditingCategory(null);
+            setIsDialogOpen(true);
+          }}>
+          <Plus className="mr-2 h-4 w-4" /> Add Category
+        </Button>
       </div>
 
       <div className="flex justify-between items-center mb-4">
@@ -278,7 +233,7 @@ export default function CategoriesPage() {
           <TableBody>
             {filteredCategories.map((category) => (
               <TableRow key={category.category_id}>
-                <TableCell>
+                <TableCell className="font-medium">
                   <Checkbox
                     checked={selectedCategories.includes(category.category_id)}
                     onCheckedChange={() =>
@@ -289,34 +244,68 @@ export default function CategoriesPage() {
                 <TableCell>{category.category_id}</TableCell>
                 <TableCell>
                   <Image
-                    className="rounded"
-                    height={40}
-                    width={40}
-                    alt={category.category_name}
                     src={`data:image/jpeg;base64,${category.category_image}`}
+                    alt={category.category_name}
+                    width={50}
+                    height={50}
+                    className="rounded-md"
                   />
                 </TableCell>
                 <TableCell>{category.category_name}</TableCell>
                 <TableCell>{category.category_description}</TableCell>
-                <TableCell>{category.status}</TableCell>
-                <TableCell className="space-x-4">
-                  <Button
-                    onClick={() => handleEdit(category)}
-                    variant="outline">
-                    <Edit className="mr-2 h-4 w-4" /> Edit
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleDelete(category.category_id)}>
-                    <Trash2 className="mr-2 h-4 w-4 mx-auto" />
-                  </Button>
+                <TableCell>
+                  <span
+                    className={`${
+                      category.status === "active"
+                        ? "text-green-600"
+                        : "text-gray-600"
+                    }`}>
+                    {category.status}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingCategory(category);
+                        setIsDialogOpen(true);
+                      }}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleDelete(category.category_id)}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[40rem]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? "Edit Category" : "Add New Category"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCategory
+                ? "Modify the category details below."
+                : "Create a new category."}
+            </DialogDescription>
+          </DialogHeader>
+          <CategoryForm
+            initialData={editingCategory || undefined}
+            onCancel={() => setIsDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

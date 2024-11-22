@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   deleteCategory,
   fetchCategoryByIdFromDb,
-  updateCategory,
 } from "@/lib/CategoryActions/fetchActions";
 import sharp from "sharp";
+import { updateCategoryAction } from "@/lib/CategoryActions/postActions";
 
 // Compress image utility
 async function compressAndEncodeBase64(
@@ -82,7 +82,7 @@ export async function PUT(
     const body = await req.json();
 
     // Call updateCategory with the ID and updated data
-    const response = await updateCategory(id, body);
+    const response = await updateCategoryAction(id, body);
 
     return response;
   } catch (error) {
