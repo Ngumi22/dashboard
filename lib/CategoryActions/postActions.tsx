@@ -17,11 +17,13 @@ export async function CategorySubmitAction(
   data: FormData
 ): Promise<FormState> {
   const formData = Object.fromEntries(data);
-  console.log("Raw formData: ", formData);
+  // console.log("Raw formData: ", formData);
 
   // Validate form data using CategorySchema
   const parsed = CategorySchema.safeParse(formData);
-  console.log("Parsed: ", parsed);
+
+  // console.log("Parsed: ", parsed);
+
   if (!parsed.success) {
     const fields: Record<string, string> = {};
     for (const key of Object.keys(formData)) {
@@ -34,7 +36,7 @@ export async function CategorySubmitAction(
     };
   }
 
-  console.log("success: ", parsed);
+  // console.log("success: ", parsed);
 
   try {
     // Call addCategory to insert or retrieve existing category

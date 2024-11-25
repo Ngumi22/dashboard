@@ -1,48 +1,42 @@
+import { getCategorySpecs } from "@/lib/CategoryActions/fetchActions";
+
+import { z } from "zod";
 import { NextResponse } from "next/server";
-import { getCategorySpecs } from "@/lib/Data/product";
+// Define a schema that supports multiple ID formats
+const categoryIdSchema = z.union([
+  z.string().uuid(), // UUID format
+  z.string().regex(/^\d+$/, { message: "Category ID must be numeric" }), // Numeric ID
+  z.string().min(1, { message: "Category ID cannot be empty" }), // General fallback for non-empty string
+]);
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    // Retrieve `categoryName` from query parameters
     const url = new URL(request.url);
-    const categoryName = url.searchParams.get("categoryName");
+    const categoryId = url.searchParams.get("categoryId");
 
-    if (!categoryName) {
-      return NextResponse.json(
-        { error: "Category name is required" },
-        { status: 400 }
-      );
-    }
+    // Validate categoryId
+    const validCategoryId = categoryIdSchema.parse(categoryId);
 
-    // Pass `categoryName` to `getCategorySpecs`
-    const specs = await getCategorySpecs(categoryName);
+    // Retrieve specifications
+    const specs = await getCategorySpecs(validCategoryId);
 
-    // If no specs are found, return an empty array
-    if (!specs) {
-      return NextResponse.json(
-        { specs: [] }, // Return an empty array if no specifications are found
-        { status: 200 }
-      );
-    }
-
-    // Return the specs in the response with appropriate caching headers
-    const response = NextResponse.json({
-      specs,
-    });
-
-    response.headers.set(
-      "Cache-Control",
-      "s-maxage=3600, stale-while-revalidate"
+    // Return specs or an empty array with caching
+    return NextResponse.json(
+      { specs: specs || [] },
+      { headers: { "Cache-Control": "s-maxage=3600, stale-while-revalidate" } }
     );
-
-    return response;
   } catch (error) {
     console.error("Error fetching category specs:", error);
-    return NextResponse.json(
-      { error: "Error fetching category specs" },
-      { status: 500 }
-    );
+
+    // Handle validation errors and unexpected errors separately
+    const status = error instanceof z.ZodError ? 400 : 500;
+    const errorMessage =
+      error instanceof z.ZodError
+        ? error.errors.map((err) => err.message).join(", ")
+        : "Internal Server Error";
+
+    return NextResponse.json({ error: errorMessage }, { status });
   }
 }

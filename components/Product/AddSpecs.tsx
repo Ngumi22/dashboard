@@ -61,20 +61,32 @@ export default function AddSpecifications({
   const specValue = watch("specValue");
   const specifications = watch("specifications");
 
+  // Fetch category specifications based on the selected category ID
   useEffect(() => {
     if (selectedCategoryId) {
       const fetchCategorySpecs = async () => {
         try {
           setLoadingSpecs(true);
           const response = await fetch(
-            `/api/category/catSpec?categoryId=${selectedCategoryId}`
+            `/api/category/catSpec?categoryId=${encodeURIComponent(
+              selectedCategoryId
+            )}`
           );
+          if (!response.ok) {
+            throw new Error("Failed to fetch category specifications");
+          }
           const data = await response.json();
 
-          const categorySpecifications = data.specs.catSpecs.map(
-            (spec: { specification_name: string }) => spec.specification_name
-          );
+          const categorySpecifications =
+            data?.specs?.catSpecs?.map(
+              (spec: { specification_name: string }) => spec.specification_name
+            ) || [];
           setCategorySpecs(categorySpecifications);
+
+          // If there are no specifications, show the message
+          if (categorySpecifications.length === 0) {
+            setMessage("No specifications found. You can add new ones.");
+          }
         } catch (error) {
           console.error("Error fetching category specifications:", error);
         } finally {
@@ -86,20 +98,14 @@ export default function AddSpecifications({
     }
   }, [selectedCategoryId]);
 
-  useEffect(() => {
-    if (selectedSpec) {
-      setMessage(`Specification "${selectedSpec}" selected`);
-      const timer = setTimeout(() => setMessage(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedSpec]);
-
+  // Notify parent component of specification changes
   useEffect(() => {
     onSpecificationsChange(specifications);
   }, [specifications, onSpecificationsChange]);
 
   const handleAddSpec = handleSubmit(() => {
     const specName = selectedSpec || newSpecName;
+
     if (specName && specValue) {
       const existingSpec = specifications.find(
         (spec) =>

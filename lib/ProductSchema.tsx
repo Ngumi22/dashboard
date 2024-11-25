@@ -248,7 +248,7 @@ export const NewProductSchemaServer = z.object({
   brand_name: z.string().min(2, {
     message: "Brand name is required and must be at least 2 characters.",
   }),
-  category_id: z.preprocess((val) => Number(val), z.number()), // Coerce to number
+  category_id: z.string().transform((val) => parseInt(val, 10)),
   main_image: z
     .custom<FileList>()
     .transform((val) => {

@@ -5,6 +5,12 @@ import { z, ZodInvalidTypeIssue } from "zod";
 import { dbsetupTables } from "./MysqlTables";
 import { NewProductSchema } from "./ProductSchema";
 import { CategorySchema } from "./ZodSchemas/categorySchema";
+import {
+  FieldPacket,
+  OkPacket,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 
 // Custom error class for better error handling
 class CustomError extends Error {
@@ -14,6 +20,13 @@ class CustomError extends Error {
     this.statusCode = statusCode;
   }
 }
+
+const SupplierSchema = z.object({
+  supplier_name: z.string().min(1, "Supplier name is required."),
+  supplier_email: z.string().email("Invalid email address."),
+  supplier_phone_number: z.string().optional(),
+  supplier_location: z.string().optional(),
+});
 
 // Helper function for database operations
 export async function dbOperation<T>(
@@ -231,93 +244,126 @@ export async function addBrand(formData: FormData) {
 
 export async function createSupplier(formData: FormData, productId: number) {
   try {
-    const suppliersArray: Array<{
-      supplier_name: string;
-      supplier_email: string;
-      supplier_phone_number: string;
-      supplier_location: string;
-    }> = [];
-
-    // Extract suppliers from FormData
-    Array.from(formData.keys()).forEach((key) => {
+    // Step 1: Parse and validate suppliers
+    const suppliersArray: Array<z.infer<typeof SupplierSchema>> = [];
+    const keys = Array.from(formData.keys());
+    for (const key of keys) {
       if (key.startsWith("suppliers[")) {
         const value = formData.get(key);
         if (value) {
           try {
-            const supplier = JSON.parse(value.toString());
-            suppliersArray.push(supplier);
+            const parsedSupplier = SupplierSchema.parse(
+              JSON.parse(value.toString())
+            );
+            suppliersArray.push(parsedSupplier);
           } catch (error) {
+            console.error(`Invalid supplier data for key: ${key}`, error);
             throw new Error(
-              `Invalid supplier data format for key: ${key}. Expected JSON string.`
+              `Invalid supplier data for key: ${key}. Ensure the JSON is correct and meets validation rules.`
             );
           }
         }
       }
-    });
+    }
 
     if (suppliersArray.length === 0) {
       return NextResponse.json({
         success: false,
-        message: "No suppliers provided.",
+        message: "No valid suppliers provided.",
         supplierIds: [],
       });
     }
 
+    // Step 2: Perform database operations
     return dbOperation(async (connection) => {
-      const supplierIds: number[] = [];
+      const supplierIds = new Set<number>(); // Use a set to avoid duplicates
+      const newSuppliers: Array<z.infer<typeof SupplierSchema>> = [];
+      const existingSupplierMap = new Map<string, number>(); // Map supplier_name -> supplier_id
 
-      for (const supplierData of suppliersArray) {
-        const {
-          supplier_name,
-          supplier_email,
-          supplier_phone_number,
-          supplier_location,
-        } = supplierData;
+      await connection.beginTransaction();
 
-        let supplierId;
-
-        // Check if supplier exists
-        const [existingSupplier] = await connection.query(
-          "SELECT supplier_id FROM suppliers WHERE supplier_name = ? FOR UPDATE",
-          [supplier_name]
+      try {
+        // Step 3: Fetch existing suppliers in bulk
+        const supplierNames = suppliersArray.map((s) => s.supplier_name);
+        const [existingSuppliers] = await connection.query(
+          `SELECT supplier_id, supplier_name FROM suppliers WHERE supplier_name IN (?) FOR UPDATE`,
+          [supplierNames]
         );
 
-        if (existingSupplier.length > 0) {
-          supplierId = existingSupplier[0].supplier_id;
-        } else {
-          // Insert new supplier
-          const [result] = await connection.query(
-            "INSERT INTO suppliers (supplier_name, supplier_email, supplier_phone_number, supplier_location, created_by, updated_by) VALUES (?, ?, ?, ?, null, null)",
-            [
+        for (const existingSupplier of existingSuppliers as {
+          supplier_id: number;
+          supplier_name: string;
+        }[]) {
+          existingSupplierMap.set(
+            existingSupplier.supplier_name,
+            existingSupplier.supplier_id
+          );
+        }
+
+        // Step 4: Identify and prepare new suppliers
+        for (const supplier of suppliersArray) {
+          if (!existingSupplierMap.has(supplier.supplier_name)) {
+            newSuppliers.push(supplier);
+          }
+        }
+
+        // Step 5: Insert new suppliers in bulk if necessary
+        if (newSuppliers.length > 0) {
+          const insertValues = newSuppliers.map((supplier) => [
+            supplier.supplier_name,
+            supplier.supplier_email || null,
+            supplier.supplier_phone_number || null,
+            supplier.supplier_location || null,
+            null, // created_by defaults to NULL
+            null, // updated_by defaults to NULL
+          ]);
+
+          const [insertResult] = await connection.query(
+            `INSERT INTO suppliers (
               supplier_name,
               supplier_email,
               supplier_phone_number,
               supplier_location,
-            ]
+              created_by,
+              updated_by
+            ) VALUES ?`,
+            [insertValues]
           );
-          supplierId = result.insertId;
+
+          // Map newly inserted suppliers to IDs
+          const startId = (insertResult as { insertId: number }).insertId;
+          newSuppliers.forEach((supplier, index) => {
+            const supplierId = startId + index;
+            existingSupplierMap.set(supplier.supplier_name, supplierId);
+          });
         }
 
-        if (!supplierId) {
-          throw new Error(
-            `Failed to derive supplierId for supplier: ${supplier_name}`
-          );
-        }
-
-        supplierIds.push(supplierId);
-
-        // Map product to supplier
-        await connection.query(
-          "INSERT IGNORE INTO product_suppliers (product_id, supplier_id) VALUES (?, ?)",
-          [productId, supplierId]
+        // Step 6: Map suppliers to the product
+        const mappingValues = Array.from(existingSupplierMap.values()).map(
+          (supplierId) => [productId, supplierId]
         );
-      }
 
-      return NextResponse.json({
-        success: true,
-        message: "Suppliers added and mapped to product successfully.",
-        supplierIds,
-      });
+        await connection.query(
+          `INSERT IGNORE INTO product_suppliers (product_id, supplier_id) VALUES ?`,
+          [mappingValues]
+        );
+
+        // Step 7: Collect all supplier IDs
+        existingSupplierMap.forEach((id) => supplierIds.add(id));
+
+        // Commit transaction
+        await connection.commit();
+
+        return NextResponse.json({
+          success: true,
+          message: "Suppliers added and mapped to the product successfully.",
+          supplierIds: Array.from(supplierIds),
+        });
+      } catch (error) {
+        await connection.rollback();
+        console.error("Error during supplier creation:", error);
+        throw error;
+      }
     });
   } catch (error) {
     console.error("Error in createSupplier:", error);
@@ -444,133 +490,101 @@ export async function createProductTags(formData: FormData, productId: number) {
 }
 
 export async function createProductSpecifications(
-  formData: FormData,
+  data: FormData,
   productId: number,
   categoryId: number
 ) {
-  try {
-    const specificationsArray: Array<{
-      specification_name: string;
-      specification_value: string;
-    }> = [];
+  if (!categoryId) {
+    throw new Error("Category ID is required to add specifications.");
+  }
 
-    // Get all keys from FormData
-    const keys = Array.from(formData.keys());
+  if (!productId) {
+    throw new Error("Product ID is required to associate specifications.");
+  }
 
-    // Loop through keys to extract specifications
-    keys.forEach((key) => {
-      if (key.startsWith("specifications[")) {
-        const value = formData.get(key);
-        if (value) {
-          specificationsArray.push(JSON.parse(value.toString()));
+  const specifications = Object.keys(Object.fromEntries(data.entries()))
+    .filter((key) => key.startsWith("specifications["))
+    .map((key) => {
+      const specData = data.get(key)?.toString();
+      try {
+        const parsed = JSON.parse(specData || "{}");
+
+        if (
+          parsed &&
+          parsed.specification_name &&
+          parsed.specification_value &&
+          parsed.category_id
+        ) {
+          parsed.category_id = Number(parsed.category_id);
+          return parsed;
+        } else {
+          console.warn(`Invalid specification:`, parsed);
+          return null;
         }
+      } catch (error) {
+        console.error(`Error parsing specification for key ${key}:`, error);
+        return null;
       }
-    });
+    })
+    .filter((spec) => spec !== null);
 
-    // console.log("Specifications Array:", specificationsArray);
+  // Log parsed specifications for debugging
+  if (specifications.length === 0) {
+    throw new Error("No valid specifications provided.");
+  }
 
-    // Check if specificationsArray is empty
-    if (!specificationsArray || specificationsArray.length === 0) {
-      return NextResponse.json({
-        success: false,
-        message: "No specifications provided",
-      });
+  const connection = await getConnection();
+
+  try {
+    const specificationIds: number[] = [];
+
+    // Check if specifications exist or insert them
+    for (const spec of specifications) {
+      const [existingSpec]: [RowDataPacket[], FieldPacket[]] =
+        await connection.query(
+          `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
+          [spec.specification_name]
+        );
+
+      let specificationId: number;
+
+      if (existingSpec.length > 0) {
+        // Specification exists, use its ID
+        specificationId = existingSpec[0].specification_id;
+      } else {
+        // Specification does not exist, insert it and get the ID
+        const [insertResult]: [any, any] = await connection.query(
+          `INSERT INTO specifications (specification_name) VALUES (?)`,
+          [spec.specification_name]
+        );
+        specificationId = insertResult.insertId; // Access insertId from ResultSetHeader
+      }
+
+      specificationIds.push(specificationId);
+
+      // Insert into category_specifications table
+      await connection.query(
+        `INSERT IGNORE INTO category_specifications (category_id, specification_id) VALUES (?, ?)`,
+        [categoryId, specificationId]
+      );
     }
 
-    return dbOperation(async (connection) => {
-      const specificationIds: number[] = [];
+    // Insert into product_specifications table
+    const productSpecInsertValues = specifications.map((spec, index) => [
+      productId,
+      specificationIds[index],
+      spec.specification_value,
+    ]);
 
-      for (const spec of specificationsArray) {
-        const { specification_name, specification_value } = spec;
-
-        // Step 1: Insert new specification if it doesn't exist
-        const [specRows] = await connection.query(
-          "SELECT specification_id FROM specifications WHERE specification_name = ? FOR UPDATE",
-          [specification_name]
-        );
-
-        let specificationId: number;
-
-        if (specRows.length === 0) {
-          try {
-            // Insert new specification if it doesn't exist
-            const [result] = await connection.query(
-              "INSERT INTO specifications (specification_name) VALUES (?)",
-              [specification_name]
-            );
-            specificationId = result.insertId; // Get the inserted specification ID
-            // console.log(
-            //   `Inserted new specification: ${specification_name} with ID: ${specificationId}`
-            // );
-
-            // Step 2: Insert into category_specifications if it doesn't exist
-            const [categorySpecRows] = await connection.query(
-              "SELECT category_spec_id FROM category_specifications WHERE category_id = ? AND specification_id = ?",
-              [categoryId, specificationId]
-            );
-
-            if (categorySpecRows.length === 0) {
-              await connection.query(
-                "INSERT INTO category_specifications (category_id, specification_id) VALUES (?, ?)",
-                [categoryId, specificationId]
-              );
-              // console.log(
-              //   `Inserted new category-specification mapping for category ID ${categoryId} and specification ID ${specificationId}`
-              // );
-            }
-          } catch (insertError: any) {
-            console.error(
-              `Error inserting specification "${specification_name}":`,
-              insertError
-            );
-            return NextResponse.json({
-              success: false,
-              message: `Error inserting specification "${specification_name}": ${insertError.message}`,
-            });
-          }
-        } else {
-          specificationId = specRows[0].specification_id;
-          // console.log(
-          //   `Found existing specification: ${specification_name} with ID: ${specificationId}`
-          // );
-        }
-
-        // Check if the specification is valid for the category
-        const [categorySpecRows] = await connection.query(
-          "SELECT 1 FROM category_specifications WHERE category_id = ? AND specification_id = ?",
-          [categoryId, specificationId]
-        );
-
-        if (categorySpecRows.length === 0) {
-          // console.log(
-          //   `Specification "${specification_name}" is not valid for category ID ${categoryId}.`
-          // );
-          continue; // Skip this specification if it's not valid for the category
-        }
-
-        // Step 3: Insert into product_specifications table
-        await connection.query(
-          "INSERT INTO product_specifications (product_id, specification_id, value) VALUES (?, ?, ?)",
-          [productId, specificationId, specification_value]
-        );
-
-        specificationIds.push(specificationId); // Collect specification IDs if needed
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: "Specifications inserted and mapped to product successfully",
-      });
-    });
-  } catch (error) {
-    console.error("Error in createProductSpecifications:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "An unexpected error occurred while adding specifications",
-      },
-      { status: 500 }
+    await connection.query(
+      `INSERT INTO product_specifications (product_id, specification_id, value) VALUES ?`,
+      [productSpecInsertValues]
     );
+  } catch (error) {
+    console.error("Error adding specifications:", error);
+    throw new Error("Failed to add specifications.");
+  } finally {
+    connection.release();
   }
 }
 

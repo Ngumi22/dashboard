@@ -11,7 +11,6 @@ import {
   deleteSession,
 } from "./sessions";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import validator from "validator";
 import { FileData, FormState, LoginFormSchema } from "./definitions";
 import { sendVerificationEmail } from "./emailVerification";
