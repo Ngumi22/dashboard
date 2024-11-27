@@ -9,6 +9,8 @@ import {
   UserRow,
   User,
 } from "@/lib/definitions";
+import { getConnection } from "./database";
+import { dbsetupTables } from "./MysqlTables";
 
 const MAX_FILE_SIZE = 1024 * 1024 * 5;
 const ACCEPTED_IMAGE_MIME_TYPES = [
@@ -20,6 +22,42 @@ const ACCEPTED_IMAGE_MIME_TYPES = [
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export const getErrorMessage = (error: unknown): string => {
+  let message: string;
+  if (error instanceof Error) {
+    message = error.message;
+  } else if (error && typeof error === "object" && "message" in error) {
+    message = String(error.message);
+  } else if (typeof error === "string") {
+    message = error;
+  } else {
+    message = "Something else went wrong";
+  }
+
+  return message;
+};
+
+// Helper function to convert File to Buffer
+export async function fileToBuffer(file: File): Promise<Buffer> {
+  const arrayBuffer = await file.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+export function parseNumberField(
+  formData: FormData,
+  key: string
+): number | undefined {
+  const value = formData.get(key);
+  if (typeof value === "string") {
+    const parsedValue = Number(value);
+    if (isNaN(parsedValue)) {
+      throw new Error(`Invalid ${key} data: not a number.`);
+    }
+    return parsedValue;
+  }
+  return undefined;
 }
 
 export const FormSchema = z.object({

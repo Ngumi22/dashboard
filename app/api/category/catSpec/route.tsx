@@ -1,7 +1,6 @@
-import { getCategorySpecs } from "@/lib/CategoryActions/fetchActions";
-
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { getCategorySpecs } from "@/lib/actions/Category/fetch";
 // Define a schema that supports multiple ID formats
 const categoryIdSchema = z.union([
   z.string().uuid(), // UUID format

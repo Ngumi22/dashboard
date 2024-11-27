@@ -37,6 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { handleDeleteAction } from "@/lib/actions/Product/delete";
 
 interface ProductResponse {
   id: string | number;
@@ -140,16 +141,15 @@ export default function ProductsList() {
 
   const handleDelete = async (productId: number) => {
     try {
-      const res = await fetch(`/api/products/${productId}`, {
-        method: "DELETE",
-      });
+      // Perform the deletion action on the server
+      await handleDeleteAction(productId);
 
-      if (!res.ok) {
-        throw new Error("Failed to delete product");
-      }
+      // Optionally, reset pagination, search, or other state variables to trigger re-fetch
+      setPagination({ offset: 0, limit: pagination.limit }); // Reset to the first page
+      setSearchTerm(""); // Clear search term if needed (or keep it as is)
+      setActiveTab("all"); // Reset active tab (optional)
 
-      setProducts(products.filter((product) => product.id !== productId));
-
+      // Show success toast
       toast({
         variant: "destructive",
         title: "Product Deleted",
@@ -161,6 +161,7 @@ export default function ProductsList() {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
 
+      // Show error toast
       toast({
         variant: "destructive",
         title: "Error",
@@ -230,13 +231,7 @@ export default function ProductsList() {
                 </DropdownMenuTrigger>
                 {/* Dropdown menu content */}
               </DropdownMenu>
-              {/* Export button */}
-              <Button size="sm" variant="outline" className="h-8 gap-1">
-                <File className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Export
-                </span>
-              </Button>
+
               {/* Add Product link */}
               <Link href="/dashboard/products/create">
                 <Button size="sm" className="h-8 gap-1">
@@ -322,6 +317,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
       {/* Table headers */}
       <TableHeader>
         <TableRow>
+          <TableHead>SKU</TableHead>
           <TableHead className="hidden sm:table-cell">Image</TableHead>
           <TableHead>Name</TableHead>
           <TableHead className="hidden sm:table-cell">Brand</TableHead>
@@ -337,6 +333,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
         {products.map((product) => (
           <TableRow key={product.id}>
             {/* Table cells for product data */}
+            <TableCell>{product.sku}</TableCell>
             <TableCell className="hidden sm:table-cell">
               <Image
                 src={`data:image/jpeg;base64,${product.images.mainImage}`}
@@ -348,7 +345,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               />
             </TableCell>
             <TableCell>
-              <Link href={`/dashboard/products/${product.id}`}>
+              <Link href={`/dashboard/productss/${product.id}`}>
                 {product.name}
               </Link>
             </TableCell>
@@ -385,7 +382,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <DropdownMenuContent align="end">
                   {/* Edit link */}
                   <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/products/${product.id}/edit`}>
+                    <Link href={`/dashboard/productss/${product.id}/edit`}>
                       Edit
                     </Link>
                   </DropdownMenuItem>

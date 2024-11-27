@@ -1,10 +1,10 @@
 "use server";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { NextResponse } from "next/server";
-import { getConnection } from "../database";
-import { addCategory } from "../product_actions";
-import { CategorySchema } from "../ZodSchemas/categorySchema";
-import { cache } from "../cache";
+import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
+import { addCategory } from "./post";
+import { getConnection } from "@/lib/database";
+import { cache } from "@/lib/cache";
 
 export type FormState = {
   message: string;

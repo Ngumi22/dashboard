@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
 import Image from "next/image";
-import { CategorySubmitAction } from "@/lib/CategoryActions/postActions";
 import {
   Select,
   SelectContent,
@@ -26,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CategorySubmitAction } from "@/lib/actions/Category/server";
 
 export default function CategoryForm() {
   const [state, formAction] = useFormState(CategorySubmitAction, {

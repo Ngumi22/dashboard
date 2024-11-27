@@ -139,13 +139,13 @@ export default function ProductsForm() {
   }, []);
 
   useEffect(() => {
-    console.log("Category changed to:", selectedCategory);
+    //console.log("Category changed to:", selectedCategory);
   }, [selectedCategory]);
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     form.handleSubmit((data: any) => {
-      console.log("Submitting form with category_id:", data.category_id);
+      // console.log("Submitting form with category_id:", data.category_id);
 
       const formData = new FormData(formRef.current!);
       if (data.category_id && typeof data.category_id === "string") {
@@ -182,7 +182,7 @@ export default function ProductsForm() {
         });
       }
 
-      console.log("Specifications data: ", data.specifications);
+      // console.log("Specifications data: ", data.specifications);
 
       if (data.tags) {
         data.tags.forEach((tag: any, index: number) => {

@@ -1,10 +1,9 @@
+import { deleteCategory } from "@/lib/actions/Category/delete";
+import { fetchCategoryByIdFromDb } from "@/lib/actions/Category/fetch";
+import { updateCategoryAction } from "@/lib/actions/Category/server";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteCategory,
-  fetchCategoryByIdFromDb,
-} from "@/lib/CategoryActions/fetchActions";
+
 import sharp from "sharp";
-import { updateCategoryAction } from "@/lib/CategoryActions/postActions";
 
 // Compress image utility
 async function compressAndEncodeBase64(

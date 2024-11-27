@@ -14,9 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { updateCategory } from "@/lib/CategoryActions/updateCategory";
 import Image from "next/image";
-import { CategorySubmitAction } from "@/lib/CategoryActions/postActions";
+import { CategorySubmitAction } from "@/lib/actions/Category/server";
+import { updateCategory } from "@/lib/actions/Category/update";
 
 interface CategoryFormProps {
   initialData?: Category;

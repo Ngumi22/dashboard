@@ -1,4 +1,4 @@
-import { getUniqueCategories } from "@/lib/CategoryActions/fetchActions";
+import { getUniqueCategories } from "@/lib/actions/Category/fetch";
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 
