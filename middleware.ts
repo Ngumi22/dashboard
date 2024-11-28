@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "./lib/sessions";
 
-import { initialize } from "./lib/main";
-
 // Allowed origins for CORS
 const allowedOrigins = ["https://bernzz-front.vercel.app"];
 
@@ -22,11 +20,6 @@ const unprotectedApiRoutes = [
 ];
 
 export default async function middleware(req: NextRequest) {
-  // Initialize only if not running in the Edge runtime
-  if (process.env.NEXT_RUNTIME !== "edge") {
-    await initialize(); // Initialize DB connection and setup, only for non-edge runtime
-  }
-
   const path = req.nextUrl.pathname;
 
   const isProtectedRoute = protectedRoutes.some((route) =>

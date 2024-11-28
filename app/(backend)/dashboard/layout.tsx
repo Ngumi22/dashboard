@@ -9,6 +9,9 @@ import { Navbar } from "@/components/admin-panel/Navbar";
 import { ThemeProvider } from "next-themes";
 import { Roboto } from "next/font/google";
 import "@/app/globals.css";
+import { initialize } from "@/lib/main";
+
+initialize;
 
 const roboto = Roboto({
   subsets: ["latin"],

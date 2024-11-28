@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Search, FileDown, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -65,14 +65,6 @@ export default function CategoriesPage() {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) filterCategories();
-  }, [categories, searchTerm, statusFilter, isLoading]);
-
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
@@ -81,13 +73,14 @@ export default function CategoriesPage() {
       const data = await response.json();
       setCategories(data.categories);
     } catch (error) {
-      setError("Failed to load categories. Please try again later.");
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filterCategories = () => {
+  // Memoize the filterCategories function with useCallback
+  const filterCategories = useCallback(() => {
     let filtered = categories;
     if (statusFilter !== "All") {
       filtered = filtered.filter(
@@ -101,7 +94,17 @@ export default function CategoriesPage() {
       );
     }
     setFilteredCategories(filtered);
-  };
+  }, [categories, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      filterCategories();
+    }
+  }, [categories, searchTerm, statusFilter, isLoading, filterCategories]);
 
   const handleStatusChange = (value: string) => setStatusFilter(value);
 

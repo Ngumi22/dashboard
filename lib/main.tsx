@@ -1,3 +1,5 @@
+"use server";
+
 import { initDbConnection } from "./db";
 import { setupTables } from "./dbTables";
 import { createIndexes } from "./indexdb";
