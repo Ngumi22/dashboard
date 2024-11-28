@@ -1,17 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { StoreApi, UseBoundStore } from "zustand";
 
 export const useStore = <T, F>(
-  store: (callback: (state: T) => unknown) => unknown,
-  callback: (state: T) => F
-) => {
-  const result = store(callback) as F;
-  const [data, setData] = useState<F>();
-
-  useEffect(() => {
-    setData(result);
-  }, [result]);
-
-  return data;
+  store: UseBoundStore<StoreApi<T>>,
+  selector: (state: T) => F
+): F => {
+  return store(selector);
 };

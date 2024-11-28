@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "./lib/sessions";
 
-// Define allowed origins for CORS
+import { initialize } from "./lib/main";
+
+// Allowed origins for CORS
 const allowedOrigins = ["https://bernzz-front.vercel.app"];
 
-// Specify protected, public, and unprotected API routes
-const protectedRoutes = ["/", "/dashboard", "/dashboard/:path*", "/api/:path*"];
+// Route categories
+
+const protectedRoutes = [
+  "/dashboard",
+  "/dashboard/:path*",
+  "/api/:path*",
+  "/api",
+];
 const publicRoutes = ["/login", "/signup"];
 const unprotectedApiRoutes = [
   "/api/products",
@@ -14,23 +22,25 @@ const unprotectedApiRoutes = [
 ];
 
 export default async function middleware(req: NextRequest) {
+  // Initialize only if not running in the Edge runtime
+  if (process.env.NEXT_RUNTIME !== "edge") {
+    await initialize(); // Initialize DB connection and setup, only for non-edge runtime
+  }
+
   const path = req.nextUrl.pathname;
 
-  // Determine if the route is protected, public, or an unprotected API route
   const isProtectedRoute = protectedRoutes.some((route) =>
-    new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
+    path.startsWith(route)
   );
-  const isPublicRoute = publicRoutes.some((route) =>
-    new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
-  );
+  const isPublicRoute = publicRoutes.includes(path);
   const isUnprotectedApiRoute = unprotectedApiRoutes.some((route) =>
-    new RegExp(`^${route.replace(/:\w+\*/g, ".*")}$`).test(path)
+    path.startsWith(route)
   );
 
-  // Handle CORS for all routes, particularly API routes
   const origin = req.headers.get("origin") || "";
   const response = NextResponse.next();
 
+  // CORS Handling
   if (process.env.NODE_ENV === "development") {
     response.headers.set("Access-Control-Allow-Origin", "*");
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -46,11 +56,10 @@ export default async function middleware(req: NextRequest) {
       "Content-Type, Authorization"
     );
   } else if (origin) {
-    console.log(`Origin "${origin}" not allowed by CORS policy`);
+    console.error(`Origin "${origin}" not allowed.`);
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return new NextResponse(null, {
       status: 204,
@@ -62,30 +71,28 @@ export default async function middleware(req: NextRequest) {
     });
   }
 
-  // Check for session and handle protected routes
+  // Session Handling
   const sessionCookie = req.cookies.get("session")?.value;
   let session;
   try {
     session = sessionCookie ? await decrypt(sessionCookie) : null;
   } catch (error) {
-    console.error("Error decrypting session:", error);
+    console.error("Session decryption error:", error);
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Redirect or return 401 for protected routes, except for unprotected API routes
+  // Route protection
   if (isProtectedRoute && !isUnprotectedApiRoute && !session?.userId) {
     if (path.startsWith("/api")) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse(
+        JSON.stringify({ error: "Unauthorized: Please log in." }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
     }
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Redirect logged-in users accessing public routes to the dashboard
-  if (
-    isPublicRoute &&
-    session?.userId &&
-    !req.nextUrl.pathname.startsWith("/dashboard")
-  ) {
+  if (isPublicRoute && session?.userId) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
   }
 

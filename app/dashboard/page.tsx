@@ -2,7 +2,6 @@ import Summary from "@/components/Dashboard/summary";
 import BestSellingProductsReportPage from "@/components/reports/best-selling";
 import Customers from "@/components/reports/Customers";
 import OrdersChart from "@/components/reports/Orders_Chart";
-import StatsOverview from "@/components/reports/stats_overview";
 
 export default function ContentLayout() {
   return (

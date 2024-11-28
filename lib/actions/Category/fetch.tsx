@@ -18,7 +18,7 @@ export async function getUniqueCategories() {
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
-    console.log("Returning categories from cache");
+    // console.log("Returning categories from cache");
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
       return cachedData.value; // Return cached data if it hasn't expired
