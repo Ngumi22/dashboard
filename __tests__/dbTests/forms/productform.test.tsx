@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SubmitAction } from "@/lib/productSubmit";
-import { ProductsForm } from "@/components/Product/Newer";
+import ProductsForm from "@/components/Product/Newer";
 
 // Mock the entire productSubmit module
 jest.mock("../../lib/productSubmit", () => ({

@@ -5,14 +5,14 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 interface SidebarToggleStore {
   isOpen: boolean;
-  toggleSidebar: () => void;
+  setIsOpen: () => void;
 }
 
 export const useSidebarToggle = create(
   persist<SidebarToggleStore>(
     (set) => ({
       isOpen: true, // Sidebar starts open
-      toggleSidebar: () => set((state) => ({ isOpen: !state.isOpen })), // Toggle state
+      setIsOpen: () => set((state) => ({ isOpen: !state.isOpen })), // Toggle state
     }),
     {
       name: "sidebar-state", // Key in localStorage
