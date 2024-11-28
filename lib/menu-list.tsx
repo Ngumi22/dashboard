@@ -63,6 +63,13 @@ export function getMenuList(pathname: string): Group[] {
           submenus: [],
         },
         {
+          href: "/dashboard/banners",
+          label: "Banners",
+          active: pathname.includes("/banners"),
+          icon: Bookmark,
+          submenus: [],
+        },
+        {
           href: "/dashboard/orders",
           label: "Orders",
           active: pathname.includes("/orders"),

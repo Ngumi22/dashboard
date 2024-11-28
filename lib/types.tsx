@@ -300,3 +300,25 @@ export type FormValues = {
     };
   };
 };
+
+export interface Carousel {
+  carousel_id?: number;
+  title: string;
+  short_description?: string;
+  button_text?: string;
+  button_link?: string;
+  image?: File;
+  position: number;
+  status: "active" | "inactive";
+}
+
+export interface Banner {
+  banner_id?: number;
+  title: string;
+  description?: string;
+  link?: string;
+  image?: File;
+  text_color: string;
+  background_color: string;
+  status: "active" | "inactive";
+}
