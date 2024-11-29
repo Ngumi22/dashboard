@@ -27,6 +27,16 @@ import { createBanner } from "@/lib/actions/Banners/post";
 import { getUniqueBanners } from "@/lib/actions/Banners/fetch";
 import Image from "next/image";
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export interface Banner {
   banner_id?: number;
@@ -36,6 +46,7 @@ export interface Banner {
   image?: File;
   text_color: string;
   background_color: string;
+  usage_context: string;
   status: "active" | "inactive";
 }
 
@@ -59,6 +70,7 @@ const bannerSchema = z.object({
     .string()
     .regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color"),
   status: z.enum(["active", "inactive"]),
+  usage_context: z.string().optional(),
 });
 
 export default function BannerForm() {
@@ -74,6 +86,7 @@ export default function BannerForm() {
       text_color: "#000000",
       background_color: "#FFFFFF",
       status: "active",
+      usage_context: "",
     },
   });
 
@@ -105,21 +118,195 @@ export default function BannerForm() {
 
   return (
     <div>
+      <div className="justify-end">
+        <Dialog>
+          <DialogTrigger className="border border-black p-2 rounded">
+            Add Banner
+          </DialogTrigger>
+          <DialogContent className="h-fit">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create Banner</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-2">
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="usage_context"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Usage</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Where to use it" {...field} />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <FormControl>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="active">Active</SelectItem>
+                                  <SelectItem value="inactive">
+                                    Inactive
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} />
+                          </FormControl>
+
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="link"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Link</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="url" />
+                          </FormControl>
+
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="image"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Image</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              onChange={(e) =>
+                                field.onChange(e.target.files?.[0])
+                              }
+                            />
+                          </FormControl>
+
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="text_color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Text Color</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="color" />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="background_color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Background Color</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="color" />
+                            </FormControl>
+
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "Creating..." : "Create Banner"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </DialogContent>
+        </Dialog>
+      </div>
       <div>
-        <ul>
+        <ul className="grid grid-cols-2 gap-2">
           {banners?.map((banner) => (
             <li key={banner.banner_id}>
-              <div className="container mx-auto py-9 md:py-12 px-4 md:px-6">
-                <div className="flex items-strech justify-center flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6 lg:space-x-8">
-                  <div className="flex flex-col md:flex-row items-strech justify-between bg-gray-50 dark:bg-gray-800 py-4 px-5 md:py-12 lg:px-12 md:w-8/12 lg:w-7/12 xl:w-8/12 2xl:w-9/12">
+              <div className="mx-auto py-9 md:py-12 px-4 md:px-2">
+                <div className="flex items-stretch justify-center flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 lg:space-x-6">
+                  <div
+                    style={{
+                      backgroundColor: banner.background_color, // Default fallback color
+                    }}
+                    className="flex flex-col md:flex-row items-stretch justify-between py-4 px-5 md:py-12 lg:px-8 md:w-8/12 lg:w-7/12 xl:w-8/12 2xl:w-9/12">
                     <div className="flex flex-col justify-center space-y-2 md:w-1/2">
-                      <h1 className="text-3xl lg:text-4xl font-semibold text-gray-800 dark:text-white">
+                      <h1
+                        className="text-3xl lg:text-4xl font-semibold"
+                        style={{
+                          textDecorationColor: banner.text_color, // Default fallback color
+                        }}>
                         {banner.title}
                       </h1>
-                      <p className="text-base lg:text-xl text-gray-800 dark:text-white mt-2">
+                      <p
+                        className="text-base lg:text-xl text-gray-800 dark:text-white mt-2"
+                        style={{
+                          textDecorationColor: banner.text_color, // Default fallback color
+                        }}>
                         {banner.description}
                       </p>
-
                       <Link href={String(banner.link)}>
                         <Button>Buy Now</Button>
                       </Link>
@@ -141,135 +328,6 @@ export default function BannerForm() {
           ))}
         </ul>
       </div>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>The title of the banner.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea {...field} />
-                </FormControl>
-                <FormDescription>
-                  A brief description for the banner (optional).
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Link</FormLabel>
-                <FormControl>
-                  <Input {...field} type="url" />
-                </FormControl>
-                <FormDescription>
-                  The URL the banner should link to (optional).
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="image"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Image</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(e) => field.onChange(e.target.files?.[0])}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Upload an image for the banner (optional).
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="text_color"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Text Color</FormLabel>
-                <FormControl>
-                  <Input {...field} type="color" />
-                </FormControl>
-                <FormDescription>
-                  The color of the text on the banner.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="background_color"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Background Color</FormLabel>
-                <FormControl>
-                  <Input {...field} type="color" />
-                </FormControl>
-                <FormDescription>
-                  The background color of the banner.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormDescription>The status of the banner.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Banner"}
-          </Button>
-        </form>
-      </Form>
     </div>
   );
 }

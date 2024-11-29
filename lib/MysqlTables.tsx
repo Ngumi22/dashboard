@@ -432,23 +432,27 @@ export async function dbsetupTables() {
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS banners (
-          banner_id INT AUTO_INCREMENT PRIMARY KEY,
-          title VARCHAR(255) NOT NULL COMMENT 'Title for the banner',
-          description VARCHAR(500) DEFAULT NULL COMMENT 'Small description for the banner',
-          link VARCHAR(255) DEFAULT NULL COMMENT 'Link the banner will lead to when clicked',
-          image BLOB DEFAULT NULL COMMENT 'Image for the banner',
-          text_color VARCHAR(7) DEFAULT '#000000' COMMENT 'Text color in hex format (default is black)',
-          background_color VARCHAR(7) DEFAULT '#FFFFFF' COMMENT 'Background color in hex format (default is white)',
-          status ENUM('active', 'inactive') DEFAULT 'active' COMMENT 'Status of the banner',
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP NULL,
-          created_by INT DEFAULT NULL,
-          updated_by INT DEFAULT NULL,
-          FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
-          FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
-          INDEX idx_title (title)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Banners for various sections of the site';
+        banner_id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL COMMENT 'Title for the banner',
+        description VARCHAR(500) DEFAULT NULL COMMENT 'Small description for the banner',
+        link VARCHAR(255) DEFAULT NULL COMMENT 'Link the banner will lead to when clicked',
+        image BLOB DEFAULT NULL COMMENT 'Image for the banner',
+        text_color VARCHAR(7) DEFAULT '#000000' COMMENT 'Text color in hex format (default is black)',
+        background_color VARCHAR(7) DEFAULT '#FFFFFF' COMMENT 'Background color in hex format (default is white)',
+        status ENUM('active', 'inactive') DEFAULT 'active' COMMENT 'Status of the banner',
+        usage_context VARCHAR(255) DEFAULT NULL COMMENT 'Custom usage context defined by the user',
+        related_id INT DEFAULT NULL COMMENT 'ID of the related entity (e.g., product ID, category ID, or brand ID)',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        created_by INT DEFAULT NULL,
+        updated_by INT DEFAULT NULL,
+        FOREIGN KEY (created_by) REFERENCES staff_accounts(staff_id),
+        FOREIGN KEY (updated_by) REFERENCES staff_accounts(staff_id),
+        INDEX idx_title (title),
+        INDEX idx_usage_context (usage_context),
+        INDEX idx_related_id (related_id)
+    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Banners for various sections of the site';
     `);
 
     await connection.commit();

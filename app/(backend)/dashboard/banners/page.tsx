@@ -5,7 +5,7 @@ import BannerForm from "./banner";
 
 export default function Bannerspage() {
   return (
-    <section className="p-4">
+    <section className="p-2">
       <BannerForm />
       <></>
     </section>

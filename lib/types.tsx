@@ -322,3 +322,23 @@ export interface Banner {
   background_color: string;
   status: "active" | "inactive";
 }
+
+export interface ProductResponse {
+  id: string | number;
+  name: string;
+  sku: string;
+  price: number;
+  discount: number;
+  quantity: number;
+  category: string;
+  status: "approved" | "draft" | "pending";
+  description: string;
+  brand: string;
+  createdAt: string;
+  updatedAt: string;
+  images: {
+    mainImage: string | null;
+    thumbnails: (string | null)[];
+  };
+  tags: string[];
+}

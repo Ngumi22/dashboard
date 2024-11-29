@@ -200,7 +200,7 @@ export async function getUniqueBanners() {
   try {
     // Fetch all unique banners
     const [banners] = await connection.query<RowDataPacket[]>(
-      `SELECT banner_id, title, description, link, image, text_color, background_color, status FROM banners`
+      `SELECT banner_id, title, description, link, image, text_color, background_color, status FROM banners LIMIT 4`
     );
 
     // Map the result and compress the image for each banner

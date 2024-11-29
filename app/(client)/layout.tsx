@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Roboto } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { initialize } from "@/lib/main";
+import Loading from "./loading";
 
 initialize();
 
 const roboto = Roboto({
-  subsets: ["latin"],
-  weight: "400",
-});
-
-const inter = Inter({
   subsets: ["latin"],
   weight: "400",
 });
@@ -29,7 +25,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.className} suppressHydrationWarning={true}>
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange>
+          <Loading /> {/* Render the loading component */}
+          {children} {/* Render the actual page content */}
+        </ThemeProvider>
       </body>
     </html>
   );

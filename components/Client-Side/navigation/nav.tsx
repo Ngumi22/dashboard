@@ -16,13 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Logo from "./logo";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Navbar() {
   return (
     <section className="sticky top-0 z-50">
-      <header className="bg-black grid grid-flow-row md:h-32 py-2 md:grid-flow-col place-content-evenlyr content-center gap-2">
+      <header className="bg-[#1c2634] grid grid-flow-row md:h-32 py-2 md:grid-flow-col">
         <Logo />
-        <form className="flex justify-center items-center rounded border m-auto w-[98%]">
+        <Logo />
+        <form className="flex justify-center items-center rounded border m-auto">
           <Select>
             <SelectTrigger className="w-48 rounded-none">
               <SelectValue placeholder="Categories" />
@@ -138,6 +140,7 @@ export default function Navbar() {
             </p>
           </div>
         </div>
+        <ModeToggle />
       </header>
     </section>
   );
