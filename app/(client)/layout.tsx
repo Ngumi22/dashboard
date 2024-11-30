@@ -5,6 +5,13 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { initialize } from "@/lib/main";
 import Loading from "./loading";
 
+import { lazy, Suspense } from "react";
+import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
+
+const MainNav = lazy(
+  () => import("@/components/Client-Side/navigation/main-nav")
+);
+
 initialize();
 
 const roboto = Roboto({
@@ -30,8 +37,9 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange>
-          <Loading /> {/* Render the loading component */}
-          {children} {/* Render the actual page content */}
+          <ClientSideWrapper>
+            <Suspense fallback={<Loading />}>{children}</Suspense>
+          </ClientSideWrapper>
         </ThemeProvider>
       </body>
     </html>

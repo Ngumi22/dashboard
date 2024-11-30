@@ -1,47 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { getUniqueBanners } from "@/lib/actions/Banners/fetch";
 import Image from "next/image";
 import Link from "next/link";
-
-export interface Banner {
-  banner_id?: number;
-  title: string;
-  description?: string;
-  link?: string;
-  image?: File;
-  text_color: string;
-  background_color: string;
-  usage_context: string;
-  status: "active" | "inactive";
-}
+import { useStore } from "@/app/store"; // Zustand store for banner state
 
 export default function HeroBanners() {
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const { banners, loading, error, fetchBanners } = useStore((state) => ({
+    banners: state.banners,
+    loading: state.loading,
+    error: state.error,
+    fetchBanners: state.fetchBanners,
+  }));
 
+  // Fetch banners when the component mounts
   useEffect(() => {
-    async function fetchBanners() {
-      let res = await getUniqueBanners();
-      setBanners(res);
+    if (banners.length === 0) {
+      fetchBanners(); // Only fetch if banners are not already available
     }
-    fetchBanners();
-  }, []);
+  }, [banners, fetchBanners]);
 
+  // Show loading state while fetching banners
+  if (loading) return <div>Loading banners...</div>;
+
+  // Handle error if fetching banners fails
+  if (error) return <div>Error: {error}</div>;
+
+  // Render banners once they are loaded
   return (
     <div className="w-full">
-      <ul className="grid grid-cols-2 gap-2">
+      <ul className="grid grid-cols-2 gap-4">
         {banners?.map((banner) => (
           <li
             key={banner.banner_id}
             style={{
               backgroundColor: banner.background_color, // Default fallback color
             }}
-            className="h-52 grid grid-flow-col content-center pl-4 rounded-lg">
+            className="h-56 grid grid-flow-col content-center pl-4 rounded-lg">
             <div className="grid space-y-4">
               <h1
                 className="text-xl lg:text-2xl font-semibold"
@@ -63,7 +59,7 @@ export default function HeroBanners() {
             <div>
               <Image
                 loading="lazy"
-                className="h-auto w-auto object-contain"
+                className="h-auto w-[80%] overflow-hidden object-contain"
                 src={`data:image/jpeg;base64,${banner.image}`}
                 alt={banner.title}
                 height={200}

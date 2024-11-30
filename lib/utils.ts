@@ -373,3 +373,22 @@ export const signUpSchema = z
     message: "Passwords must match",
     path: ["password1"],
   });
+
+// Using `localStorage` efficiently
+export const getCachedData = <T>(key: string): T | null => {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+  } catch (e) {
+    console.error("Error reading from cache:", e);
+    return null;
+  }
+};
+
+export const setCachedData = (key: string, data: any): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error("Error writing to cache:", e);
+  }
+};
