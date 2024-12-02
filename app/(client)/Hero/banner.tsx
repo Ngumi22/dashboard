@@ -30,7 +30,7 @@ export default function HeroBanners() {
   // Render banners once they are loaded
   return (
     <div className="w-full">
-      <ul className="grid grid-cols-2 gap-4">
+      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {banners?.map((banner) => (
           <li
             key={banner.banner_id}
@@ -59,7 +59,7 @@ export default function HeroBanners() {
             <div>
               <Image
                 loading="lazy"
-                className="h-auto w-[80%] overflow-hidden object-contain"
+                className="h-full w-auto overflow-hidden object-contain"
                 src={`data:image/jpeg;base64,${banner.image}`}
                 alt={banner.title}
                 height={200}

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useStore } from "@/app/store"; // Zustand store
-import MainNav from "@/components/Client-Side/navigation/main-nav";
 import Loading from "@/app/(client)/loading";
+import NewNavbar from "./Navbar/Navbar";
 
 export default function ClientSideWrapper({
   children,
@@ -22,8 +22,8 @@ export default function ClientSideWrapper({
     }
   }, [loading, fetchBanners]);
 
-  console.log("Mounted:", mounted);
-  console.log("Loading:", loading);
+  // console.log("Mounted:", mounted);
+  // console.log("Loading:", loading);
 
   // Prevent rendering until mounted or loading state is finished
   if (!mounted || loading) {
@@ -32,7 +32,7 @@ export default function ClientSideWrapper({
 
   return (
     <>
-      <MainNav />
+      <NewNavbar />
       {children} {/* Render the page content after loading is complete */}
     </>
   );

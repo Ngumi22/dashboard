@@ -4,7 +4,8 @@ import HeroSection from "./Hero/hero";
 
 export default function Page() {
   return (
-    <div>
+    <div className="mt-[12rem] md:mt-[14rem]">
+      <HeroSection />
       <HeroSection />
 
       {/* <div>

@@ -8,10 +8,6 @@ import Loading from "./loading";
 import { lazy, Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 
-const MainNav = lazy(
-  () => import("@/components/Client-Side/navigation/main-nav")
-);
-
 initialize();
 
 const roboto = Roboto({
@@ -31,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={roboto.className} suppressHydrationWarning={true}>
+      <body className="font" suppressHydrationWarning={true}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
