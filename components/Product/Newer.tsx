@@ -29,6 +29,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { SubmitAction } from "@/lib/productSubmit";
 import { Textarea } from "../ui/textarea";
+import { getUniqueCategories } from "@/lib/actions/Category/fetch";
 
 const AddSuppliers = dynamic(() => import("./AddSuppliers"), {
   ssr: false,
@@ -121,12 +122,9 @@ export default function ProductsForm() {
     const fetchCategories = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/category");
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        const data = await response.json();
-        setCategories(data.categories);
+        const categories = await getUniqueCategories();
+
+        setCategories(categories);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
         setError("Failed to load categories. Please try again later.");

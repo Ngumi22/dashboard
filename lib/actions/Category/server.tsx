@@ -1,9 +1,10 @@
 "use server";
-import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { NextResponse } from "next/server";
+
 import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
-import { addCategory } from "./post";
+import { fileToBuffer, getErrorMessage, parseNumberField } from "@/lib/utils";
 import { getConnection } from "@/lib/database";
+import { dbsetupTables } from "@/lib/MysqlTables";
+import sharp from "sharp";
 import { cache } from "@/lib/cache";
 
 export type FormState = {
@@ -12,88 +13,171 @@ export type FormState = {
   issues?: string[];
 };
 
+export async function dbOperation<T>(
+  operation: (connection: any) => Promise<T>
+): Promise<T> {
+  const connection = await getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await dbsetupTables();
+    const result = await operation(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback();
+
+    const errorMessage = getErrorMessage(error);
+
+    // Log the error to the server console
+    console.error(`[Server Error]: ${errorMessage}`);
+
+    // Optionally, send the error to a monitoring service like Sentry
+    // Sentry.captureException(error);
+
+    throw new Error(errorMessage); // Re-throw for handling in API routes
+  } finally {
+    connection.release();
+  }
+}
+
+// Compress image utility
+async function compressAndEncodeBase64(
+  buffer: Buffer | null
+): Promise<string | null> {
+  if (!buffer) return null;
+
+  try {
+    // Validate buffer by ensuring it's an image
+    const isValidImage = await sharp(buffer).metadata(); // This will throw if it's not an image
+
+    const compressedBuffer = await sharp(buffer)
+      .resize(100) // Resize to 100px width
+      .webp({ quality: 70 }) // Convert to WebP with 70% quality
+      .toBuffer();
+
+    return compressedBuffer.toString("base64");
+  } catch (error) {
+    console.error("Image compression error (invalid buffer):", error);
+    return null;
+  }
+}
+
 export async function CategorySubmitAction(
   prevState: FormState,
   data: FormData
 ): Promise<FormState> {
-  const formData = Object.fromEntries(data);
-  // console.log("Raw formData: ", formData);
-
-  // Validate form data using CategorySchema
-  const parsed = CategorySchema.safeParse(formData);
-
-  // console.log("Parsed: ", parsed);
-
-  if (!parsed.success) {
-    const fields: Record<string, string> = {};
-    for (const key of Object.keys(formData)) {
-      fields[key] = formData[key].toString();
-    }
-    return {
-      message: "Invalid form data",
-      fields,
-      issues: parsed.error.issues.map((issue) => issue.message),
-    };
-  }
-
-  // console.log("success: ", parsed);
+  const uniqueCategoriesCacheKey = "unique_categories";
 
   try {
-    // Call addCategory to insert or retrieve existing category
-    const categoryResponse = await addCategory(data);
-    const categoryResult = await categoryResponse.json();
+    // Validate form data using Zod schema
+    const parsed = CategorySchema.safeParse({
+      category_name: data.get("category_name"),
+      category_description: data.get("category_description"),
+      status: data.get("status"),
+      category_image: data.get("category_image"), // Get the image from data
+    });
 
-    if (categoryResponse.ok) {
+    if (!parsed.success) {
+      const fields: Record<string, string> = {};
+      data.forEach((value, key) => {
+        fields[key] = value.toString();
+      });
       return {
-        message: categoryResult.message,
+        message: "Invalid form data",
+        fields,
+        issues: parsed.error.issues.map((issue) => issue.message),
+      };
+    }
+
+    // Perform the database operation
+    const result = await dbOperation(async (connection) => {
+      // Check if the category already exists
+      const [existingCategory]: any[] = await connection.query(
+        "SELECT category_id FROM categories WHERE category_name = ?",
+        [parsed.data.category_name]
+      );
+
+      if (existingCategory.length > 0) {
+        return {
+          success: false,
+          message: "Category already exists",
+          fields: {
+            category_name: parsed.data.category_name,
+            category_description: parsed.data.category_description,
+          },
+        };
+      }
+
+      // Convert the image to buffer
+      const categoryImageBuffer = data.get("category_image")
+        ? await fileToBuffer(data.get("category_image") as File)
+        : null;
+
+      // Insert new category
+      const [insertResult]: any = await connection.query(
+        "INSERT INTO categories (category_name, category_image, category_description, status, created_by, updated_by) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          parsed.data.category_name,
+          categoryImageBuffer,
+          parsed.data.category_description,
+          parsed.data.status,
+          parseNumberField(data, "created_by"),
+          parseNumberField(data, "updated_by"),
+        ]
+      );
+
+      return {
+        success: true,
+        message: "Category created successfully",
+        categoryId: insertResult.insertId,
         fields: {
           category_name: parsed.data.category_name,
           category_description: parsed.data.category_description,
         },
       };
-    } else {
-      // Handle case when addCategory reports a problem
-      return {
-        message: categoryResult.message || "Failed to add category",
-        issues: categoryResult.issues || [],
-      };
+    });
+
+    if (result.success) {
+      // Invalidate the global categories cache
+      cache.delete(uniqueCategoriesCacheKey);
     }
+
+    return {
+      message: result.message,
+      fields: result.fields,
+    };
   } catch (error) {
     console.error("Error in CategorySubmitAction:", error);
     return {
       message: "An error occurred while submitting the category",
-      issues: [error instanceof Error ? error.message : "Unknown error"],
+      issues: [getErrorMessage(error)],
     };
   }
 }
 
 export async function updateCategoryAction(
-  id: string,
-  updatedData: FormData
-): Promise<NextResponse> {
-  const cacheKey = `category_${id}`;
+  category_id: string,
+  formData: FormData
+) {
+  const uniqueCategoriesCacheKey = "unique_categories";
+  const categoryCacheKey = `category_${category_id}`;
+
   const connection = await getConnection();
-
   try {
-    // Prepare data from FormData
-    const categoryName = updatedData.get("category_name") as string | null;
-    const categoryDescription = updatedData.get("category_description") as
-      | string
-      | null;
-    const categoryImage = updatedData.get("category_image") as File | null;
-    const status = updatedData.get("status") as string | null;
-
-    // Convert the categoryImage to a buffer if provided
-    let categoryImageBuffer: Buffer | null = null;
-    if (categoryImage && categoryImage instanceof File) {
-      categoryImageBuffer = Buffer.from(await categoryImage.arrayBuffer());
-    }
+    const categoryName = formData.get("category_name");
+    const categoryDescription = formData.get("category_description");
+    const status = formData.get("status");
+    const categoryImageBuffer = formData.get("category_image")
+      ? await fileToBuffer(formData.get("category_image") as File)
+      : null;
+    const existingImage = formData.get("existing_image");
 
     const query = `
       UPDATE categories
       SET
         category_name = COALESCE(?, category_name),
-        category_image = COALESCE(?, category_image),
+        category_image = COALESCE(?, ?), -- Use new image or keep existing
         category_description = COALESCE(?, category_description),
         status = COALESCE(?, status)
       WHERE category_id = ?;
@@ -101,42 +185,32 @@ export async function updateCategoryAction(
 
     const values = [
       categoryName,
-      categoryImageBuffer,
+      categoryImageBuffer, // New image buffer
+      existingImage, // Fallback to existing image
       categoryDescription,
       status,
-      id,
+      category_id,
     ];
 
-    const [result] = await connection.execute(query, values);
+    const [result]: [any, any] = await connection.execute(query, values);
 
-    if ((result as any).affectedRows === 0) {
-      return NextResponse.json(
-        { error: "Category not found or no changes made" },
-        { status: 404 }
-      );
+    if (result.affectedRows === 0) {
+      throw new Error("Category not found or no changes made");
     }
 
-    // Fetch updated data
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      `SELECT * FROM categories WHERE category_id = ?`,
-      [id]
-    );
+    // Invalidate the category-specific cache
+    cache.delete(categoryCacheKey);
 
-    const updatedCategory = rows[0];
+    // Invalidate the global categories cache
+    cache.delete(uniqueCategoriesCacheKey);
 
-    // Update cache
-    cache.set(cacheKey, {
-      value: updatedCategory,
-      expiry: Date.now() + 3600 * 1000, // Cache expiry: 1 hour
-    });
-
-    return NextResponse.json(updatedCategory, { status: 200 });
-  } catch (error) {
+    return { success: true, message: "Category updated successfully" };
+  } catch (error: any) {
     console.error("Error updating category:", error);
-    return NextResponse.json(
-      { error: "Failed to update category" },
-      { status: 500 }
-    );
+    return {
+      success: false,
+      error: error.message || "Failed to update category",
+    };
   } finally {
     connection.release();
   }

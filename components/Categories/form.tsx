@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
-import { CategorySubmitAction } from "@/lib/actions/Category/server";
-import { updateCategory } from "@/lib/actions/Category/update";
+import {
+  CategorySubmitAction,
+  updateCategoryAction,
+} from "@/lib/actions/Category/server";
 
 interface CategoryFormProps {
   initialData?: Category;
@@ -26,7 +28,7 @@ interface CategoryFormProps {
 interface Category {
   category_id: number;
   category_name: string;
-  category_image: string | File;
+  category_image: string | File | null;
   category_description: string;
   status: "active" | "inactive";
 }
@@ -38,19 +40,20 @@ export default function CategoryForm({
   const [category, setCategory] = useState<Category>({
     category_id: initialData?.category_id || 0,
     category_name: initialData?.category_name || "",
-    category_image: initialData?.category_image || "",
+    category_image: initialData?.category_image || null,
     category_description: initialData?.category_description || "",
     status: initialData?.status || "active",
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    initialData?.category_image &&
-      typeof initialData.category_image === "string"
+  const [existingImage, setExistingImage] = useState<string | null>(
+    typeof initialData?.category_image === "string"
       ? `data:image/jpeg;base64,${initialData.category_image}`
       : null
   );
 
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
 
@@ -65,9 +68,18 @@ export default function CategoryForm({
     const file = e.target.files?.[0];
     if (file) {
       setCategory((prev) => ({ ...prev, category_image: file }));
+      setExistingImage(null); // Clear existing image if a new one is selected
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to preview the selected image.",
+          variant: "destructive",
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -82,45 +94,59 @@ export default function CategoryForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Category Data on Submit:", category);
 
+    if (isSubmitting) return; // Prevent multiple submissions
     setIsSubmitting(true);
 
     const formData = new FormData();
+
+    // Append category data to FormData
     Object.entries(category).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        formData.append(key, value);
+      if (key === "category_image") {
+        if (value instanceof File) {
+          formData.append(key, value); // Add the new image if uploaded
+        } else if (existingImage) {
+          formData.append("existing_image", existingImage); // Add the existing image reference
+        }
+      } else if (value !== null && value !== undefined) {
+        formData.append(key, value as string);
       }
     });
 
-    console.log("FormData Entries:", Array.from(formData.entries()));
+    try {
+      let result;
+      if (!category.category_id) {
+        // Create a new category
+        result = await CategorySubmitAction({ message: "" }, formData);
+      } else {
+        // Update an existing category
+        result = await updateCategoryAction(
+          category.category_id.toString(),
+          formData
+        );
+      }
 
-    let result;
-    if (!category.category_id) {
-      // Creating a new category
-      result = await CategorySubmitAction({ message: "" }, formData); // Replace this with your API function for creating categories
-    } else {
-      // Updating an existing category
-      result = await updateCategory(category.category_id.toString(), formData);
-    }
-
-    setIsSubmitting(false);
-
-    if (result) {
-      toast({
-        title: "Success",
-        description: category.category_id
-          ? "Category updated successfully"
-          : "Category created successfully",
-      });
-      router.push("/dashboard/orders"); // Adjust route as needed
-      router.refresh();
-    } else {
+      if (result) {
+        toast({
+          title: "Success",
+          description: category.category_id
+            ? "Category updated successfully"
+            : "Category created successfully",
+        });
+        router.push("/dashboard/orders");
+        router.refresh();
+      } else {
+        throw new Error("Failed to process category.");
+      }
+    } catch (error: any) {
+      console.error("Error:", error);
       toast({
         title: "Error",
-        description: "Failed to process category",
+        description: error.message || "Something went wrong.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -137,6 +163,7 @@ export default function CategoryForm({
           }))
         }
       />
+      {/* Category Name */}
       <div>
         <Label htmlFor="category_name">Category Name</Label>
         <Input
@@ -147,6 +174,8 @@ export default function CategoryForm({
           required
         />
       </div>
+
+      {/* Category Image */}
       <div>
         <Label htmlFor="category_image">Category Image</Label>
         <Input
@@ -156,16 +185,26 @@ export default function CategoryForm({
           onChange={handleImageChange}
           accept="image/*"
         />
-        {imagePreview && (
+        {imagePreview ? (
           <Image
             height={100}
             width={100}
             src={imagePreview}
-            alt="Preview"
+            alt="New Preview"
             className="mt-2 h-20 w-20 object-cover"
           />
-        )}
+        ) : existingImage ? (
+          <Image
+            height={100}
+            width={100}
+            src={existingImage}
+            alt="Existing Preview"
+            className="mt-2 h-20 w-20 object-cover"
+          />
+        ) : null}
       </div>
+
+      {/* Category Description */}
       <div>
         <Label htmlFor="category_description">Category Description</Label>
         <Textarea
@@ -175,6 +214,8 @@ export default function CategoryForm({
           onChange={handleChange}
         />
       </div>
+
+      {/* Status */}
       <div>
         <Label htmlFor="status">Status</Label>
         <Select
@@ -189,6 +230,8 @@ export default function CategoryForm({
           </SelectContent>
         </Select>
       </div>
+
+      {/* Buttons */}
       <div className="flex justify-end space-x-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel

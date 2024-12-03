@@ -41,8 +41,30 @@ export const getErrorMessage = (error: unknown): string => {
 
 // Helper function to convert File to Buffer
 export async function fileToBuffer(file: File): Promise<Buffer> {
-  const arrayBuffer = await file.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  try {
+    // Check if file is provided and is an instance of File
+    if (!file || !(file instanceof File)) {
+      throw new Error("Invalid file input.");
+    }
+
+    console.log(
+      "Processing file:",
+      file.name,
+      "Size:",
+      file.size,
+      "Type:",
+      file.type
+    );
+
+    // Convert the file to an ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Return a Buffer from the ArrayBuffer
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error("Error in fileToBuffer:", error);
+    throw new Error("Failed to convert file to buffer.");
+  }
 }
 
 export function parseNumberField(
@@ -374,7 +396,7 @@ export const signUpSchema = z
     path: ["password1"],
   });
 
-// Using `localStorage` efficiently
+// Caching
 export const getCachedData = <T>(key: string): T | null => {
   try {
     const data = localStorage.getItem(key);

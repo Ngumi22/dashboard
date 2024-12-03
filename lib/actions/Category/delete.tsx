@@ -1,18 +1,41 @@
+"use server";
+
 import { cache } from "@/lib/cache";
 import { getConnection } from "@/lib/database";
+import { dbsetupTables } from "@/lib/MysqlTables";
+import { getErrorMessage } from "@/lib/utils";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { NextResponse } from "next/server";
 
-export async function deleteCategory(
-  category_id: string
-): Promise<NextResponse> {
-  const cacheKey = `category_${category_id}`;
+export async function dbOperation<T>(
+  operation: (connection: any) => Promise<T>
+): Promise<T> {
   const connection = await getConnection();
 
   try {
-    // Start a transaction
     await connection.beginTransaction();
+    await dbsetupTables();
+    const result = await operation(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback();
 
+    const errorMessage = getErrorMessage(error);
+
+    // Log the error to the server console
+    console.error(`[Server Error]: ${errorMessage}`);
+
+    throw new Error(errorMessage); // Re-throw for handling in API routes
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deleteCategory(category_id: string) {
+  const categoryCacheKey = `category_${category_id}`;
+  const uniqueCategoriesCacheKey = "unique_categories";
+
+  return await dbOperation(async (connection) => {
     // Check if the category exists
     const [categoryRows]: [RowDataPacket[], FieldPacket[]] =
       await connection.execute(
@@ -21,48 +44,23 @@ export async function deleteCategory(
       );
 
     if (categoryRows.length === 0) {
-      return NextResponse.json(
-        { error: "Category not found" },
-        { status: 404 }
-      );
+      return { success: false, error: "Category not found" };
     }
 
-    // Delete the category (products will be deleted automatically due to ON DELETE CASCADE)
-    const [result] = await connection.execute(
-      `DELETE FROM categories WHERE category_id = ?`,
+    // Delete the category
+    const [result]: [any, FieldPacket[]] = await connection.execute(
+      "DELETE FROM categories WHERE category_id = ?",
       [category_id]
     );
 
-    // If no rows were deleted, the category does not exist
-    if ((result as any).affectedRows === 0) {
-      return NextResponse.json(
-        { error: "Category not found" },
-        { status: 404 }
-      );
+    if (result.affectedRows === 0) {
+      return { success: false, error: "Failed to delete category" };
     }
 
-    // Remove from cache to ensure it does not contain stale data
-    cache.delete(cacheKey);
+    // Invalidate caches
+    cache.delete(categoryCacheKey); // Remove specific category from cache
+    cache.delete(uniqueCategoriesCacheKey); // Invalidate entire categories list cache
 
-    // Commit the transaction
-    await connection.commit();
-
-    return NextResponse.json(
-      { message: "Category and associated products deleted successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error deleting category:", error);
-
-    // Rollback the transaction in case of error
-    await connection.rollback();
-
-    return NextResponse.json(
-      { error: "Failed to delete category" },
-      { status: 500 }
-    );
-  } finally {
-    // Release the connection
-    connection.release();
-  }
+    return { success: true, message: "Category deleted successfully" };
+  });
 }

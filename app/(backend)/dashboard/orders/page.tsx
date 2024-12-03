@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, FileDown, Edit, Trash2 } from "lucide-react";
+import { Plus, FileDown, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,19 +26,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import Image from "next/image";
 import CategoryForm from "@/components/Categories/form";
-
-interface Category {
-  category_id?: number;
-  category_name: string;
-  category_image: string | File;
-  category_description: string;
-  status: "active" | "inactive";
-}
+import { getUniqueCategories } from "@/lib/actions/Category/fetch";
+import { deleteCategory } from "@/lib/actions/Category/delete";
 
 interface CategoryData {
   category_id: number;
@@ -68,11 +61,10 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:3000/api/category");
-      if (!response.ok) throw new Error("Failed to fetch categories");
-      const data = await response.json();
-      setCategories(data.categories);
-    } catch (error) {
+      const categories: CategoryData[] = await getUniqueCategories();
+      setCategories(categories);
+    } catch (error: any) {
+      setError(error);
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -127,22 +119,30 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleDelete = async (categoryId: number) => {
+  const handleDelete = async (category_id: number) => {
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/category/${categoryId}`,
-        { method: "DELETE" }
+      // Call the server action
+      const response = await deleteCategory(String(category_id));
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to delete category");
+      }
+
+      // Update state
+      setCategories((prev) =>
+        prev.filter((c) => c.category_id !== category_id)
       );
-      if (!response.ok) throw new Error("Failed to delete category");
-      setCategories((prev) => prev.filter((c) => c.category_id !== categoryId));
+
+      // Show success toast
       toast({
         title: "Category deleted",
-        description: "Successfully deleted.",
+        description: response.message || "Successfully deleted.",
       });
-    } catch {
+    } catch (error: any) {
+      // Show error toast
       toast({
         title: "Error",
-        description: "Failed to delete category.",
+        description: error.message || "Failed to delete category.",
         variant: "destructive",
       });
     }
@@ -251,7 +251,7 @@ export default function CategoriesPage() {
                     alt={category.category_name}
                     width={50}
                     height={50}
-                    className="rounded-md"
+                    className="rounded-md h-auto w-auto object-contain"
                   />
                 </TableCell>
                 <TableCell>{category.category_name}</TableCell>

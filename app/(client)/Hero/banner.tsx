@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { useStore } from "@/app/store"; // Zustand store for banner state
+import { useStore } from "@/app/store";
 
 export default function HeroBanners() {
   const { banners, loading, error, fetchBanners } = useStore((state) => ({
@@ -14,44 +14,31 @@ export default function HeroBanners() {
     fetchBanners: state.fetchBanners,
   }));
 
-  // Fetch banners when the component mounts
+  // Fetch banners when the component mounts if not already loaded
   useEffect(() => {
-    if (banners.length === 0) {
-      fetchBanners(); // Only fetch if banners are not already available
+    if (!banners.length) {
+      fetchBanners();
     }
   }, [banners, fetchBanners]);
 
-  // Show loading state while fetching banners
   if (loading) return <div>Loading banners...</div>;
-
-  // Handle error if fetching banners fails
   if (error) return <div>Error: {error}</div>;
 
-  // Render banners once they are loaded
   return (
     <div className="w-full">
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {banners?.map((banner) => (
+        {banners.map((banner) => (
           <li
             key={banner.banner_id}
-            style={{
-              backgroundColor: banner.background_color, // Default fallback color
-            }}
+            style={{ backgroundColor: banner.background_color }}
             className="h-56 grid grid-flow-col content-center pl-4 rounded-lg">
             <div className="grid space-y-4">
               <h1
                 className="text-xl lg:text-2xl font-semibold"
-                style={{
-                  textDecorationColor: banner.text_color, // Default fallback color
-                }}>
+                style={{ color: banner.text_color }}>
                 {banner.title}
               </h1>
-              <p
-                style={{
-                  textDecorationColor: banner.text_color, // Default fallback color
-                }}>
-                {banner.description}
-              </p>
+              <p style={{ color: banner.text_color }}>{banner.description}</p>
               <Link href={String(banner.link)}>
                 <Button>Buy Now</Button>
               </Link>
@@ -59,7 +46,7 @@ export default function HeroBanners() {
             <div>
               <Image
                 loading="lazy"
-                className="h-full w-auto overflow-hidden object-contain"
+                className="h-full w-auto object-contain"
                 src={`data:image/jpeg;base64,${banner.image}`}
                 alt={banner.title}
                 height={200}

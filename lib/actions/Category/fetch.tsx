@@ -1,14 +1,35 @@
 "use server";
 
-import { FieldPacket, RowDataPacket } from "mysql2/promise";
+import { RowDataPacket } from "mysql2/promise";
 import { cache } from "@/lib/cache";
 import { getConnection } from "@/lib/database";
+
+import sharp from "sharp";
+
+// Compress image utility
+async function compressAndEncodeBase64(
+  buffer: Buffer | null
+): Promise<string | null> {
+  if (!buffer) return null;
+
+  try {
+    const compressedBuffer = await sharp(buffer)
+      .resize(100) // Resize to 100px width
+      .webp({ quality: 70 }) // Convert to WebP with 70% quality
+      .toBuffer();
+
+    return compressedBuffer.toString("base64");
+  } catch (error) {
+    console.error("Image compression error:", error);
+    return null;
+  }
+}
 
 // Define the Category type
 type Category = {
   category_id: string;
   category_name: string;
-  category_image: Buffer | null;
+  category_image: string | null; // Update type to match the encoded base64 image
   category_description: string;
   status: "active" | "inactive";
 };
@@ -18,7 +39,6 @@ export async function getUniqueCategories() {
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
-    // console.log("Returning categories from cache");
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
       return cachedData.value; // Return cached data if it hasn't expired
@@ -28,26 +48,28 @@ export async function getUniqueCategories() {
 
   const connection = await getConnection();
   try {
-    // Fetch all unique categories with name, image, and description
     const [categories] = await connection.query<RowDataPacket[]>(
       `SELECT category_id, category_name, category_image, category_description, status FROM categories`
     );
 
-    // Map the result to include the full category details
-    const uniqueCategories: Category[] = categories.map((cat) => ({
-      category_id: cat.category_id,
-      category_name: cat.category_name,
-      category_image: cat.category_image,
-      category_description: cat.category_description,
-      status: cat.status,
-    }));
+    const uniqueCategories: Category[] = await Promise.all(
+      categories.map(async (cat) => ({
+        category_id: cat.category_id,
+        category_name: cat.category_name,
+        category_image: cat.category_image
+          ? await compressAndEncodeBase64(cat.category_image)
+          : null, // Compress image if it exists
+        category_description: cat.category_description,
+        status: cat.status,
+      }))
+    );
 
-    // Cache the result with an expiry time
+    // Cache the serializable data
     cache.set(cacheKey, {
       value: uniqueCategories,
-      expiry: Date.now() + 3600 * 1000, // 1 hour expiration
+      expiry: Date.now() + 3600 * 1000,
     });
-
+    // Ensure plain objects are returned
     return uniqueCategories;
   } catch (error) {
     console.error("Error fetching unique categories:", error);
@@ -101,9 +123,7 @@ export async function getCategorySpecs(categoryID: string) {
   }
 }
 
-export async function fetchCategoryByIdFromDb(
-  id: string
-): Promise<Category | null> {
+export async function fetchCategoryByIdFromDb(id: string) {
   const cacheKey = `category_${id}`;
 
   // Check cache
@@ -118,7 +138,7 @@ export async function fetchCategoryByIdFromDb(
   const connection = await getConnection();
   try {
     // Query the database
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
+    const [rows] = await connection.query<RowDataPacket[]>(
       `SELECT category_id, category_name, category_image, category_description, status FROM categories WHERE category_id = ?`,
       [id]
     );
@@ -132,7 +152,9 @@ export async function fetchCategoryByIdFromDb(
     const category: Category = {
       category_id: rows[0].category_id,
       category_name: rows[0].category_name,
-      category_image: rows[0].category_image,
+      category_image: rows[0].category_image
+        ? await compressAndEncodeBase64(rows[0].category_image)
+        : null, // Compress image if it exists
       category_description: rows[0].category_description,
       status: rows[0].status,
     };
@@ -140,7 +162,7 @@ export async function fetchCategoryByIdFromDb(
     // Cache the result
     cache.set(cacheKey, {
       value: category,
-      expiry: Date.now() + 3600 * 1000, // Cache expiry: 1 hour
+      expiry: Date.now() + 3600 * 10, // Cache expiry: 1 hour
     });
 
     return category;

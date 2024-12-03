@@ -21,36 +21,56 @@ export interface BannerState {
   fetchBanners: () => Promise<void>;
 }
 
-export const createBannerSlice: StateCreator<BannerState> = (set) => ({
-  banners: [],
-  loading: false,
-  error: null,
-  fetchBanners: async () => {
-    const cacheKey = "bannersData";
-    let cachedBanners = getCachedData<Banner[]>(cacheKey);
+const CACHE_EXPIRATION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-    // If cached, set banners immediately and return
-    if (cachedBanners) {
-      set({ banners: cachedBanners, loading: false, error: null });
-      return;
-    }
+export const createBannerSlice: StateCreator<BannerState> = (set) => {
+  let isFetching = false; // Control flag to prevent duplicate fetches
 
-    // If not cached, begin the fetching process
-    set({ loading: true, error: null });
-    try {
-      const data: Banner[] = await getUniqueBanners();
-      setCachedData(cacheKey, data); // Save to cache
-      // Use a single set call with a batched update
-      set((state) => ({
-        banners: data,
-        loading: false,
-        error: null,
-      }));
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : "Error fetching banners",
-        loading: false,
-      });
-    }
-  },
-});
+  const isCacheValid = (cacheTimestamp: number): boolean => {
+    const now = Date.now();
+    return now - cacheTimestamp < CACHE_EXPIRATION_MS;
+  };
+
+  return {
+    banners: [],
+    loading: false,
+    error: null,
+
+    fetchBanners: async () => {
+      if (isFetching) return; // Prevent concurrent fetches
+      isFetching = true;
+
+      const cacheKey = "bannersData";
+      const cacheTimestampKey = `${cacheKey}_timestamp`;
+
+      // Check if cached data exists and is valid
+      const cachedBanners = getCachedData<Banner[]>(cacheKey);
+      const cacheTimestamp = getCachedData<number>(cacheTimestampKey);
+
+      if (cachedBanners && cacheTimestamp && isCacheValid(cacheTimestamp)) {
+        set({ banners: cachedBanners, loading: false, error: null });
+        isFetching = false;
+        return;
+      }
+
+      // Otherwise, fetch fresh data
+      set({ loading: true, error: null });
+
+      try {
+        const freshData: Banner[] = await getUniqueBanners();
+
+        // Update cache and state
+        setCachedData(cacheKey, freshData);
+        setCachedData(cacheTimestampKey, Date.now());
+        set({ banners: freshData, loading: false, error: null });
+      } catch (err) {
+        set({
+          error: err instanceof Error ? err.message : "Error fetching banners",
+          loading: false,
+        });
+      } finally {
+        isFetching = false;
+      }
+    },
+  };
+};
