@@ -1,7 +1,7 @@
 "use server";
 
 import { RowDataPacket } from "mysql2/promise";
-import { cache } from "@/lib/cache";
+import { cache, setCache } from "@/lib/cache";
 import { getConnection } from "@/lib/database";
 
 import sharp from "sharp";
@@ -64,11 +64,7 @@ export async function getUniqueCategories() {
       }))
     );
 
-    // Cache the serializable data
-    cache.set(cacheKey, {
-      value: uniqueCategories,
-      expiry: Date.now() + 3600 * 1000,
-    });
+    setCache(cacheKey, uniqueCategories, { ttl: 300 }); // Cache for 5 minutes
     // Ensure plain objects are returned
     return uniqueCategories;
   } catch (error) {
@@ -159,11 +155,7 @@ export async function fetchCategoryByIdFromDb(id: string) {
       status: rows[0].status,
     };
 
-    // Cache the result
-    cache.set(cacheKey, {
-      value: category,
-      expiry: Date.now() + 3600 * 10, // Cache expiry: 1 hour
-    });
+    setCache(cacheKey, category, { ttl: 300 }); // Cache for 5 minutes
 
     return category;
   } catch (error) {

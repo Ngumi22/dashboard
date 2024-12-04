@@ -106,7 +106,10 @@ export default function CategoryForm({
         if (value instanceof File) {
           formData.append(key, value); // Add the new image if uploaded
         } else if (existingImage) {
-          formData.append("existing_image", existingImage); // Add the existing image reference
+          formData.append(
+            "existing_image",
+            initialData?.category_image as string
+          ); // Pass the existing image
         }
       } else if (value !== null && value !== undefined) {
         formData.append(key, value as string);

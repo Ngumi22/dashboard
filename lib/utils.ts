@@ -24,17 +24,38 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const getErrorMessage = (error: unknown): string => {
+export const getErrorMessage = (error: unknown, context?: string): string => {
   let message: string;
+  let errorDetails: string | undefined = undefined;
+
   if (error instanceof Error) {
+    // Standard JavaScript Error object
     message = error.message;
+    errorDetails = error.stack; // Capture stack trace for server-side debugging
   } else if (error && typeof error === "object" && "message" in error) {
-    message = String(error.message);
+    // If it's an object with a message property (e.g., custom error object)
+    message = String((error as { message: unknown }).message);
+    errorDetails = JSON.stringify(error); // Capture the full error object for debugging
   } else if (typeof error === "string") {
+    // If it's just a plain string error message
     message = error;
   } else {
-    message = "Something else went wrong";
+    // Fallback error message for unknown types
+    message = "Something went wrong";
   }
+
+  // Add additional context if available
+  if (context) {
+    message = `[Context: ${context}] ${message}`;
+  }
+
+  // Log the error for debugging (in server logs)
+  if (errorDetails) {
+    console.error("Error Details:", errorDetails); // Logs detailed stack trace or object info
+  }
+
+  // Optionally, you could send the detailed error stack to an error logging service in a production environment
+  // e.g., Sentry, LogRocket, etc.
 
   return message;
 };

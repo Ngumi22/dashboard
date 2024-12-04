@@ -41,28 +41,6 @@ export async function dbOperation<T>(
   }
 }
 
-// Compress image utility
-async function compressAndEncodeBase64(
-  buffer: Buffer | null
-): Promise<string | null> {
-  if (!buffer) return null;
-
-  try {
-    // Validate buffer by ensuring it's an image
-    const isValidImage = await sharp(buffer).metadata(); // This will throw if it's not an image
-
-    const compressedBuffer = await sharp(buffer)
-      .resize(100) // Resize to 100px width
-      .webp({ quality: 70 }) // Convert to WebP with 70% quality
-      .toBuffer();
-
-    return compressedBuffer.toString("base64");
-  } catch (error) {
-    console.error("Image compression error (invalid buffer):", error);
-    return null;
-  }
-}
-
 export async function CategorySubmitAction(
   prevState: FormState,
   data: FormData
@@ -168,48 +146,61 @@ export async function updateCategoryAction(
     const categoryName = formData.get("category_name");
     const categoryDescription = formData.get("category_description");
     const status = formData.get("status");
-    const categoryImageBuffer = formData.get("category_image")
-      ? await fileToBuffer(formData.get("category_image") as File)
-      : null;
-    const existingImage = formData.get("existing_image");
+    const newImageFile = formData.get("category_image");
 
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (categoryName) {
+      updates.push("category_name = ?");
+      values.push(categoryName);
+    }
+
+    if (categoryDescription) {
+      updates.push("category_description = ?");
+      values.push(categoryDescription);
+    }
+
+    if (status) {
+      updates.push("status = ?");
+      values.push(status);
+    }
+
+    if (newImageFile) {
+      const newImageBuffer = await fileToBuffer(newImageFile as File);
+      updates.push("category_image = ?");
+      values.push(newImageBuffer);
+    }
+
+    // Ensure we have fields to update
+    if (updates.length === 0) {
+      return { success: false, message: "No fields to update." };
+    }
+
+    updates.push("updated_at = NOW()");
     const query = `
       UPDATE categories
-      SET
-        category_name = COALESCE(?, category_name),
-        category_image = COALESCE(?, ?), -- Use new image or keep existing
-        category_description = COALESCE(?, category_description),
-        status = COALESCE(?, status)
+      SET ${updates.join(", ")}
       WHERE category_id = ?;
     `;
-
-    const values = [
-      categoryName,
-      categoryImageBuffer, // New image buffer
-      existingImage, // Fallback to existing image
-      categoryDescription,
-      status,
-      category_id,
-    ];
+    values.push(category_id);
 
     const [result]: [any, any] = await connection.execute(query, values);
 
     if (result.affectedRows === 0) {
-      throw new Error("Category not found or no changes made");
+      throw new Error("Failed to update category. Category might not exist.");
     }
 
-    // Invalidate the category-specific cache
+    // Clear caches
     cache.delete(categoryCacheKey);
-
-    // Invalidate the global categories cache
     cache.delete(uniqueCategoriesCacheKey);
 
-    return { success: true, message: "Category updated successfully" };
+    return { success: true, message: "Category updated successfully." };
   } catch (error: any) {
     console.error("Error updating category:", error);
     return {
       success: false,
-      error: error.message || "Failed to update category",
+      error: error.message || "Failed to update category.",
     };
   } finally {
     connection.release();
