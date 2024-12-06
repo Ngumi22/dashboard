@@ -175,6 +175,7 @@ export async function fetchFilteredProductsFromDb(
         p.product_status AS status,
         p.product_description AS description,
         b.brand_name AS brand,
+        COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
         p.created_at AS createdAt,
         p.updated_at AS updatedAt,
         MAX(pi.main_image) AS mainImage,
@@ -189,6 +190,7 @@ export async function fetchFilteredProductsFromDb(
       LEFT JOIN categories c ON p.category_id = c.category_id
       LEFT JOIN brands b ON p.brand_id = b.brand_id
       LEFT JOIN product_tags pt ON p.product_id = pt.product_id
+      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
       LEFT JOIN tags t ON pt.tag_id = t.tag_id
       WHERE ${whereClause}
       GROUP BY p.product_id

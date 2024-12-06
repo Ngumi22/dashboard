@@ -9,8 +9,6 @@ import {
   UserRow,
   User,
 } from "@/lib/definitions";
-import { getConnection } from "./database";
-import { dbsetupTables } from "./MysqlTables";
 
 const MAX_FILE_SIZE = 1024 * 1024 * 5;
 const ACCEPTED_IMAGE_MIME_TYPES = [
@@ -418,19 +416,42 @@ export const signUpSchema = z
   });
 
 // Caching
+type CacheOptions = {
+  ttl?: number; // Time-to-live in seconds
+};
+
 export const getCachedData = <T>(key: string): T | null => {
   try {
     const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+
+    const parsed = JSON.parse(data);
+    const now = Date.now();
+
+    // If TTL is defined and expired, remove the cache and return null
+    if (parsed.expiry && parsed.expiry < now) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    return parsed.value as T;
   } catch (e) {
     console.error("Error reading from cache:", e);
     return null;
   }
 };
 
-export const setCachedData = (key: string, data: any): void => {
+export const setCachedData = (
+  key: string,
+  data: any,
+  options?: CacheOptions
+): void => {
   try {
-    localStorage.setItem(key, JSON.stringify(data));
+    const cacheEntry = {
+      value: data,
+      expiry: options?.ttl ? Date.now() + options.ttl * 1000 : null, // Calculate expiry in ms
+    };
+    localStorage.setItem(key, JSON.stringify(cacheEntry));
   } catch (e) {
     console.error("Error writing to cache:", e);
   }

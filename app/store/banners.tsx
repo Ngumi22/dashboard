@@ -21,56 +21,34 @@ export interface BannerState {
   fetchBanners: () => Promise<void>;
 }
 
-const CACHE_EXPIRATION_MS = 6 * 60 * 60 * 1000; // 6 hours
+export const createBannerSlice: StateCreator<BannerState> = (set) => ({
+  banners: [],
+  loading: false,
+  error: null,
 
-export const createBannerSlice: StateCreator<BannerState> = (set) => {
-  let isFetching = false; // Control flag to prevent duplicate fetches
+  fetchBanners: async () => {
+    const cacheKey = "bannersData";
+    const cachedData = getCachedData<Banner[]>(cacheKey);
 
-  const isCacheValid = (cacheTimestamp: number): boolean => {
-    const now = Date.now();
-    return now - cacheTimestamp < CACHE_EXPIRATION_MS;
-  };
+    if (cachedData) {
+      set({ banners: cachedData, loading: false, error: null });
+      return;
+    }
 
-  return {
-    banners: [],
-    loading: false,
-    error: null,
+    set({ loading: true, error: null });
 
-    fetchBanners: async () => {
-      if (isFetching) return; // Prevent concurrent fetches
-      isFetching = true;
+    try {
+      const freshData: Banner[] = await getUniqueBanners();
 
-      const cacheKey = "bannersData";
-      const cacheTimestampKey = `${cacheKey}_timestamp`;
+      // Cache the fetched data with a TTL of 6 hours
+      setCachedData(cacheKey, freshData, { ttl: 6 * 60 * 60 });
 
-      // Check if cached data exists and is valid
-      const cachedBanners = getCachedData<Banner[]>(cacheKey);
-      const cacheTimestamp = getCachedData<number>(cacheTimestampKey);
-
-      if (cachedBanners && cacheTimestamp && isCacheValid(cacheTimestamp)) {
-        set({ banners: cachedBanners, loading: false, error: null });
-        isFetching = false;
-        return;
-      }
-
-      // Otherwise, fetch fresh data
-      set({ loading: true, error: null });
-
-      try {
-        const freshData: Banner[] = await getUniqueBanners();
-
-        // Update cache and state
-        setCachedData(cacheKey, freshData);
-        setCachedData(cacheTimestampKey, Date.now());
-        set({ banners: freshData, loading: false, error: null });
-      } catch (err) {
-        set({
-          error: err instanceof Error ? err.message : "Error fetching banners",
-          loading: false,
-        });
-      } finally {
-        isFetching = false;
-      }
-    },
-  };
-};
+      set({ banners: freshData, loading: false, error: null });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Error fetching banners",
+        loading: false,
+      });
+    }
+  },
+});

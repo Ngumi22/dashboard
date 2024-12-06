@@ -52,6 +52,7 @@ interface ProductResponse {
   brand: string;
   createdAt: string;
   updatedAt: string;
+  ratings: number;
   images: {
     mainImage: string | null;
     thumbnails: (string | null)[];
