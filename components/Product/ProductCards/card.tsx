@@ -45,14 +45,16 @@ export function ProductCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}>
       <div className="relative h-[10rem] sm:h-[18rem]">
-        <Image
-          src={`data:image/jpeg;base64,${image}`}
-          alt={description}
-          height={800}
-          width={800}
-          className="object-cover h-full w-full transition-all duration-300 ease-in-out group-hover:scale-105 overflow-hidden "
-          priority
-        />
+        <div className="grid justify-items-center p-8">
+          <Image
+            src={`data:image/jpeg;base64,${image}`}
+            alt={description}
+            height={400}
+            width={400}
+            className="object-fill transition-all duration-300 ease-in-out group-hover:scale-105 overflow-hidden "
+            priority
+          />
+        </div>
 
         <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         <div className="absolute top-2 right-2 flex flex-col gap-2">
