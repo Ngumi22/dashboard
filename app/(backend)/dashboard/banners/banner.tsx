@@ -70,7 +70,7 @@ const bannerSchema = z.object({
     .string()
     .regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color"),
   status: z.enum(["active", "inactive"]),
-  usage_context: z.string().optional(),
+  usage_context: z.string().min(1, "Context is required"),
 });
 
 export default function BannerForm() {
@@ -281,53 +281,49 @@ export default function BannerForm() {
           </DialogContent>
         </Dialog>
       </div>
-      <div>
-        <ul className="grid grid-cols-2 gap-2">
-          {banners?.map((banner) => (
-            <li key={banner.banner_id}>
-              <div className="mx-auto py-9 md:py-12 px-4 md:px-2">
-                <div className="flex items-stretch justify-center flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 lg:space-x-6">
-                  <div
-                    style={{
-                      backgroundColor: banner.background_color, // Default fallback color
-                    }}
-                    className="flex flex-col md:flex-row items-stretch justify-between py-4 px-5 md:py-12 lg:px-8 md:w-8/12 lg:w-7/12 xl:w-8/12 2xl:w-9/12">
-                    <div className="flex flex-col justify-center space-y-2 md:w-1/2">
-                      <h1
-                        className="text-3xl lg:text-4xl font-semibold"
-                        style={{
-                          textDecorationColor: banner.text_color, // Default fallback color
-                        }}>
-                        {banner.title}
-                      </h1>
-                      <p
-                        className="text-base lg:text-xl text-gray-800 dark:text-white mt-2"
-                        style={{
-                          textDecorationColor: banner.text_color, // Default fallback color
-                        }}>
-                        {banner.description}
-                      </p>
-                      <Link href={String(banner.link)}>
-                        <Button>Buy Now</Button>
-                      </Link>
-                    </div>
-                    <div className="md:w-1/2 mt-8 md:mt-0 flex justify-center md:justify-end hover:scale-125">
-                      <Image
-                        loading="lazy"
-                        className="h-auto w-auto object-cover"
-                        src={`data:image/jpeg;base64,${banner.image}`}
-                        alt={banner.title}
-                        height={100}
-                        width={100}
-                      />
-                    </div>
-                  </div>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full gap-6 place-items-center">
+        {banners?.map((banner) => (
+          <li key={banner.banner_id} className="group">
+            <div
+              className="grid grid-flow-col h-full w-full overflow-hidden rounded-lg shadow-lg"
+              style={{ backgroundColor: banner.background_color }}>
+              <div className="col-span-2 sm:col-span-1 p-6 flex flex-col justify-between relative z-10">
+                <div className="space-y-4">
+                  <h2
+                    className="text-xl sm:text-2xl font-semibold line-clamp-2 transition-colors duration-300"
+                    style={{ color: banner.text_color }}>
+                    {banner.title}
+                  </h2>
+                  <p
+                    className="text-sm sm:text-base line-clamp-3 transition-colors duration-300"
+                    style={{ color: banner.text_color }}>
+                    {banner.description}
+                  </p>
+                  <p
+                    className="text-sm sm:text-base line-clamp-2 transition-colors duration-300"
+                    style={{ color: banner.text_color }}>
+                    {banner.usage_context}
+                  </p>
                 </div>
+                <Link href={String(banner.link)} className="mt-4 inline-block">
+                  <Button className="transition-transform duration-300 hover:scale-105">
+                    Buy Now
+                  </Button>
+                </Link>
               </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+              <div className="inset-x-10 relative overflow-hidden grid place-items-center">
+                <Image
+                  src={`data:image/jpeg;base64,${banner.image}`}
+                  alt={banner.title}
+                  height={200}
+                  width={200}
+                  className="object-contain transition-all duration-500 ease-in-out group-hover:scale-125 hover:ease-out h-auto w-32 my-auto"
+                />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -35,6 +35,7 @@ type Banner = {
   text_color: string;
   background_color: string;
   status: string;
+  usage_context: string;
 };
 
 export async function upsertCarousel(data: FormData) {
@@ -111,6 +112,7 @@ export async function upsertBanner(data: FormData) {
   const background_color = data.get("background_color") as string;
   const status = data.get("status") as "active" | "inactive";
   const image = data.get("image") as File | null;
+  const usage_context = data.get("usage_context") as string | null;
 
   let imagePath = data.get("current_image") as Buffer | null;
   if (image instanceof File) {
@@ -123,7 +125,7 @@ export async function upsertBanner(data: FormData) {
         const [rows] = await connection.execute(
           `UPDATE banners SET
            title = ?, description = ?, link = ?, image = ?,
-           text_color = ?, background_color = ?, status = ?
+           text_color = ?, background_color = ?, status = ?, usage_context = ?
            WHERE banner_id = ?`,
           [
             title,
@@ -134,14 +136,15 @@ export async function upsertBanner(data: FormData) {
             background_color,
             status,
             bannerId,
+            usage_context,
           ]
         );
         return { id: bannerId, affectedRows: (rows as any).affectedRows };
       } else {
         const [rows] = await connection.execute(
           `INSERT INTO banners
-           (title, description, link, image, text_color, background_color, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (title, description, link, image, text_color, background_color, status, usage_context)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             title,
             description,
@@ -149,6 +152,7 @@ export async function upsertBanner(data: FormData) {
             imagePath,
             text_color,
             background_color,
+            usage_context,
             status,
           ]
         );
@@ -159,28 +163,11 @@ export async function upsertBanner(data: FormData) {
       }
     });
 
-    revalidatePath("/admin/banners");
+    revalidatePath("/dashboard/banners");
     return { success: true, id: result.id };
   } catch (error) {
     console.error("Failed to upsert banner:", error);
     return { success: false, error: "Failed to upsert banner" };
-  }
-}
-
-export async function getCarousel(id: string) {
-  try {
-    const result = await dbOperation(async (connection) => {
-      const [rows] = await connection.execute(
-        "SELECT * FROM carousels WHERE carousel_id = ?",
-        [id]
-      );
-      return (rows as any[])[0];
-    });
-
-    return result;
-  } catch (error) {
-    console.error("Failed to get carousel:", error);
-    throw new Error("Failed to get carousel");
   }
 }
 
@@ -200,7 +187,7 @@ export async function getUniqueBanners() {
   try {
     // Fetch all unique banners
     const [banners] = await connection.query<RowDataPacket[]>(
-      `SELECT banner_id, title, description, link, image, text_color, background_color, status FROM banners LIMIT 4`
+      `SELECT banner_id, title, description, link, image, text_color, background_color, usage_context, status FROM banners`
     );
 
     // Map the result and compress the image for each banner
@@ -216,6 +203,7 @@ export async function getUniqueBanners() {
         text_color: banner.text_color,
         background_color: banner.background_color,
         status: banner.status,
+        usage_context: banner.usage_context,
       }))
     );
 

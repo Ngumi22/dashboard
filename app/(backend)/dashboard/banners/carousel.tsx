@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { saveCarousel } from "@/lib/actions/Carousel/post";
 import Image from "next/image";
+import { createCarousel } from "@/lib/actions/Carousel/post";
 
 interface CarouselFormProps {
   initialData?: {
@@ -18,14 +18,29 @@ interface CarouselFormProps {
     title: string;
     short_description?: string;
     description?: string;
-    button_text?: string;
-    button_link?: string;
+    link?: string;
+    image?: File;
     status: "active" | "inactive";
+    text_color: string;
+    background_color: string;
   };
 }
 
+export interface Carousel {
+  carousel_id?: number;
+  title: string;
+  short_description?: string;
+  description?: string;
+  link?: string;
+  image?: File;
+  status: "active" | "inactive";
+  text_color: string;
+  background_color: string;
+}
+
 export function CarouselForm({ initialData }: CarouselFormProps) {
-  const [state, formAction] = useFormState(saveCarousel, null);
+  const [state, formAction] = useFormState(createCarousel, null);
+
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -98,21 +113,32 @@ export function CarouselForm({ initialData }: CarouselFormProps) {
               defaultValue={initialData?.description}
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="button_text">Button Text</Label>
+            <Label htmlFor="link">Link to</Label>
             <Input
-              id="button_text"
-              name="button_text"
-              defaultValue={initialData?.button_text}
+              id="link"
+              name="link"
+              type="url"
+              defaultValue={initialData?.link}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="button_link">Button Link</Label>
+            <Label htmlFor="text_color">Text Colour</Label>
             <Input
-              id="button_link"
-              name="button_link"
-              type="url"
-              defaultValue={initialData?.button_link}
+              id="text_color"
+              name="text_color"
+              type="color"
+              defaultValue={initialData?.text_color}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="background_color">Background Colour</Label>
+            <Input
+              id="background_color"
+              name="background_color"
+              type="color"
+              defaultValue={initialData?.background_color}
             />
           </div>
           <div className="space-y-2">

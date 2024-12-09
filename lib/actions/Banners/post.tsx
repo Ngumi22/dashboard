@@ -35,17 +35,6 @@ export async function dbOperation<T>(
   }
 }
 
-export interface Carousel {
-  carousel_id?: number;
-  title: string;
-  short_description?: string;
-  button_text?: string;
-  button_link?: string;
-  image?: File;
-  position: number;
-  status: "active" | "inactive";
-}
-
 export interface Banner {
   banner_id?: number;
   title: string;
@@ -55,46 +44,7 @@ export interface Banner {
   text_color: string;
   background_color: string;
   status: "active" | "inactive";
-}
-
-export async function createCarousel(data: FormData) {
-  const title = data.get("title") as string;
-  const short_description = data.get("short_description") as string;
-  const button_text = data.get("button_text") as string;
-  const button_link = data.get("button_link") as string;
-  const position = parseInt(data.get("position") as string);
-  const status = data.get("status") as "active" | "inactive";
-  const image = data.get("image") as File | null;
-
-  let imagePath = null;
-  if (image) {
-    imagePath = await fileToBuffer(image);
-  }
-
-  try {
-    const result = await dbOperation(async (connection) => {
-      const [rows] = await connection.execute(
-        `INSERT INTO carousels (title, short_description, button_text, button_link, image, position, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          title,
-          short_description,
-          button_text,
-          button_link,
-          imagePath,
-          position,
-          status,
-        ]
-      );
-      return rows.insertId;
-    });
-
-    revalidatePath("/admin/carousels");
-    return { success: true, id: result };
-  } catch (error) {
-    console.error("Failed to create carousel:", error);
-    return { success: false, error: "Failed to create carousel" };
-  }
+  usage_context: string;
 }
 
 export async function createBanner(data: FormData) {
@@ -105,6 +55,7 @@ export async function createBanner(data: FormData) {
   const background_color = data.get("background_color") as string;
   const status = data.get("status") as "active" | "inactive";
   const image = data.get("image") as File | null;
+  const context = data.get("usage_context") as string;
 
   let imagePath = null;
   if (image) {
@@ -114,8 +65,8 @@ export async function createBanner(data: FormData) {
   try {
     const result = await dbOperation(async (connection) => {
       const [rows] = await connection.execute(
-        `INSERT INTO banners (title, description, link, image, text_color, background_color, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO banners (title, description, link, image, text_color, background_color,usage_context, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           title,
           description,
@@ -123,6 +74,7 @@ export async function createBanner(data: FormData) {
           imagePath,
           text_color,
           background_color,
+          context,
           status,
         ]
       );
