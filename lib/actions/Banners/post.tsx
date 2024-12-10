@@ -48,6 +48,7 @@ export interface Banner {
 }
 
 export async function createBanner(data: FormData) {
+  const banner_id = data.get("banner_id") as string;
   const title = data.get("title") as string;
   const description = data.get("description") as string;
   const link = data.get("link") as string;
@@ -62,8 +63,27 @@ export async function createBanner(data: FormData) {
     imagePath = await fileToBuffer(image);
   }
 
-  try {
-    const result = await dbOperation(async (connection) => {
+  const result = await dbOperation(async (connection) => {
+    if (banner_id) {
+      const [rows] = await connection.execute(
+        `UPDATE banners SET
+           title = ?, description = ?, link = ?, text_color = ?, background_color = ?, status = ?, image = ?, usage_context = ?
+           WHERE banner_id = ?`,
+        [
+          title,
+          description,
+          link,
+          text_color,
+          background_color,
+          status,
+          imagePath,
+          context,
+        ]
+      );
+      return {
+        id: rows.banner_id,
+      };
+    } else {
       const [rows] = await connection.execute(
         `INSERT INTO banners (title, description, link, image, text_color, background_color,usage_context, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -79,12 +99,13 @@ export async function createBanner(data: FormData) {
         ]
       );
       return rows.insertId;
-    });
+    }
+  });
 
-    revalidatePath("/admin/banners");
-    return { success: true, id: result };
-  } catch (error) {
-    console.error("Failed to create banner:", error);
-    return { success: false, error: "Failed to create banner" };
-  }
+  revalidatePath("/dashboard/banners");
+  return {
+    success: true,
+    message: "Carousel saved successfully",
+    id: result.id,
+  };
 }

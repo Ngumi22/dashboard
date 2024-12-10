@@ -141,7 +141,7 @@ export async function createCarousel(prevState: any, data: FormData) {
       }
     });
 
-    revalidatePath("/dashboard/banners");
+    revalidatePath("/dashboard/carousels");
     return {
       success: true,
       message: "Carousel saved successfully",
