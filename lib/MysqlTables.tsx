@@ -452,7 +452,7 @@ export async function dbsetupTables() {
         title VARCHAR(255) NOT NULL COMMENT 'Title for the banner',
         description VARCHAR(500) DEFAULT NULL COMMENT 'Small description for the banner',
         link VARCHAR(255) DEFAULT NULL COMMENT 'Link the banner will lead to when clicked',
-        image BLOB DEFAULT NULL COMMENT 'Image for the banner',
+        image MEDIUMBLOB DEFAULT NULL COMMENT 'Image for the banner',
         text_color VARCHAR(7) DEFAULT '#000000' COMMENT 'Text color in hex format (default is black)',
         background_color VARCHAR(7) DEFAULT '#FFFFFF' COMMENT 'Background color in hex format (default is white)',
         status ENUM('active', 'inactive') DEFAULT 'active' COMMENT 'Status of the banner',

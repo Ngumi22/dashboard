@@ -64,42 +64,21 @@ export async function createBanner(data: FormData) {
   }
 
   const result = await dbOperation(async (connection) => {
-    if (banner_id) {
-      const [rows] = await connection.execute(
-        `UPDATE banners SET
-           title = ?, description = ?, link = ?, text_color = ?, background_color = ?, status = ?, image = ?, usage_context = ?
-           WHERE banner_id = ?`,
-        [
-          title,
-          description,
-          link,
-          text_color,
-          background_color,
-          status,
-          imagePath,
-          context,
-        ]
-      );
-      return {
-        id: rows.banner_id,
-      };
-    } else {
-      const [rows] = await connection.execute(
-        `INSERT INTO banners (title, description, link, image, text_color, background_color,usage_context, status)
+    const [rows] = await connection.execute(
+      `INSERT INTO banners (title, description, link, image, text_color, background_color,usage_context, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          title,
-          description,
-          link,
-          imagePath,
-          text_color,
-          background_color,
-          context,
-          status,
-        ]
-      );
-      return rows.insertId;
-    }
+      [
+        title,
+        description,
+        link,
+        imagePath,
+        text_color,
+        background_color,
+        context,
+        status,
+      ]
+    );
+    return rows.insertId;
   });
 
   revalidatePath("/dashboard/banners");

@@ -4,52 +4,57 @@ import { fileToBuffer } from "@/lib/utils";
 import { getConnection } from "@/lib/database";
 import { cache } from "@/lib/cache";
 
-export interface Banner {
-  banner_id?: number;
+export interface Carousel {
+  carousel_id?: number;
   title: string;
+  short_description?: string;
   description?: string;
   link?: string;
-  image?: File;
+  image?: string | File | null;
+  status: "active" | "inactive";
   text_color: string;
   background_color: string;
-  status: "active" | "inactive";
-  usage_context: string;
 }
 
-export async function updateBannerAction(
-  banner_id: string,
+export async function updateCarouselAction(
+  carousel_id: string,
   formData: FormData
 ) {
-  const uniqueBannerCacheKey = "unique_banner";
-  const bannerCacheKey = `banner_${banner_id}`;
+  const uniqueCarouselCacheKey = "unique_carousel";
+  const carouselCacheKey = `carousel_${carousel_id}`;
 
   const connection = await getConnection();
   try {
-    const bannerTitle = formData.get("title");
-    const bannerDescription = formData.get("description");
-    const bannerLink = formData.get("link");
-    const newImageFile = formData.get("image");
+    const carouselTitle = formData.get("title");
+    const shortDescription = formData.get("short_description");
+    const carouselDescription = formData.get("description");
+    const carouselLink = formData.get("link");
     const Text_Color = formData.get("text_color");
     const Background_Color = formData.get("background_color");
     const status = formData.get("status");
-    const usageContext = formData.get("usage_context");
+    const newImageFile = formData.get("image");
 
     const updates: string[] = [];
     const values: any[] = [];
 
-    if (bannerTitle) {
+    if (carouselTitle) {
       updates.push("title = ?");
-      values.push(bannerTitle);
+      values.push(carouselTitle);
     }
 
-    if (bannerDescription) {
+    if (shortDescription) {
+      updates.push("short_description = ?");
+      values.push(shortDescription);
+    }
+
+    if (carouselDescription) {
       updates.push("description = ?");
-      values.push(bannerDescription);
+      values.push(carouselDescription);
     }
 
-    if (bannerLink) {
+    if (carouselLink) {
       updates.push("link = ?");
-      values.push(bannerLink);
+      values.push(carouselLink);
     }
 
     if (Text_Color) {
@@ -80,28 +85,28 @@ export async function updateBannerAction(
 
     updates.push("updated_at = NOW()");
     const query = `
-      UPDATE banners
+      UPDATE carousels
       SET ${updates.join(", ")}
-      WHERE banner_id = ?;
+      WHERE carousel_id = ?;
     `;
-    values.push(banner_id);
+    values.push(carousel_id);
 
     const [result]: [any, any] = await connection.execute(query, values);
 
     if (result.affectedRows === 0) {
-      throw new Error("Failed to update banner. banner might not exist.");
+      throw new Error("Failed to update carousel. carousel might not exist.");
     }
 
     // Clear caches
-    cache.delete(bannerCacheKey);
-    cache.delete(uniqueBannerCacheKey);
+    cache.delete(carouselCacheKey);
+    cache.delete(uniqueCarouselCacheKey);
 
-    return { success: true, message: "Banner updated successfully." };
+    return { success: true, message: "carousel updated successfully." };
   } catch (error: any) {
-    console.error("Error updating banner:", error);
+    console.error("Error updating carousel:", error);
     return {
       success: false,
-      error: error.message || "Failed to update banner.",
+      error: error.message || "Failed to update carousel.",
     };
   } finally {
     connection.release();

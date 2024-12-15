@@ -1,7 +1,7 @@
 "use server";
 
 import sharp from "sharp";
-import { cache } from "@/lib/cache";
+import { cache, setCache } from "@/lib/cache";
 import { getConnection } from "@/lib/database";
 import { RowDataPacket } from "mysql2/promise";
 
@@ -88,6 +88,98 @@ export async function getUniqueCarousel() {
   } catch (error) {
     console.error("Error fetching unique carousels:", error);
     throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function fetchCarouselById(carousel_id: number) {
+  const cacheKey = `carousel_${carousel_id}`;
+
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value; // Return cached data if it hasn't expired
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
+
+  const connection = await getConnection();
+  try {
+    // Query the database
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
+       FROM carousels WHERE carousel_id = ?`,
+      [carousel_id]
+    );
+
+    // If no rows are returned, return null
+    if (rows.length === 0) {
+      return null;
+    }
+
+    // Map database results to a Category object
+    const carousel: Carousel = {
+      carousel_id: rows[0].carousel_id,
+      title: rows[0].title,
+      short_description: rows[0].short_description,
+      description: rows[0].description,
+      link: rows[0].link,
+      image: rows[0].image
+        ? await compressAndEncodeBase64(rows[0].image)
+        : null, // Compress image if it exists
+      status: rows[0].status,
+      text_color: rows[0].text_color,
+      background_color: rows[0].background_color,
+    };
+
+    setCache(cacheKey, carousel, { ttl: 300 }); // Cache for 5 minutes
+
+    return carousel;
+  } catch (error) {
+    console.error("Database query error:", error);
+    throw new Error("Failed to fetch carousel");
+  } finally {
+    connection.release();
+  }
+}
+
+export async function deleteCarousel(carousel_id: number): Promise<boolean> {
+  const cacheKey = `carousel_${carousel_id}`;
+
+  // Check if the carousel exists in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+
+    // If the cached data is valid, delete it from the cache
+    if (cachedData && Date.now() < cachedData.expiry) {
+      cache.delete(cacheKey);
+    }
+  }
+
+  const connection = await getConnection();
+  try {
+    // Check if the carousel exists in the database
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT * FROM carousels WHERE carousel_id = ?`,
+      [carousel_id]
+    );
+
+    if (rows.length === 0) {
+      console.log(`Carousel with ID ${carousel_id} does not exist.`);
+      return false; // Carousel does not exist
+    }
+
+    // Delete the carousel from the database
+    await connection.query(`DELETE FROM carousels WHERE carousel_id = ?`, [
+      carousel_id,
+    ]);
+
+    console.log(`Carousel with ID ${carousel_id} successfully deleted.`);
+    return true; // Deletion successful
+  } catch (error) {
+    console.error("Error deleting carousel:", error);
+    throw new Error("Failed to delete carousel");
   } finally {
     connection.release();
   }

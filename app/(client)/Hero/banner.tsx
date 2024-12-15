@@ -26,17 +26,15 @@ export default function HeroBanners() {
   return (
     <div className="w-full">
       {loading ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[...Array(5)].map((_, index) => (
-              <div
-                key={index}
-                className="p-2 md:p-3 lg:p-5 lg:basis-64 flex-grow text-center shadow-lg bg-gray-400 animate-pulse h-[4rem]"></div>
-            ))}
-          </div>
-        </>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(5)].map((_, index) => (
+            <div
+              key={index}
+              className="p-2 md:p-3 lg:p-5 lg:basis-64 flex-grow text-center shadow-lg bg-gray-400 animate-pulse h-[4rem]"></div>
+          ))}
+        </div>
       ) : (
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ul className="grid grid-cols-2 gap-4">
           {banners.map((banner) => (
             <li
               key={banner.banner_id}

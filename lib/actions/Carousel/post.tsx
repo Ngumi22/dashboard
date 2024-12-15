@@ -2,10 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { fileToBuffer, getErrorMessage } from "@/lib/utils";
-import sharp from "sharp";
-import { cache } from "@/lib/cache";
 import { getConnection } from "@/lib/database";
-import { RowDataPacket } from "mysql2/promise";
 import { dbsetupTables } from "@/lib/MysqlTables";
 import { z } from "zod";
 
@@ -39,12 +36,6 @@ export async function dbOperation<T>(
   }
 }
 
-export type FormState = {
-  message: string;
-  fields?: Record<string, string>;
-  issues?: string[];
-};
-
 const carouselSchema = z.object({
   carousel_id: z.number().optional(),
   title: z.string().min(1, "Title is required"),
@@ -70,6 +61,7 @@ export interface Carousel {
 }
 
 export async function createCarousel(prevState: any, data: FormData) {
+  // Validate incoming data using Zod schema
   const validatedFields = carouselSchema.safeParse({
     carousel_id: data.get("carousel_id")
       ? Number(data.get("carousel_id"))
@@ -84,71 +76,58 @@ export async function createCarousel(prevState: any, data: FormData) {
     background_color: data.get("background_color") as string,
   });
 
-  let imagePath = null;
-  if (validatedFields.data?.image instanceof File) {
-    imagePath = await fileToBuffer(validatedFields.data?.image);
-  }
-
   if (!validatedFields.success) {
     return { error: validatedFields.error.flatten().fieldErrors };
   }
 
-  console.log(validatedFields);
+  const { data: fields } = validatedFields;
+  let imagePath = null;
+
+  // Process image if provided
+  if (fields.image instanceof File) {
+    try {
+      imagePath = await fileToBuffer(fields.image);
+    } catch (error) {
+      console.error("Failed to process image:", error);
+      return { success: false, error: "Failed to process image" };
+    }
+  }
 
   try {
     const result = await dbOperation(async (connection) => {
-      if (validatedFields.data.carousel_id) {
-        const [rows] = await connection.execute(
-          `UPDATE carousels SET
-           title = ?, short_description = ?, description = ?, link = ?,
-           image = ?, text_color = ?, background_color = ?
-           WHERE carousel_id = ?`,
-          [
-            validatedFields.data.title,
-            validatedFields.data.short_description,
-            validatedFields.data.description,
-            validatedFields.data.link,
-            imagePath,
-            validatedFields.data.status,
-            validatedFields.data.text_color,
-            validatedFields.data.background_color,
-          ]
-        );
-        return {
-          id: validatedFields.data.carousel_id,
-          affectedRows: (rows as any).affectedRows,
-        };
-      } else {
-        const [rows] = await connection.execute(
-          `INSERT INTO carousels
+      // Insert new carousel
+      const [rows] = await connection.execute(
+        `INSERT INTO carousels
            (title, short_description, description, link, image, status, text_color, background_color)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            validatedFields.data.title,
-            validatedFields.data.short_description,
-            validatedFields.data.description,
-            validatedFields.data.link,
-            imagePath,
-            validatedFields.data.status,
-            validatedFields.data.text_color,
-            validatedFields.data.background_color,
-          ]
-        );
-        return {
-          id: (rows as any).insertId,
-          affectedRows: (rows as any).affectedRows,
-        };
-      }
+        [
+          fields.title,
+          fields.short_description,
+          fields.description,
+          fields.link,
+          imagePath,
+          fields.status,
+          fields.text_color,
+          fields.background_color,
+        ]
+      );
+      return {
+        id: (rows as any).insertId,
+        affectedRows: (rows as any).affectedRows,
+      };
     });
 
+    // Revalidate cache to update UI
     revalidatePath("/dashboard/carousels");
     return {
       success: true,
-      message: "Carousel saved successfully",
+      message: fields.carousel_id
+        ? "Carousel updated successfully"
+        : "Carousel created successfully",
       id: result.id,
     };
   } catch (error) {
-    console.error("Failed to insert carousel:", error);
-    return { success: false, error: "Failed to insert carousel" };
+    console.error("Database operation failed:", error);
+    return { success: false, error: "Failed to save carousel" };
   }
 }

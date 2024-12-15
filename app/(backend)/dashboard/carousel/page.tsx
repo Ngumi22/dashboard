@@ -1,12 +1,7 @@
 "use client";
 
-import { CarouselForm } from "../banners/carousel";
-
-import Carousel from "@/components/Client-Side/Hero/carousel";
 import { useStore } from "@/app/store";
-import { useEffect } from "react";
-
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useEffect, useState } from "react";
 import HeroCarousels from "@/components/Client-Side/Hero/hero-carousel";
 
 export interface Carousel {
@@ -35,19 +30,9 @@ export default function CarouselPage() {
   }, [carousels, fetchCarousels]);
 
   return (
-    <section className="relative m-4 grid justify-items-stretch space-y-8 h-screen">
-      <div className="justify-self-end">
-        <Sheet>
-          <SheetTrigger className="border border-black p-2 rounded-md">
-            Create Carousel
-          </SheetTrigger>
-          <SheetContent className="overflow-scroll">
-            <CarouselForm />
-          </SheetContent>
-        </Sheet>
-      </div>
-      <div className="w-full">
-        {loading ? "Loading" : <HeroCarousels slides={carousels} />}
+    <section className="container mt-4 space-y-4">
+      <div className="w-full shadow-xl">
+        {loading && error ? "Loading" : <HeroCarousels isAdmin />}
       </div>
     </section>
   );

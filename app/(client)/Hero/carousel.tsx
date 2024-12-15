@@ -21,7 +21,7 @@ export default function HeroCarousel() {
       {loading && error ? (
         <div className="p-2 md:p-3 lg:p-5 lg:basis-64 flex-grow text-center shadow-lg bg-gray-400 animate-pulse h-full"></div>
       ) : (
-        <HeroCarousels slides={carousels} />
+        <HeroCarousels />
       )}
     </>
   );

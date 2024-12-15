@@ -1,4 +1,8 @@
-import { getUniqueCarousel } from "@/lib/actions/Carousel/fetch";
+import {
+  deleteCarousel,
+  getUniqueCarousel,
+} from "@/lib/actions/Carousel/fetch";
+import { updateCarouselAction } from "@/lib/actions/Carousel/update";
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
 
@@ -19,6 +23,7 @@ export interface CarouselState {
   loading: boolean;
   error: string | null;
   fetchCarousels: () => Promise<void>;
+  deleteCarouselState: (carousel_id: number) => void;
 }
 
 export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
@@ -41,7 +46,7 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
       const freshData: Carousel[] = await getUniqueCarousel();
 
       // Cache the fetched data with a TTL of 6 minutes
-      setCachedData(cacheKey, freshData, { ttl: 6 * 60 });
+      setCachedData(cacheKey, freshData, { ttl: 1 * 60 });
 
       set({ carousels: freshData, loading: false, error: null });
     } catch (err) {
@@ -49,6 +54,39 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
         error: err instanceof Error ? err.message : "Error fetching carousels",
         loading: false,
       });
+    }
+  },
+  deleteCarouselState: async (carousel_id: number) => {
+    set({ loading: true });
+
+    try {
+      // Server action to delete the carousel
+      await deleteCarousel(carousel_id);
+
+      // Invalidate the cache
+      const cacheKey = "carouselsData";
+      setCachedData(cacheKey, null); // Clear the cached data
+
+      // Refetch the latest carousel data
+      const freshData: Carousel[] = await getUniqueCarousel();
+
+      // Update the cache with the fresh data
+      setCachedData(cacheKey, freshData, { ttl: 1 * 60 });
+
+      // Update the state with the latest carousels
+      set({ carousels: freshData, loading: false, error: null });
+
+      // Optionally, show a success toast or notification
+      return { success: true };
+    } catch (err) {
+      // Handle any errors that occur
+      set({
+        error: err instanceof Error ? err.message : "Error deleting carousel",
+        loading: false,
+      });
+
+      // Optionally, show an error toast or notification
+      return { success: false };
     }
   },
 });
