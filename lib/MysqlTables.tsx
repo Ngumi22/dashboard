@@ -31,7 +31,7 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
           user_id INT AUTO_INCREMENT PRIMARY KEY,
           first_name VARCHAR(100) NOT NULL,
           last_name VARCHAR(100) NOT NULL,
@@ -41,12 +41,28 @@ export async function dbsetupTables() {
           image MEDIUMBLOB,
           is_verified BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_email (email),
+          INDEX idx_is_verified (is_verified),
+          INDEX idx_name (first_name, last_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='User accounts and user information';
     `);
 
     await connection.query(`
-      CREATE TABLE roles (
+      CREATE TABLE IF NOT EXISTS user_invitations (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          invited_email VARCHAR(255) NOT NULL UNIQUE,
+          role_id INT NOT NULL,
+          token VARCHAR(255) NOT NULL UNIQUE,
+          status ENUM('pending', 'accepted', 'expired') DEFAULT 'pending',
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='User invitations by super_admin';
+    `);
+
+    await connection.query(`
+     CREATE TABLE IF NOT EXISTS roles (
           id INT AUTO_INCREMENT PRIMARY KEY,
           role_name VARCHAR(50) NOT NULL UNIQUE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -55,36 +71,40 @@ export async function dbsetupTables() {
     `);
 
     await connection.query(`
-      CREATE TABLE user_roles (
+      CREATE TABLE IF NOT EXISTS user_roles (
           id INT AUTO_INCREMENT PRIMARY KEY,
           user_id INT NOT NULL,
           role_id INT NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
           FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-          UNIQUE KEY unique_user_role (user_id, role_id)
+          UNIQUE KEY unique_user_role (user_id, role_id),
+          INDEX idx_user_id (user_id),
+          INDEX idx_role_id (role_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='User Roles';
     `);
 
     await connection.query(`
-      CREATE TABLE entities (
+      CREATE TABLE IF NOT EXISTS entities (
           id INT AUTO_INCREMENT PRIMARY KEY,
           entity_name VARCHAR(50) NOT NULL UNIQUE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_entity_name (entity_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Entities';
     `);
 
     await connection.query(`
-      CREATE TABLE actions (
+      CREATE TABLE IF NOT EXISTS actions (
           id INT AUTO_INCREMENT PRIMARY KEY,
           action_name VARCHAR(50) NOT NULL UNIQUE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_action_name (action_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Actions';
     `);
 
     await connection.query(`
-        CREATE TABLE permissions (
+        CREATE TABLE IF NOT EXISTS permissions (
             id INT AUTO_INCREMENT PRIMARY KEY,
             role_id INT NOT NULL,
             entity_id INT NOT NULL,
@@ -93,12 +113,15 @@ export async function dbsetupTables() {
             FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
             FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
             FOREIGN KEY (action_id) REFERENCES actions(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_role_entity_action (role_id, entity_id, action_id)
+            UNIQUE KEY unique_role_entity_action (role_id, entity_id, action_id),
+            INDEX idx_entity_id (entity_id),
+            INDEX idx_action_id (action_id),
+            INDEX idx_has_permission (has_permission)
         ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='User permissions';
     `);
 
     await connection.query(`
-      CREATE TABLE sessions (
+      CREATE TABLE IF NOT EXISTS sessions (
           session_id INT AUTO_INCREMENT PRIMARY KEY,
           user_id INT NOT NULL,
           session_token VARCHAR(255) NOT NULL UNIQUE,
@@ -107,27 +130,25 @@ export async function dbsetupTables() {
           is_valid BOOLEAN DEFAULT TRUE, -- Indicates if the session is still valid
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           expires_at TIMESTAMP NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+          INDEX idx_user_id (user_id),
+          INDEX idx_is_valid (is_valid),
+          INDEX idx_expires_at (expires_at)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Session management and tracking';
     `);
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS notifications (
-          notification_id INT AUTO_INCREMENT PRIMARY KEY,
-          recipient_id INT NOT NULL,
-          action_by INT NOT NULL,
-          notification_type ENUM('add', 'update', 'delete', 'approve', 'reject') NOT NULL,
-          entity_type ENUM('product', 'category', 'slide', 'tag', 'supplier', 'banner', 'account') NOT NULL,
-          entity_id INT NOT NULL,
-          status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-          message TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (recipient_id) REFERENCES staff_accounts(staff_id) ON DELETE CASCADE,
-          FOREIGN KEY (action_by) REFERENCES staff_accounts(staff_id) ON DELETE CASCADE,
-          INDEX idx_recipient_id (recipient_id),
-          INDEX idx_action_by (action_by),
-          INDEX idx_entity_id (entity_id),
-          INDEX idx_status (status)
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL, -- Target user for the notification
+          title VARCHAR(255) NOT NULL, -- Notification title
+          message TEXT, -- Detailed notification message
+          type ENUM('info', 'warning', 'error', 'success') NOT NULL, -- Notification type
+          is_read BOOLEAN DEFAULT FALSE, -- Read/unread status
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Notification creation time
+          FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+          INDEX idx_user_id (user_id),
+          INDEX idx_is_read (is_read)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Notifications for actions taken';
     `);
 

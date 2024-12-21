@@ -1,9 +1,5 @@
-import ProductsForm from "@/components/Product/Newer";
+"use client";
 
 export default function Customers() {
-  return (
-    <div>
-      <ProductsForm />
-    </div>
-  );
+  return <div>Customers Page</div>;
 }

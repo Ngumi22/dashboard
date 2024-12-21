@@ -1,8 +1,8 @@
-type Role = "super-admin" | "admin" | "user";
+export type Role = "super-admin" | "admin" | "user";
 
-type Action = "view" | "create" | "update" | "delete";
+export type Action = "view" | "create" | "update" | "delete";
 
-type Entity =
+export type Entity =
   | "products"
   | "categories"
   | "brands"
@@ -17,17 +17,17 @@ type Entity =
   | "coupons"
   | "productVariants";
 
-type User = {
+export type User = {
   id: string;
   roles: Role[];
   blockedBy: string[];
 };
 
-type PermissionCheck<E extends Entity> =
+export type PermissionCheck<E extends Entity> =
   | boolean
   | ((user: User, entity?: E) => boolean);
 
-type RolePermissions = {
+export type RolePermissions = {
   [R in Role]?: Partial<
     Record<Entity, Partial<Record<Action, PermissionCheck<Entity>>>>
   >;

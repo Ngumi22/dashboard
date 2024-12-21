@@ -25,7 +25,9 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "target": "es2015",
+    "downlevelIteration": true
   },
   "include": [
     "next-env.d.ts",
@@ -35,5 +37,5 @@
   ],
   "exclude": [
     "node_modules"
-  ]
+  ],
 }

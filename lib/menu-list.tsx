@@ -50,17 +50,31 @@ export function getMenuList(pathname: string): Group[] {
       menus: [
         {
           href: "/dashboard/products",
-          label: "Products",
-          active: pathname.includes("/dashboard/products"),
-          icon: SquarePen,
-          submenus: [],
-        },
-        {
-          href: "/dashboard/categories",
-          label: "Categories",
-          active: pathname.includes("/categories"),
-          icon: Bookmark,
-          submenus: [],
+          label: "Product",
+          active: pathname.includes("products"),
+          icon: Book,
+          submenus: [
+            {
+              href: "/dashboard/products",
+              label: "All Products",
+              active: pathname === "/dashboard/products",
+            },
+            {
+              href: "/dashboard/categories",
+              label: "Categories",
+              active: pathname === "/dashboard/categories",
+            },
+            {
+              href: "/dashboard/brands",
+              label: "Brands",
+              active: pathname === "/dashboard/brands",
+            },
+            {
+              href: "/dashboard/suppliers",
+              label: "Suppliers",
+              active: pathname === "/dashboard/suppliers",
+            },
+          ],
         },
         {
           href: "/dashboard/banners",
@@ -103,35 +117,6 @@ export function getMenuList(pathname: string): Group[] {
         },
 
         {
-          href: "/dashboard/products",
-          label: "Product",
-          active: pathname.includes("products"),
-          icon: Book,
-          submenus: [
-            {
-              href: "/dashboard/products",
-              label: "All Products",
-              active: pathname === "/dashboard/products",
-            },
-            {
-              href: "/dashboard/categories",
-              label: "Categories",
-              active: pathname === "/dashboard/categories",
-            },
-            {
-              href: "/dashboard/brands",
-              label: "Brands",
-              active: pathname === "/dashboard/brands",
-            },
-            {
-              href: "/dashboard/suppliers",
-              label: "Suppliers",
-              active: pathname === "/dashboard/suppliers",
-            },
-          ],
-        },
-
-        {
           href: "/dashboard/blog",
           label: "Blog",
           active: pathname.includes("/dashboard/blog"),
@@ -155,9 +140,9 @@ export function getMenuList(pathname: string): Group[] {
       groupLabel: "Settings",
       menus: [
         {
-          href: "/users",
+          href: "/dashboard/users",
           label: "Users",
-          active: pathname.includes("/users"),
+          active: pathname.includes("/dashboard/users"),
           icon: Users,
           submenus: [],
         },

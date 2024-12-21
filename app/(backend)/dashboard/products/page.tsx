@@ -1,10 +1,9 @@
-// components/ProductList.tsx
 "use client";
+import Image from "next/image";
 
 import React, { useState, useEffect } from "react";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
-import Image from "next/image";
 import Link from "next/link";
 import {
   File,
@@ -38,14 +37,41 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductData } from "@/lib/definitions";
+import { handleDeleteAction } from "@/lib/actions/Product/delete";
 
-export default function ProductList() {
-  const [products, setProducts] = useState<ProductData[]>([]);
+interface ProductResponse {
+  id: string | number;
+  name: string;
+  sku: string;
+  price: number;
+  discount: number;
+  quantity: number;
+  category: string;
+  status: "approved" | "draft" | "pending";
+  description: string;
+  brand: string;
+  createdAt: string;
+  updatedAt: string;
+  ratings: number;
+  images: {
+    mainImage: string | null;
+    thumbnails: (string | null)[];
+  };
+  tags: string[];
+}
+
+export default function ProductsList() {
+  const [products, setProducts] = useState<ProductResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("all"); // State to track active tab (status)
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [brand, setBrand] = useState<string | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null); // For min and max price
+  const [discount, setDiscount] = useState<[number, number] | null>(null); // For min and max discount
+  const [supplier, setSupplier] = useState<string | null>(null);
+
   const { toast } = useToast();
   const [pagination, setPagination] = useState<{
     limit: number;
@@ -57,19 +83,24 @@ export default function ProductList() {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      setLoading(true); // Set loading to true when fetching new data
+      setLoading(true);
       try {
-        let url = `/api/products?page=${
+        // Construct API URL with pagination, search, and filters
+        let url = `/api/productss?page=${
           pagination.offset / pagination.limit + 1
         }`;
 
-        if (searchTerm) {
-          url += `&name=${encodeURIComponent(searchTerm)}`;
+        if (searchTerm) url += `&name=${encodeURIComponent(searchTerm)}`;
+        if (activeTab !== "all") url += `&status=${activeTab}`;
+        if (brand) url += `&brand=${encodeURIComponent(brand)}`;
+        if (category) url += `&category=${encodeURIComponent(category)}`;
+        if (priceRange) {
+          url += `&minPrice=${priceRange[0]}&maxPrice=${priceRange[1]}`;
         }
-
-        if (activeTab !== "all") {
-          url += `&status=${activeTab}`;
+        if (discount) {
+          url += `&minDiscount=${discount[0]}&maxDiscount=${discount[1]}`;
         }
+        if (supplier) url += `&supplier=${encodeURIComponent(supplier)}`;
 
         const res = await fetch(url);
 
@@ -78,7 +109,8 @@ export default function ProductList() {
         }
 
         const data = await res.json();
-        setProducts(data); // Update products state with fetched data
+        setProducts(data.products); // Set the products array
+        // Handle filter options (uniqueTags, uniqueCategories, uniqueBrands) if needed
       } catch (err) {
         console.error(err);
         const errorMessage =
@@ -91,25 +123,34 @@ export default function ProductList() {
           action: <ToastAction altText="Try again">Try again</ToastAction>,
         });
       } finally {
-        setLoading(false); // Set loading to false after fetch completes (success or error)
+        setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [pagination, searchTerm, activeTab, toast]);
+  }, [
+    pagination,
+    searchTerm,
+    activeTab,
+    brand,
+    category,
+    priceRange,
+    discount,
+    supplier,
+    toast,
+  ]);
 
   const handleDelete = async (productId: number) => {
     try {
-      const res = await fetch(`/api/products/${productId}`, {
-        method: "DELETE",
-      });
+      // Perform the deletion action on the server
+      await handleDeleteAction(productId);
 
-      if (!res.ok) {
-        throw new Error("Failed to delete product");
-      }
+      // Optionally, reset pagination, search, or other state variables to trigger re-fetch
+      setPagination({ offset: 0, limit: pagination.limit }); // Reset to the first page
+      setSearchTerm(""); // Clear search term if needed (or keep it as is)
+      setActiveTab("all"); // Reset active tab (optional)
 
-      setProducts(products.filter((product) => product.id !== productId));
-
+      // Show success toast
       toast({
         variant: "destructive",
         title: "Product Deleted",
@@ -121,6 +162,7 @@ export default function ProductList() {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
 
+      // Show error toast
       toast({
         variant: "destructive",
         title: "Error",
@@ -174,9 +216,9 @@ export default function ProductList() {
           <div className="flex items-center">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="approved">Approved</TabsTrigger>
               <TabsTrigger value="draft">Draft</TabsTrigger>
-              <TabsTrigger value="archived">Archived</TabsTrigger>
+              <TabsTrigger value="pending">Pending</TabsTrigger>
             </TabsList>
             <div className="ml-auto flex items-center gap-2 my-2">
               <DropdownMenu>
@@ -190,13 +232,7 @@ export default function ProductList() {
                 </DropdownMenuTrigger>
                 {/* Dropdown menu content */}
               </DropdownMenu>
-              {/* Export button */}
-              <Button size="sm" variant="outline" className="h-8 gap-1">
-                <File className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Export
-                </span>
-              </Button>
+
               {/* Add Product link */}
               <Link href="/dashboard/products/create">
                 <Button size="sm" className="h-8 gap-1">
@@ -253,7 +289,7 @@ export default function ProductList() {
 }
 
 type ProductTableProps = {
-  products: ProductData[];
+  products: ProductResponse[];
   handleDelete: (productId: number) => void;
   loading: boolean;
   error: string | null;
@@ -282,6 +318,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
       {/* Table headers */}
       <TableHeader>
         <TableRow>
+          <TableHead>SKU</TableHead>
           <TableHead className="hidden sm:table-cell">Image</TableHead>
           <TableHead>Name</TableHead>
           <TableHead className="hidden sm:table-cell">Brand</TableHead>
@@ -297,9 +334,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
         {products.map((product) => (
           <TableRow key={product.id}>
             {/* Table cells for product data */}
+            <TableCell>{product.sku}</TableCell>
             <TableCell className="hidden sm:table-cell">
               <Image
-                src={`data:image/jpeg;base64,${product.images.main}`}
+                src={`data:image/jpeg;base64,${product.images.mainImage}`}
                 alt={product.name}
                 width={40}
                 height={40}
@@ -308,7 +346,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               />
             </TableCell>
             <TableCell>
-              <Link href={`/dashboard/products/${product.id}`}>
+              <Link href={`/dashboard/productss/${product.id}`}>
                 {product.name}
               </Link>
             </TableCell>
@@ -324,7 +362,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               {/* Badge component for status */}
               <Badge
                 variant={
-                  product.status === "active"
+                  product.status === "approved"
                     ? "default"
                     : product.status === "draft"
                     ? "secondary"
@@ -345,12 +383,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <DropdownMenuContent align="end">
                   {/* Edit link */}
                   <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/products/${product.id}/edit`}>
+                    <Link href={`/dashboard/productss/${product.id}/edit`}>
                       Edit
                     </Link>
                   </DropdownMenuItem>
                   {/* Delete action */}
-                  <DropdownMenuItem onClick={() => handleDelete(product.id)}>
+                  <DropdownMenuItem
+                    onClick={() => handleDelete(Number(product.id))}>
                     Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>

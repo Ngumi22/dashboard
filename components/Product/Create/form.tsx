@@ -28,8 +28,8 @@ import AddSpecifications from "./AddSpecs";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { SubmitAction } from "@/lib/productSubmit";
-import { Textarea } from "../ui/textarea";
 import { getUniqueCategories } from "@/lib/actions/Category/fetch";
+import { Textarea } from "@/components/ui/textarea";
 
 const AddSuppliers = dynamic(() => import("./AddSuppliers"), {
   ssr: false,
@@ -123,6 +123,7 @@ export default function ProductsForm() {
       try {
         setIsLoading(true);
         const categories = await getUniqueCategories();
+
         setCategories(categories);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
@@ -131,6 +132,7 @@ export default function ProductsForm() {
         setIsLoading(false);
       }
     };
+
     fetchCategories();
   }, []);
 
@@ -142,15 +144,18 @@ export default function ProductsForm() {
     evt.preventDefault();
     form.handleSubmit((data: any) => {
       // console.log("Submitting form with category_id:", data.category_id);
+
       const formData = new FormData(formRef.current!);
       if (data.category_id && typeof data.category_id === "string") {
         formData.append("category_id", data.category_id);
       }
+
       Object.keys(data).forEach((key) => {
         if (key !== "thumbnails") {
           formData.append(key, data[key]);
         }
       });
+
       if (data.thumbnails) {
         data.thumbnails.forEach((file: File) => {
           formData.append("thumbnails", file);
@@ -163,6 +168,7 @@ export default function ProductsForm() {
       }
       if (data.specifications) {
         data.specifications.forEach((spec: any, index: number) => {
+          // Assuming you already have the category_id available
           const specWithCategory = {
             ...spec,
             category_id: selectedCategory, // Add the category_id here
@@ -173,12 +179,15 @@ export default function ProductsForm() {
           );
         });
       }
+
       // console.log("Specifications data: ", data.specifications);
+
       if (data.tags) {
         data.tags.forEach((tag: any, index: number) => {
           formData.append(`tags[${index}]`, JSON.stringify(tag));
         });
       }
+
       SubmitAction({ message: "" }, formData).then((response) => {
         console.log("Server Response:", response);
       });

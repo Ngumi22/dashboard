@@ -136,7 +136,7 @@ export default function CategoryForm({
             ? "Category updated successfully"
             : "Category created successfully",
         });
-        router.push("/dashboard/orders");
+        router.push("/dashboard/categories");
         router.refresh();
       } else {
         throw new Error("Failed to process category.");

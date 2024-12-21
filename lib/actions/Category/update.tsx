@@ -76,7 +76,7 @@ export async function updateCategory(category_id: string, formData: FormData) {
     });
 
     // Revalidate the categories page
-    revalidatePath("/dashboard/orders");
+    revalidatePath("/dashboard/categories");
 
     return { success: true, category: updatedCategory };
   } catch (error) {
