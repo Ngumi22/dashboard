@@ -1,35 +1,8 @@
 "use server";
 
 import { cache } from "@/lib/cache";
-import { getConnection } from "@/lib/database";
-import { dbsetupTables } from "@/lib/MysqlTables";
-import { getErrorMessage } from "@/lib/utils";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
-
-export async function dbOperation<T>(
-  operation: (connection: any) => Promise<T>
-): Promise<T> {
-  const connection = await getConnection();
-
-  try {
-    await connection.beginTransaction();
-    await dbsetupTables();
-    const result = await operation(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-
-    const errorMessage = getErrorMessage(error);
-
-    // Log the error to the server console
-    console.error(`[Server Error]: ${errorMessage}`);
-
-    throw new Error(errorMessage); // Re-throw for handling in API routes
-  } finally {
-    connection.release();
-  }
-}
 
 export async function deleteCategory(category_id: string) {
   const categoryCacheKey = `category_${category_id}`;

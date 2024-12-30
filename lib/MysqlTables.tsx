@@ -375,16 +375,17 @@ export async function dbsetupTables() {
     // Reviews Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS product_reviews (
-        review_id INT AUTO_INCREMENT PRIMARY KEY,
-        product_id INT NOT NULL,
-        customer_id INT NOT NULL,
-        rating INT CHECK(rating BETWEEN 1 AND 5),
-        comment TEXT,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (product_id) REFERENCES products(product_id),
-        FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
-        INDEX idx_review_id (review_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product reviwes';
+          review_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          customer_id INT NOT NULL,
+          rating INT CHECK(rating BETWEEN 1 AND 5),
+          comment TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+          INDEX idx_rating_product (product_id, rating),
+          INDEX idx_created_at (createdAt)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product reviews';
     `);
 
     await connection.query(`

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { z } from "zod";
-import { toast } from "../ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -49,6 +49,7 @@ const FormSchema = z.object({
 });
 
 export default function AddVariants({ productId }: { productId: number }) {
+  const { toast } = useToast();
   const [submittedVariants, setSubmittedVariants] = useState<any>();
   const [variantTypes, setVariantTypes] = useState([
     { id: "1", name: "Color", requiresImages: true },

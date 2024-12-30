@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
+import { getUniqueSuppliers } from "@/lib/actions/Supplier/fetch";
 
 interface Supplier {
   supplier_id?: number;
@@ -62,11 +63,8 @@ export default function Component({
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/supplier");
-        const data = await response.json();
-        if (data.suppliers && data.suppliers.supplier) {
-          setExistingSuppliers(data.suppliers.supplier);
-        }
+        const suppliers = await getUniqueSuppliers();
+        setExistingSuppliers(suppliers);
       } catch (error) {
         console.error("Failed to fetch suppliers:", error);
       }
@@ -108,7 +106,7 @@ export default function Component({
 
   return (
     <div className="border p-2 space-y-2 shadow rounded">
-      <h2>Add Product Suppliers</h2>
+      <h2 className="text-xl font-semibold">Product Suppliers</h2>
 
       <div className="space-y-4">
         <Controller
@@ -190,9 +188,9 @@ export default function Component({
 
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           onClick={handleAddSupplier}
-          className="">
+          className="bg-gray-200 outline-2">
           <Plus className="mr-2 h-4 w-4" />
           Add Supplier
         </Button>

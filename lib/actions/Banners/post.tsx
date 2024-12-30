@@ -1,54 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { fileToBuffer, getErrorMessage } from "@/lib/utils";
-import { dbsetupTables } from "@/lib/MysqlTables";
-import { getConnection } from "@/lib/database";
-
-// Helper function for database operations
-
-export async function dbOperation<T>(
-  operation: (connection: any) => Promise<T>
-): Promise<T> {
-  const connection = await getConnection();
-
-  try {
-    await connection.beginTransaction();
-    await dbsetupTables();
-    const result = await operation(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-
-    const errorMessage = getErrorMessage(error);
-
-    // Log the error to the server console
-    console.error(`[Server Error]: ${errorMessage}`);
-
-    // Optionally, send the error to a monitoring service like Sentry
-    // Sentry.captureException(error);
-
-    throw new Error(errorMessage); // Re-throw for handling in API routes
-  } finally {
-    connection.release();
-  }
-}
-
-export interface Banner {
-  banner_id?: number;
-  title: string;
-  description?: string;
-  link?: string;
-  image?: File;
-  text_color: string;
-  background_color: string;
-  status: "active" | "inactive";
-  usage_context: string;
-}
+import { fileToBuffer } from "@/lib/utils";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function createBanner(data: FormData) {
-  const banner_id = data.get("banner_id") as string;
   const title = data.get("title") as string;
   const description = data.get("description") as string;
   const link = data.get("link") as string;

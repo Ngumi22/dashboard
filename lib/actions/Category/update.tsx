@@ -1,16 +1,9 @@
 "use server";
 
-import { getConnection } from "@/lib/database";
 import { cache } from "@/lib/cache";
 import { revalidatePath } from "next/cache";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
-
-interface UpdateCategoryData {
-  category_name?: string;
-  category_description?: string;
-  category_image?: File;
-  status?: string;
-}
+import { getConnection } from "@/lib/MysqlDB/initDb";
 
 export async function updateCategory(category_id: string, formData: FormData) {
   const cacheKey = `category_${category_id}`;

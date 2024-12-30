@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Eye, Heart, BarChart2, ShoppingCart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useProductStore } from "@/app/store/products";
-import { SearchParams } from "@/lib/types";
-
 interface ProductCardProps {
   name: string;
   description: string;
@@ -24,20 +21,6 @@ export function ProductCard({
   rating,
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  const { loading, error, fetchProducts, setFilters } = useProductStore();
-
-  useEffect(() => {
-    fetchProducts(); // Automatically checks cache before fetching
-  }, [fetchProducts]);
-
-  const handleFilterChange = (newFilters: SearchParams) => {
-    setFilters(newFilters);
-    fetchProducts(1, newFilters); // Resets to page 1 and fetches with updated filters
-  };
-
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
 
   return (
     <Card

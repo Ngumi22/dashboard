@@ -28,7 +28,7 @@ export interface SearchParams {
 }
 
 // ImageFields interface for consistent reuse
-interface ImageFields {
+export interface ImageFields {
   mainImage: Buffer | null;
   thumbnails: Buffer[];
 }
@@ -165,32 +165,35 @@ export async function fetchFilteredProductsFromDb(
 
     const query = `
       SELECT
-        p.product_id,
-        p.product_name AS name,
-        p.product_sku AS sku,
-        p.product_price AS price,
-        p.product_discount AS discount,
-        p.product_quantity AS quantity,
-        c.category_name AS category,
-        p.product_status AS status,
-        p.product_description AS description,
-        b.brand_name AS brand,
-        COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
-        p.created_at AS createdAt,
-        p.updated_at AS updatedAt,
-        MAX(pi.main_image) AS mainImage,
-        MAX(pi.thumbnail_image1) AS thumbnail1,
-        MAX(pi.thumbnail_image2) AS thumbnail2,
-        MAX(pi.thumbnail_image3) AS thumbnail3,
-        MAX(pi.thumbnail_image4) AS thumbnail4,
-        MAX(pi.thumbnail_image5) AS thumbnail5,
-        COALESCE(GROUP_CONCAT(DISTINCT t.tag_name SEPARATOR ','), '') AS tags
+          p.product_id,
+          p.product_name AS name,
+          p.product_sku AS sku,
+          p.product_price AS price,
+          p.product_discount AS discount,
+          p.product_quantity AS quantity,
+          c.category_name AS category,
+          p.product_status AS status,
+          p.product_description AS description,
+          b.brand_name AS brand,
+          GROUP_CONCAT(DISTINCT s.supplier_name ORDER BY s.supplier_name SEPARATOR ', ') AS suppliers,
+          COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings, -- Uses "rating" column
+          p.created_at AS createdAt,
+          p.updated_at AS updatedAt,
+          MAX(pi.main_image) AS mainImage,
+          MAX(pi.thumbnail_image1) AS thumbnail1,
+          MAX(pi.thumbnail_image2) AS thumbnail2,
+          MAX(pi.thumbnail_image3) AS thumbnail3,
+          MAX(pi.thumbnail_image4) AS thumbnail4,
+          MAX(pi.thumbnail_image5) AS thumbnail5,
+          COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags
       FROM products p
       LEFT JOIN product_images pi ON p.product_id = pi.product_id
-      LEFT JOIN categories c ON p.category_id = c.category_id
-      LEFT JOIN brands b ON p.brand_id = b.brand_id
+      INNER JOIN categories c ON p.category_id = c.category_id
+      INNER JOIN brands b ON p.brand_id = b.brand_id
       LEFT JOIN product_tags pt ON p.product_id = pt.product_id
-      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
+      LEFT JOIN product_suppliers ps ON p.product_id = ps.product_id
+      LEFT JOIN suppliers s ON ps.supplier_id = s.supplier_id
+      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id -- Ensure "product_id" exists
       LEFT JOIN tags t ON pt.tag_id = t.tag_id
       WHERE ${whereClause}
       GROUP BY p.product_id
@@ -273,61 +276,6 @@ export async function fetchProductByIdFromDb(
     return product;
   } catch (error) {
     console.error("Error fetching product by ID:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-export async function getUniqueBrands() {
-  const connection = await getConnection();
-  try {
-    const [brands] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT b.brand_name, b.brand_image FROM brands b`);
-    const uniqueBrands = brands.map((brand) => brand.brand_name);
-    const result = { uniqueBrands };
-    return result;
-  } catch (error) {
-    console.error("Error fetching filtered products:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-export async function getUniqueTags() {
-  const connection = await getConnection();
-  try {
-    const [tags] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT t.tag_name FROM tags t JOIN product_tags pt ON t.tag_id = pt.tag_id`);
-    const uniqueTags = tags.map((tag) => tag.tag_name);
-    const result = { uniqueTags };
-    return result;
-  } catch (error) {
-    console.error("Error fetching filtered products:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-export async function getUniqueSuppliers() {
-  const connection = await getConnection();
-  try {
-    const [supplier] = await connection.query<RowDataPacket[]>(`
-      SELECT DISTINCT
-        s.supplier_id,
-        s.supplier_name,
-        s.supplier_email,
-        s.supplier_phone_number,
-        s.supplier_location
-        FROM suppliers s
-        JOIN product_suppliers ps
-        ON s.supplier_id = ps.supplier_id`);
-    const result = { supplier };
-    return result;
-  } catch (error) {
-    console.error("Error fetching filtered suppliers:", error);
     throw error;
   } finally {
     connection.release();

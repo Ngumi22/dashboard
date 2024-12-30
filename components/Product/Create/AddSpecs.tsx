@@ -14,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  getCategorySpecs,
+  getUniqueCategories,
+} from "@/lib/actions/Category/fetch";
 
 interface Specification {
   specification_name: string;
@@ -67,18 +71,10 @@ export default function AddSpecifications({
       const fetchCategorySpecs = async () => {
         try {
           setLoadingSpecs(true);
-          const response = await fetch(
-            `/api/category/catSpec?categoryId=${encodeURIComponent(
-              selectedCategoryId
-            )}`
-          );
-          if (!response.ok) {
-            throw new Error("Failed to fetch category specifications");
-          }
-          const data = await response.json();
+          const data = await getCategorySpecs(selectedCategoryId);
 
           const categorySpecifications =
-            data?.specs?.catSpecs?.map(
+            data?.catSpecs?.map(
               (spec: { specification_name: string }) => spec.specification_name
             ) || [];
           setCategorySpecs(categorySpecifications);
@@ -138,8 +134,8 @@ export default function AddSpecifications({
 
   return (
     <div className="border p-2 shadow rounded">
-      <h2>Add Specifications</h2>
-      <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Product Specifications</h2>
+      <div className="space-y-6 mt-3">
         {loadingSpecs ? (
           <p>Loading specifications...</p>
         ) : (
@@ -167,7 +163,7 @@ export default function AddSpecifications({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="newSpec">Or Add a New Spec</Label>
+              <Label htmlFor="newSpec">Or Add a New Specification</Label>
               <Controller
                 name="newSpecName"
                 control={control}
@@ -198,7 +194,11 @@ export default function AddSpecifications({
               )}
             </div>
 
-            <Button variant="secondary" type="button" onClick={handleAddSpec}>
+            <Button
+              variant="outline"
+              className="bg-gray-200 outline-2"
+              type="button"
+              onClick={handleAddSpec}>
               <Plus className="mr-2 h-4 w-4" /> Add Specification
             </Button>
           </>

@@ -1,7 +1,7 @@
 "use server";
 
-import { getConnection } from "@/lib/database";
 import { cache } from "@/lib/cache";
+import { getConnection } from "@/lib/MysqlDB/initDb";
 import { dbsetupTables } from "@/lib/MysqlTables";
 import { getErrorMessage } from "@/lib/utils";
 

@@ -1,20 +1,8 @@
 "use server";
 
 import { fileToBuffer } from "@/lib/utils";
-import { getConnection } from "@/lib/database";
 import { cache } from "@/lib/cache";
-
-export interface Carousel {
-  carousel_id?: number;
-  title: string;
-  short_description?: string;
-  description?: string;
-  link?: string;
-  image?: string | File | null;
-  status: "active" | "inactive";
-  text_color: string;
-  background_color: string;
-}
+import { getConnection } from "@/lib/MysqlDB/initDb";
 
 export async function updateCarouselAction(
   carousel_id: string,

@@ -2,8 +2,9 @@
 
 import sharp from "sharp";
 import { cache, setCache } from "@/lib/cache";
-import { getConnection } from "@/lib/database";
 import { RowDataPacket } from "mysql2/promise";
+import { getConnection } from "@/lib/MysqlDB/initDb";
+import { Carousel } from "./carouselType";
 
 async function compressAndEncodeBase64(
   buffer: Buffer | null
@@ -22,18 +23,6 @@ async function compressAndEncodeBase64(
     return null;
   }
 }
-
-export type Carousel = {
-  carousel_id?: number;
-  title: string;
-  short_description?: string;
-  description?: string;
-  link?: string;
-  image?: string | null;
-  status: "active" | "inactive";
-  text_color: string;
-  background_color: string;
-};
 
 export async function getUniqueCarousel() {
   const cacheKey = "unique_carousels";

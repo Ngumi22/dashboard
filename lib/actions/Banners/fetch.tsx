@@ -2,8 +2,9 @@
 
 import sharp from "sharp";
 import { cache, setCache } from "@/lib/cache";
-import { getConnection } from "@/lib/database";
 import { RowDataPacket } from "mysql2/promise";
+import { getConnection } from "@/lib/MysqlDB/initDb";
+import { Banner } from "./bannerType";
 
 async function compressAndEncodeBase64(
   buffer: Buffer | null
@@ -22,18 +23,6 @@ async function compressAndEncodeBase64(
     return null;
   }
 }
-
-type Banner = {
-  banner_id: number;
-  title: string;
-  description: string;
-  link: string;
-  image: string | null; // Adjusted to match function output
-  text_color: string;
-  background_color: string;
-  status: string;
-  usage_context: string;
-};
 
 export async function getUniqueBanners() {
   const cacheKey = "unique_banners";

@@ -1,20 +1,8 @@
 "use server";
 
 import { fileToBuffer } from "@/lib/utils";
-import { getConnection } from "@/lib/database";
 import { cache } from "@/lib/cache";
-
-export interface Banner {
-  banner_id?: number;
-  title: string;
-  description?: string;
-  link?: string;
-  image?: File;
-  text_color: string;
-  background_color: string;
-  status: "active" | "inactive";
-  usage_context: string;
-}
+import { getConnection } from "@/lib/MysqlDB/initDb";
 
 export async function updateBannerAction(
   banner_id: string,

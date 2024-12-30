@@ -2,9 +2,9 @@
 
 import { RowDataPacket } from "mysql2/promise";
 import { cache, setCache } from "@/lib/cache";
-import { getConnection } from "@/lib/database";
-
 import sharp from "sharp";
+import { getConnection } from "@/lib/MysqlDB/initDb";
+import { Category } from "./catType";
 
 // Compress image utility
 async function compressAndEncodeBase64(
@@ -24,15 +24,6 @@ async function compressAndEncodeBase64(
     return null;
   }
 }
-
-// Define the Category type
-type Category = {
-  category_id: string;
-  category_name: string;
-  category_image: string | null; // Update type to match the encoded base64 image
-  category_description: string;
-  status: "active" | "inactive";
-};
 
 export async function getUniqueCategories() {
   const cacheKey = "unique_categories";

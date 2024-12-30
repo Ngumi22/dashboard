@@ -1,18 +1,8 @@
 "use server";
 
-import { getConnection } from "@/lib/database";
-import { dbsetupTables } from "@/lib/MysqlTables";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
-// Custom error class for better error handling
-class CustomError extends Error {
-  statusCode: number;
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
 
 const SupplierSchema = z.object({
   supplier_name: z.string().min(1, "Supplier name is required."),
@@ -20,31 +10,6 @@ const SupplierSchema = z.object({
   supplier_phone_number: z.string().optional(),
   supplier_location: z.string().optional(),
 });
-
-// Helper function for database operations
-export async function dbOperation<T>(
-  operation: (connection: any) => Promise<T>
-): Promise<T> {
-  const connection = await getConnection();
-  try {
-    await connection.beginTransaction();
-    await dbsetupTables();
-    const result = await operation(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-// Helper function to convert File to Buffer
-export async function fileToBuffer(file: File): Promise<Buffer> {
-  const arrayBuffer = await file.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
 
 export async function createSupplier(formData: FormData, productId: number) {
   try {

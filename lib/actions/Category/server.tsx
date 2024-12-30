@@ -2,44 +2,15 @@
 
 import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
 import { fileToBuffer, getErrorMessage, parseNumberField } from "@/lib/utils";
-import { getConnection } from "@/lib/database";
-import { dbsetupTables } from "@/lib/MysqlTables";
-import sharp from "sharp";
 import { cache } from "@/lib/cache";
+import { getConnection } from "@/lib/MysqlDB/initDb";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export type FormState = {
   message: string;
   fields?: Record<string, string>;
   issues?: string[];
 };
-
-export async function dbOperation<T>(
-  operation: (connection: any) => Promise<T>
-): Promise<T> {
-  const connection = await getConnection();
-
-  try {
-    await connection.beginTransaction();
-    await dbsetupTables();
-    const result = await operation(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-
-    const errorMessage = getErrorMessage(error);
-
-    // Log the error to the server console
-    console.error(`[Server Error]: ${errorMessage}`);
-
-    // Optionally, send the error to a monitoring service like Sentry
-    // Sentry.captureException(error);
-
-    throw new Error(errorMessage); // Re-throw for handling in API routes
-  } finally {
-    connection.release();
-  }
-}
 
 export async function CategorySubmitAction(
   prevState: FormState,

@@ -1,40 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { fileToBuffer, getErrorMessage } from "@/lib/utils";
-import { getConnection } from "@/lib/database";
-import { dbsetupTables } from "@/lib/MysqlTables";
+import { fileToBuffer } from "@/lib/utils";
 import { z } from "zod";
-
-// Helper function for database operations
-
-export async function dbOperation<T>(
-  operation: (connection: any) => Promise<T>
-): Promise<T> {
-  const connection = await getConnection();
-
-  try {
-    await connection.beginTransaction();
-    await dbsetupTables();
-    const result = await operation(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-
-    const errorMessage = getErrorMessage(error);
-
-    // Log the error to the server console
-    console.error(`[Server Error]: ${errorMessage}`);
-
-    // Optionally, send the error to a monitoring service like Sentry
-    // Sentry.captureException(error);
-
-    throw new Error(errorMessage); // Re-throw for handling in API routes
-  } finally {
-    connection.release();
-  }
-}
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 const carouselSchema = z.object({
   carousel_id: z.number().optional(),
@@ -47,18 +16,6 @@ const carouselSchema = z.object({
   text_color: z.string().min(1, "Text color required"),
   background_color: z.string().min(1, "Background color required"),
 });
-
-export interface Carousel {
-  carousel_id?: number;
-  title: string;
-  short_description?: string;
-  description?: string;
-  link?: string;
-  image?: File;
-  status: "active" | "inactive";
-  text_color: string;
-  background_color: string;
-}
 
 export async function createCarousel(prevState: any, data: FormData) {
   // Validate incoming data using Zod schema
