@@ -34,12 +34,12 @@ export default function HeroBanners() {
           ))}
         </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-4">
+        <ul className="grid grid-cols-3 gap-8">
           {banners.map((banner) => (
             <li
               key={banner.banner_id}
               style={{ backgroundColor: banner.background_color }}
-              className="h-56 grid grid-flow-col content-center pl-4 rounded-lg">
+              className="grid grid-flow-col content-center pl-4 rounded-lg">
               <div className="grid space-y-4">
                 <h1
                   className="text-xl lg:text-2xl font-semibold"

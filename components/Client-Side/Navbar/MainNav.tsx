@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import Logo from "../navigation/logo";
+import Cart from "../navigation/cart";
 
 export default function MainNav({
   isMobileMenuOpen,
@@ -12,7 +13,7 @@ export default function MainNav({
 }: any) {
   return (
     <div className="bg-[#151C25] py-6 px-4 space-y-4">
-      <div className="mx-auto flex items-center justify-between">
+      <div className="mx-auto w-full flex items-center justify-between md:px-12">
         <div className="mr-2 md:hidden">
           <Button
             variant="ghost"
@@ -47,20 +48,7 @@ export default function MainNav({
             <Heart className="h-8 w-8 text-white hover:text-black" />
             <span className="sr-only">Favorites</span>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hover:text-black text-white">
-            <div className="relative">
-              <ShoppingCart className="h-8 w-8  hover:text-black" />
-              <span className="absolute -top-2 -right-2 h-4 w-4 rounded-full text-white bg-red-500 text-[10px] font-bold  flex items-center justify-center">
-                3
-              </span>
-            </div>
-            <span className="ml-2 hidden sm:inline hover:text-black">
-              $150.00
-            </span>
-          </Button>
+          <Cart />
         </div>
       </div>
       <div className="md:hidden flex w-full max-w-xl mx-auto relative">

@@ -168,7 +168,9 @@ export async function onSubmitAction(prevState: FormState, data: FormData) {
     ...formData,
     ...productData,
   });
-  console.log(parsed);
+
+  // console.log(parsed);
+
   if (!parsed.success) {
     console.error("Validation errors:", parsed.error.issues);
     return {

@@ -2,7 +2,6 @@ import {
   deleteCarousel,
   getUniqueCarousel,
 } from "@/lib/actions/Carousel/fetch";
-import { updateCarouselAction } from "@/lib/actions/Carousel/update";
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
 

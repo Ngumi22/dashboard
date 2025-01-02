@@ -3,7 +3,6 @@
 import { RowDataPacket } from "mysql2/promise";
 import { getCache, setCache } from "@/lib/cache";
 import { DBQUERYLIMITS } from "@/lib/Constants";
-import sharp from "sharp";
 import { getErrorMessage } from "@/lib/utils";
 import { getConnection } from "@/lib/MysqlDB/initDb";
 import {
@@ -13,25 +12,7 @@ import {
   SearchParams,
 } from "./productTypes";
 
-// Compress image utility
-async function compressAndEncodeBase64(
-  buffer: Buffer | null
-): Promise<string | null> {
-  if (!buffer) return null;
-
-  try {
-    const compressedBuffer = await sharp(buffer)
-      .resize(100) // Resize to 100px width
-      .webp({ quality: 70 }) // Convert to WebP with 70% quality
-      .toBuffer();
-
-    return compressedBuffer.toString("base64");
-  } catch (error) {
-    console.error("Image compression error:", error);
-    return null;
-  }
-}
-export async function fetchFilteredProductsFromDb(
+export async function fetchProducts(
   currentPage: number,
   filter: SearchParams
 ): Promise<{ products: Product[]; errorMessage?: string }> {
@@ -64,9 +45,12 @@ export async function fetchFilteredProductsFromDb(
           COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
           p.created_at AS createdAt,
           p.updated_at AS updatedAt,
-          MAX(pi.main_image) AS mainImage,
+          MAX(pi.main_image) AS main_image,
           MAX(pi.thumbnail_image1) AS thumbnail1,
           MAX(pi.thumbnail_image2) AS thumbnail2,
+          MAX(pi.thumbnail_image3) AS thumbnail3,
+          MAX(pi.thumbnail_image4) AS thumbnail4,
+          MAX(pi.thumbnail_image5) AS thumbnail5,
           COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags
       FROM products p
       LEFT JOIN product_images pi ON p.product_id = pi.product_id
@@ -158,19 +142,35 @@ export async function fetchProductByIdFromDb(product_id: string) {
   try {
     const query = `
       SELECT
-        p.product_id,
-        p.product_name AS name,
-        p.product_price AS price,
-        p.product_discount AS discount,
-        p.product_quantity AS quantity,
-        c.category_name AS category,
-        b.brand_name AS brand,
-        p.product_status AS status,
-        COALESCE(GROUP_CONCAT(DISTINCT t.tag_name SEPARATOR ','), '') AS tags
+          p.product_id,
+          p.product_name AS name,
+          p.product_sku AS sku,
+          p.product_price AS price,
+          p.product_discount AS discount,
+          p.product_quantity AS quantity,
+          c.category_name AS category,
+          p.product_status AS status,
+          p.product_description AS description,
+          b.brand_name AS brand,
+          GROUP_CONCAT(DISTINCT s.supplier_name ORDER BY s.supplier_name SEPARATOR ', ') AS suppliers,
+          COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings, -- Uses "rating" column
+          p.created_at AS createdAt,
+          p.updated_at AS updatedAt,
+          MAX(pi.main_image) AS mainImage,
+          MAX(pi.thumbnail_image1) AS thumbnail1,
+          MAX(pi.thumbnail_image2) AS thumbnail2,
+          MAX(pi.thumbnail_image3) AS thumbnail3,
+          MAX(pi.thumbnail_image4) AS thumbnail4,
+          MAX(pi.thumbnail_image5) AS thumbnail5,
+          COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags
       FROM products p
-      LEFT JOIN categories c ON p.category_id = c.category_id
-      LEFT JOIN brands b ON p.brand_id = b.brand_id
+      LEFT JOIN product_images pi ON p.product_id = pi.product_id
+      INNER JOIN categories c ON p.category_id = c.category_id
+      INNER JOIN brands b ON p.brand_id = b.brand_id
       LEFT JOIN product_tags pt ON p.product_id = pt.product_id
+      LEFT JOIN product_suppliers ps ON p.product_id = ps.product_id
+      LEFT JOIN suppliers s ON ps.supplier_id = s.supplier_id
+      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id -- Ensure "product_id" exists
       LEFT JOIN tags t ON pt.tag_id = t.tag_id
       WHERE p.product_id = ?
       GROUP BY p.product_id;

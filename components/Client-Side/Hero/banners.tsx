@@ -97,13 +97,13 @@ export default function BannerComponent({ isAdmin }: HeroBannersProps) {
           </SheetContent>
         </Sheet>
       )}
-      <ul className="grid grid-cols-2 gap-4">
+      <ul className="md:size-96 md:w-full grid grid-cols-2 gap-4">
         {filteredBanners.map((banner) => (
           <li
             key={banner.banner_id}
             style={{ backgroundColor: banner.background_color }}
-            className="relative h-56 grid grid-flow-col content-center pl-4 rounded-lg">
-            <div className="grid space-y-4">
+            className="relative h-36 md:h-56 grid grid-flow-col content-center pl-4 rounded-lg">
+            <div className="grid sm:space-y-2 space-y-4">
               <h1
                 className="text-xl lg:text-2xl font-semibold"
                 style={{ color: banner.text_color }}>
@@ -111,7 +111,7 @@ export default function BannerComponent({ isAdmin }: HeroBannersProps) {
               </h1>
               <p style={{ color: banner.text_color }}>{banner.description}</p>
               <Link href={String(banner.link)}>
-                <Button>Buy Now</Button>
+                <Button className="text-center">Buy Now</Button>
               </Link>
             </div>
             <div>

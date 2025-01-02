@@ -10,14 +10,6 @@ import {
   User,
 } from "@/lib/definitions";
 
-const MAX_FILE_SIZE = 1024 * 1024 * 5;
-const ACCEPTED_IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-];
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -100,93 +92,6 @@ export function parseNumberField(
   }
   return undefined;
 }
-
-export const FormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  sku: z.string().min(2, {
-    message: "SKU must be at least 2 characters.",
-  }),
-  description: z.string().min(5, {
-    message: "Description must be at least 5 characters.",
-  }),
-  price: z.number().positive({
-    message: "Price must be a positive number greater than zero.",
-  }),
-  discount: z
-    .number()
-    .nonnegative({
-      message: "Discount cannot be negative.",
-    })
-    .optional(),
-  quantity: z.number().int().nonnegative({
-    message: "Quantity cannot be negative.",
-  }),
-  status: z.enum(["draft", "pending", "approved"]),
-  categoryName: z.string().min(2, {
-    message: "Category must be at least 2 characters.",
-  }),
-  categoryDescription: z.string().min(2, {
-    message: "Category must be at least 2 characters.",
-  }),
-  categoryImage: z
-    .any()
-    .refine((files) => {
-      return files?.[0]?.size <= MAX_FILE_SIZE;
-    }, `Max image size is 5MB.`)
-    .refine(
-      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
-      "Only .jpg, .jpeg, .png and .webp formats are supported."
-    ),
-  brandName: z.string().min(2, {
-    message: "Brand must be at least 2 characters.",
-  }),
-
-  brandImage: z
-    .any()
-    .refine((files) => {
-      return files?.[0]?.size <= MAX_FILE_SIZE;
-    }, `Max image size is 5MB.`)
-    .refine(
-      (files) => ACCEPTED_IMAGE_MIME_TYPES.includes(files?.[0]?.type),
-      "Only .jpg, .jpeg, .png and .webp formats are supported."
-    ),
-
-  tags: z.array(z.string()).optional(),
-
-  mainImage: z
-    .any()
-    .refine(
-      (files) =>
-        files instanceof FileList &&
-        files.length === 1 &&
-        files[0].size <= MAX_FILE_SIZE,
-      "Main image must be under 5MB."
-    )
-    .refine(
-      (files) =>
-        files instanceof FileList &&
-        ACCEPTED_IMAGE_MIME_TYPES.includes(files[0].type),
-      "Only .jpg, .jpeg, .png, and .webp formats are supported."
-    ),
-  thumbnailImages: z
-    .any()
-    .refine(
-      (files) => files instanceof FileList && files.length <= 5,
-      "You can upload up to 5 thumbnails."
-    )
-    .refine(
-      (files) =>
-        files instanceof FileList &&
-        Array.from(files).every(
-          (file) =>
-            (file as File).size <= MAX_FILE_SIZE &&
-            ACCEPTED_IMAGE_MIME_TYPES.includes((file as File).type)
-        ),
-      "Each thumbnail must be under 5MB and in the accepted formats."
-    ),
-});
 
 export const formatCurrency = (amount: number) => {
   return (amount / 100).toLocaleString("en-KE", {

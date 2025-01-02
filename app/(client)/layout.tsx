@@ -5,6 +5,7 @@ import Loading from "./loading";
 
 import { lazy, Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
+import { ToastContainer } from "react-toastify";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({
         <ClientSideWrapper>
           <Suspense fallback={<Loading />}>{children}</Suspense>
         </ClientSideWrapper>
+        <ToastContainer position="bottom-left" />
       </body>
     </html>
   );

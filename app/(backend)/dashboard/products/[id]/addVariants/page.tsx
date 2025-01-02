@@ -5,7 +5,7 @@ import { Product } from "@/lib/actions/Product/productTypes";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function EditProduct({ params }: { params: { id: string } }) {
+export default function AddVariants({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const [productData, setProductData] = useState<Product | null>(null);
   const [loading, setLoading] = useState<boolean>(true);

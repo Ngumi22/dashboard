@@ -329,7 +329,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             ? "Product updated successfully"
             : "Product created successfully",
         });
-        router.push("/dashboard/customers");
+        router.push("/dashboard/products");
         router.refresh();
       } else {
         throw new Error("Failed to process product.");

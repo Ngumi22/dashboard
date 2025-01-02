@@ -1,403 +1,312 @@
 "use client";
-import Image from "next/image";
 
-import React, { useState, useEffect } from "react";
-import { ToastAction } from "@/components/ui/toast";
-import { useToast } from "@/components/ui/use-toast";
-import Link from "next/link";
-import {
-  File,
-  ListFilter,
-  MoreHorizontal,
-  PlusCircle,
-  Search,
-} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Edit, Trash, Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Filter, Product, RowAction } from "@/components/Data-Table/types";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHead,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { handleDeleteAction } from "@/lib/actions/Product/delete";
+  filterData,
+  searchData,
+  sortData,
+} from "@/components/Data-Table/utils";
+import DataTable from "@/components/Data-Table/data-table";
+import { useStore } from "@/app/store";
 
-interface ProductResponse {
-  id: string | number;
-  name: string;
-  sku: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  category: string;
-  status: "approved" | "draft" | "pending";
-  description: string;
-  brand: string;
-  createdAt: string;
-  updatedAt: string;
-  ratings: number;
-  images: {
-    mainImage: string | null;
-    thumbnails: (string | null)[];
-  };
-  tags: string[];
-}
+const includedKeys: (keyof Product)[] = [
+  "sku",
+  "name",
+  "images",
+  "category",
+  "quantity",
+  "status",
+  "price",
+  "discount",
+];
 
-export default function ProductsList() {
-  const [products, setProducts] = useState<ProductResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [brand, setBrand] = useState<string | null>(null);
-  const [category, setCategory] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState<[number, number] | null>(null); // For min and max price
-  const [discount, setDiscount] = useState<[number, number] | null>(null); // For min and max discount
-  const [supplier, setSupplier] = useState<string | null>(null);
+import { useRouter, useParams } from "next/navigation";
+import Base64Image from "@/components/Data-Table/base64-image";
 
-  const { toast } = useToast();
-  const [pagination, setPagination] = useState<{
-    limit: number;
-    offset: number;
-  }>({
-    limit: 10,
-    offset: 0,
-  });
+const columnRenderers = {
+  status: (item: { status: string }) => (
+    <Badge
+      variant={
+        item.status === "approved"
+          ? "default"
+          : item.status === "pending"
+          ? "secondary"
+          : "destructive"
+      }>
+      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+    </Badge>
+  ),
+
+  images: (item: Product) =>
+    item.images && item.images.mainImage ? (
+      <Base64Image
+        src={item.images.mainImage}
+        alt={item.name}
+        width={50}
+        height={50}
+      />
+    ) : (
+      <span>No image</span>
+    ),
+
+  discount: (item: { discount: any }) => `${item.discount}%`,
+};
+
+export default function Home() {
+  const fetchProducts = useStore((state) => state.fetchProducts);
+
+  const products = useStore((state) => state.products);
+  const loading = useStore((state) => state.loading);
+  const error = useStore((state) => state.error);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {}
+  );
+  const [sortKey, setSortKey] = useState<keyof Product>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        // Construct API URL with pagination, search, and filters
-        let url = `/api/productss?page=${
-          pagination.offset / pagination.limit + 1
-        }`;
+    fetchProducts(currentPage, {}); // Fetch initial page
+  }, [fetchProducts, currentPage]);
 
-        if (searchTerm) url += `&name=${encodeURIComponent(searchTerm)}`;
-        if (activeTab !== "all") url += `&status=${activeTab}`;
-        if (brand) url += `&brand=${encodeURIComponent(brand)}`;
-        if (category) url += `&category=${encodeURIComponent(category)}`;
-        if (priceRange) {
-          url += `&minPrice=${priceRange[0]}&maxPrice=${priceRange[1]}`;
+  // Dynamically generate category options from the products data
+  const categoryOptions = useMemo(() => {
+    const uniqueCategories = new Set(
+      products.map((product) => product.category)
+    );
+    return Array.from(uniqueCategories).map((category) => ({
+      value: category,
+      label: category,
+    }));
+  }, [products]);
+
+  const filters: Filter<any>[] = useMemo(
+    () => [
+      {
+        key: "category",
+        label: "Category",
+        type: "select",
+        options: categoryOptions, // Dynamically populated categories
+      },
+      {
+        key: "status",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "draft", label: "Draft" },
+          { value: "pending", label: "Pending" },
+          { value: "approved", label: "Approved" },
+        ],
+      },
+      {
+        key: "price",
+        label: "Price",
+        type: "range",
+        options: [
+          { value: "lowest", label: "Lowest to Highest" },
+          { value: "highest", label: "Highest to Lowest" },
+        ],
+      },
+      {
+        key: "discount",
+        label: "Discount",
+        type: "range",
+        options: [
+          { value: "lowest", label: "Lowest to Highest" },
+          { value: "highest", label: "Highest to Lowest" },
+        ],
+      },
+    ],
+    [categoryOptions]
+  );
+
+  const rowActions: RowAction<any>[] = [
+    {
+      label: "Edit",
+      icon: Edit,
+      onClick: (product) => {
+        // Navigate to the edit page
+        router.push(`/dashboard/products/${product.product_id}/edit`);
+      },
+    },
+    {
+      label: "Delete",
+      icon: Trash,
+      onClick: async (product) => {
+        // Confirm and delete the product
+        const confirmed = window.confirm(
+          `Are you sure you want to delete ${product.name}?`
+        );
+        const currentPage = 1; // Example current page
+        if (confirmed) {
+          try {
+            const response = await fetch(`/api/products/${product.id}`, {
+              method: "DELETE",
+            });
+            if (response.ok) {
+              alert(`Product ${product.name} deleted successfully.`);
+              // Optionally refresh the product list
+              fetchProducts(currentPage, {});
+            } else {
+              alert(`Failed to delete product: ${product.name}`);
+            }
+          } catch (error) {
+            console.error("Delete error:", error);
+            alert(
+              `An error occurred while deleting the product: ${product.name}`
+            );
+          }
         }
-        if (discount) {
-          url += `&minDiscount=${discount[0]}&maxDiscount=${discount[1]}`;
+      },
+    },
+    {
+      label: "View",
+      icon: Eye,
+      onClick: (product) => {
+        router.push(`/dashboard/products/${product.product_id}/product`);
+      },
+    },
+    {
+      label: "Add Variant",
+      icon: Plus,
+      onClick: (product) => {
+        router.push(`/dashboard/products/${product.product_id}/addVariants`);
+      },
+    },
+  ];
+
+  const filteredAndSortedData = useMemo(() => {
+    let result = searchData(products, searchTerm, "name");
+    result = filterData(result, filters, activeFilters);
+
+    // Handle range sorting
+    if (activeFilters.price && activeFilters.price.length > 0) {
+      const direction = activeFilters.price[0] === "lowest" ? "desc" : "asc";
+      result = sortData(result, "price", direction);
+    } else if (activeFilters.discount && activeFilters.discount.length > 0) {
+      const direction = activeFilters.discount[0] === "lowest" ? "desc" : "asc";
+      result = sortData(result, "discount", direction);
+    } else {
+      result = sortData(result, sortKey, sortDirection);
+    }
+
+    return result;
+  }, [products, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+
+  const paginatedData = filteredAndSortedData.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
+  const handleSearch = (query: string) => {
+    setSearchTerm(query);
+    setCurrentPage(1);
+  };
+
+  const handleFilter = (key: string, value: string) => {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev };
+      if (key === "price" || key === "discount") {
+        // For range filters, we only want one active value at a time
+        newFilters[key] = [value];
+      } else {
+        if (newFilters[key]) {
+          const index = newFilters[key].indexOf(value);
+          if (index > -1) {
+            newFilters[key] = newFilters[key].filter((v) => v !== value);
+            if (newFilters[key].length === 0) {
+              delete newFilters[key];
+            }
+          } else {
+            newFilters[key] = [...newFilters[key], value];
+          }
+        } else {
+          newFilters[key] = [value];
         }
-        if (supplier) url += `&supplier=${encodeURIComponent(supplier)}`;
-
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch products");
-        }
-
-        const data = await res.json();
-        setProducts(data.products); // Set the products array
-        // Handle filter options (uniqueTags, uniqueCategories, uniqueBrands) if needed
-      } catch (err) {
-        console.error(err);
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage,
-          action: <ToastAction altText="Try again">Try again</ToastAction>,
-        });
-      } finally {
-        setLoading(false);
       }
-    };
+      return newFilters;
+    });
+    setCurrentPage(1);
+  };
 
-    fetchProducts();
-  }, [
-    pagination,
-    searchTerm,
-    activeTab,
-    brand,
-    category,
-    priceRange,
-    discount,
-    supplier,
-    toast,
-  ]);
+  const handleResetFilters = () => {
+    setActiveFilters({});
+    setCurrentPage(1);
+  };
 
-  const handleDelete = async (productId: number) => {
-    try {
-      // Perform the deletion action on the server
-      await handleDeleteAction(productId);
-
-      // Optionally, reset pagination, search, or other state variables to trigger re-fetch
-      setPagination({ offset: 0, limit: pagination.limit }); // Reset to the first page
-      setSearchTerm(""); // Clear search term if needed (or keep it as is)
-      setActiveTab("all"); // Reset active tab (optional)
-
-      // Show success toast
-      toast({
-        variant: "destructive",
-        title: "Product Deleted",
-        description: "Product deleted successfully.",
-      });
-    } catch (err) {
-      console.error(err);
-
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
-
-      // Show error toast
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage,
-        action: <ToastAction altText="Try again">Try again</ToastAction>,
-      });
+  const handleSort = (key: string | number | symbol) => {
+    if (
+      typeof key === "string" &&
+      includedKeys.includes(key as keyof Product)
+    ) {
+      setSortKey(key as keyof Product); // Set sort key safely
+    } else {
+      console.error("Invalid sort key:", key);
     }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setPagination({ limit: 10, offset: 0 }); // Reset pagination when searching
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchProducts(page, {}); // Fetch data for the new page
   };
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    setPagination({ limit: 10, offset: 0 }); // Reset pagination when tab changes
+  const handleRowsPerPageChange = (rows: number) => {
+    setRowsPerPage(rows);
+    setCurrentPage(1);
+  };
+
+  const handleRowSelect = (selectedRows: any[]) => {
+    console.log("Selected rows:", selectedRows);
+  };
+
+  const handleAddNew = () => {
+    console.log("Add new item");
+  };
+
+  const handleClearFilter = (key: string, value: string) => {
+    const newActiveFilters = { ...activeFilters };
+    newActiveFilters[key] = newActiveFilters[key].filter((v) => v !== value);
+    if (newActiveFilters[key].length === 0) {
+      delete newActiveFilters[key];
+    }
+    setActiveFilters(newActiveFilters);
   };
 
   return (
-    <div className="py-8 sm:px-8 flex min-h-screen w-full flex-col bg-muted/40">
-      <header className="sticky top-0 z-0 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-        <Breadcrumb className="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/dashboard/products">Products</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <div className="relative ml-auto flex-1 md:grow-0">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
-        </div>
-      </header>
-      <main className="grid grid-flow-row flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <Tabs defaultValue="all" onValueChange={handleTabChange}>
-          <div className="flex items-center">
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="draft">Draft</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-            </TabsList>
-            <div className="ml-auto flex items-center gap-2 my-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-1">
-                    <ListFilter className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Filter
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                {/* Dropdown menu content */}
-              </DropdownMenu>
-
-              {/* Add Product link */}
-              <Link href="/dashboard/products/create">
-                <Button size="sm" className="h-8 gap-1">
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Product
-                  </span>
-                </Button>
-              </Link>
-            </div>
-          </div>
-          {/* TabsContent for different states */}
-          {/* Example for 'all' state */}
-          <TabsContent value={activeTab}>
-            <ProductTable
-              products={products}
-              handleDelete={handleDelete}
-              loading={loading}
-              error={error}
-            />
-          </TabsContent>
-          {/* Repeat TabsContent for other states as needed */}
-        </Tabs>
-        {/* Pagination buttons */}
-        <div className="flex justify-end mt-4">
-          {pagination.offset > 0 && (
-            <button
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  offset: prev.offset - prev.limit,
-                }))
-              }
-              className="px-3 py-1 mr-2 bg-green-400 hover:bg-gray-300 rounded-md">
-              Previous
-            </button>
-          )}
-          {products.length === pagination.limit && (
-            <button
-              onClick={() =>
-                setPagination((prev) => ({
-                  ...prev,
-                  offset: prev.offset + prev.limit,
-                }))
-              }
-              className="px-3 py-1 bg-green-400 hover:bg-gray-300 rounded-md">
-              Next
-            </button>
-          )}
-        </div>
-      </main>
+    <div className="container mx-auto py-10">
+      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      {!loading && !error && (
+        <DataTable
+          data={paginatedData}
+          includedKeys={includedKeys}
+          filters={filters}
+          rowActions={rowActions}
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          onSort={handleSort}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          onRowSelect={handleRowSelect}
+          onAddNew={handleAddNew}
+          totalItems={filteredAndSortedData.length}
+          currentPage={currentPage}
+          rowsPerPage={rowsPerPage}
+          activeFilters={activeFilters}
+          onClearFilter={handleClearFilter}
+          onResetFilters={handleResetFilters}
+          columnRenderers={columnRenderers}
+        />
+      )}
     </div>
   );
 }
-
-type ProductTableProps = {
-  products: ProductResponse[];
-  handleDelete: (productId: number) => void;
-  loading: boolean;
-  error: string | null;
-};
-
-const ProductTable: React.FC<ProductTableProps> = ({
-  products,
-  handleDelete,
-  loading,
-  error,
-}) => {
-  if (loading) {
-    return <div>Loading....</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  if (products.length === 0) {
-    return <div className="my-2">No products found.</div>;
-  }
-
-  return (
-    <Table>
-      {/* Table headers */}
-      <TableHeader>
-        <TableRow>
-          <TableHead>SKU</TableHead>
-          <TableHead className="hidden sm:table-cell">Image</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead className="hidden sm:table-cell">Brand</TableHead>
-          <TableHead className="hidden sm:table-cell">Category</TableHead>
-          <TableHead>Price</TableHead>
-          <TableHead>Stock</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      {/* Table body */}
-      <TableBody>
-        {products.map((product) => (
-          <TableRow key={product.id}>
-            {/* Table cells for product data */}
-            <TableCell>{product.sku}</TableCell>
-            <TableCell className="hidden sm:table-cell">
-              <Image
-                src={`data:image/jpeg;base64,${product.images.mainImage}`}
-                alt={product.name}
-                width={40}
-                height={40}
-                className="aspect-square rounded-md object-cover"
-                loading="lazy"
-              />
-            </TableCell>
-            <TableCell>
-              <Link href={`/dashboard/productss/${product.id}`}>
-                {product.name}
-              </Link>
-            </TableCell>
-            <TableCell className="hidden sm:table-cell">
-              {product.brand}
-            </TableCell>
-            <TableCell className="hidden sm:table-cell">
-              {product.category}
-            </TableCell>
-            <TableCell>{product.price}</TableCell>
-            <TableCell>{product.quantity}</TableCell>
-            <TableCell>
-              {/* Badge component for status */}
-              <Badge
-                variant={
-                  product.status === "approved"
-                    ? "default"
-                    : product.status === "draft"
-                    ? "secondary"
-                    : "outline"
-                }>
-                {product.status}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {/* Dropdown menu for actions */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {/* Edit link */}
-                  <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/productss/${product.id}/edit`}>
-                      Edit
-                    </Link>
-                  </DropdownMenuItem>
-                  {/* Delete action */}
-                  <DropdownMenuItem
-                    onClick={() => handleDelete(Number(product.id))}>
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};

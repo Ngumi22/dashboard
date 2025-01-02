@@ -136,8 +136,8 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                 style={{
                   backgroundColor: carousel.background_color,
                 }}
-                className="relative grid grid-cols-3 gap-4 py-4 md:py-[4.5rem] rounded-lg">
-                <div className="col-span-2 grid grid-flow-row md:space-y-8 pl-5">
+                className="relative h-52 md:h-full grid grid-cols-3 gap-4 py-4 md:py-[4.5rem] rounded-lg">
+                <div className="col-span-2 grid grid-flow-row md:space-y-8 pl-5 space-y-2">
                   <h1
                     className="text-xl text-start font-extrabold sm:text-5xl"
                     style={{
@@ -147,7 +147,7 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                   </h1>
 
                   <strong
-                    className="text-xl block font-extrabold"
+                    className="text-md block font-extrabold"
                     style={{
                       color: carousel.text_color,
                     }}>
@@ -155,7 +155,7 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                   </strong>
 
                   <p
-                    className="mt-4 text-start max-w-lg sm:text-sm/relaxed"
+                    className="mt-4 text-start max-w-lg sm:text-sm/relaxed line-clamp-2 md:line-clamp-none"
                     style={{
                       color: carousel.text_color,
                     }}>
@@ -172,7 +172,7 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                 <div className="-col-span-2 overflow-hidden grid justify-self-end mr-2">
                   <Image
                     loading="lazy"
-                    className="h-80 my-auto w-auto object-contain "
+                    className="h-full overflow-hidden md:h-80 my-auto w-auto object-contain"
                     src={`data:image/jpeg;base64,${carousel.image}`}
                     alt={carousel.title}
                     height={200}
