@@ -116,15 +116,13 @@ export interface SearchParams {
 
 export type UserRow = {
   id: number;
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
   role: string;
 };
 export type User = {
   id: number;
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
   role: string;
 };

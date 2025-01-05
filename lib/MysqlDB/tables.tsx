@@ -40,6 +40,8 @@ export async function dbsetupTables() {
           password_hash TEXT NOT NULL,
           image MEDIUMBLOB,
           is_verified BOOLEAN DEFAULT FALSE,
+          password_last_changed TIMESTAMP DEFAULT NULL,
+          password_expiration_date TIMESTAMP DEFAULT NULL;
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           INDEX idx_email (email),

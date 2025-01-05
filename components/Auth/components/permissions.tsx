@@ -3,12 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Edit, Trash, Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Filter,
-  Product,
-  RowAction,
-  User,
-} from "@/components/Data-Table/types";
+import { Filter, RowAction } from "@/components/Data-Table/types";
 import {
   filterData,
   searchData,
@@ -16,34 +11,60 @@ import {
 } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useRouter } from "next/navigation";
-import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
 
-const includedKeys: (keyof User)[] = [
-  "name",
-  "phone_number",
-  "email",
+import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { fetchActions } from "@/lib/actions/Auth/actions/actions";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { PermissionForm } from "../Forms/PermissionForm";
+import { fetchEntities } from "@/lib/actions/Auth/entities/actions";
+import { hasPermissions } from "@/lib/actions/Auth/permissions/fetch";
+
+type Entity = {
+  entity_id: string;
+  entity_name: string;
+};
+
+type Action = {
+  action_id: string;
+  action_name: string;
+};
+
+// Define the User type
+export interface User {
+  user_id: number;
+  name: string;
+}
+
+export interface Permission {
+  id: string;
+  user_name: string;
+  role: string;
+  entity: string;
+  action: string;
+  has_permission: boolean;
+}
+
+const includedKeys: (keyof Permission)[] = [
+  "user_name",
   "role",
-  "is_verified",
+  "entity",
+  "action",
+  "has_permission",
 ];
 
-const columnRenderers = {
-  status: (item: { status: string }) => (
-    <Badge
-      variant={
-        item.status === "approved"
-          ? "default"
-          : item.status === "pending"
-          ? "secondary"
-          : "destructive"
-      }>
-      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+const columnRenderers: Partial<
+  Record<keyof Permission, (item: Permission) => React.ReactNode>
+> = {
+  has_permission: (item: Permission) => (
+    <Badge variant={item.has_permission ? "default" : "destructive"}>
+      {item.has_permission}
     </Badge>
   ),
 };
 
 // Component
-const RolesPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
+const Permission = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -53,49 +74,61 @@ const RolesPage = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {}
   );
-  const [sortKey, setSortKey] = useState<keyof User>("name");
+  const [sortKey, setSortKey] = useState<keyof Permission>("user_name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-
-  // Fetch data from the server
-  const Users = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const data = await fetchUsersWithRoles(); // Replace with your actual endpoint
-
-      // Transform data to match the User type
-      const transformedUsers: User[] = data.map((user: User) => ({
-        user_id: user.user_id,
-        name: user.name,
-        phone_number: user.phone_number,
-        email: user.email,
-        role: user.role,
-        is_verified: user.is_verified,
-      }));
-
-      setUsers(transformedUsers);
-    } catch (error: any) {
-      setError(error.message || "An unknown error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
 
   useEffect(() => {
-    Users();
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [usersData, entitiesData, actionsData, permissionsData] =
+          await Promise.all([
+            fetchUsersWithRoles(),
+            fetchEntities(),
+            fetchActions(),
+            hasPermissions(),
+          ]);
+
+        console.log("Permissions Data:", permissionsData);
+
+        // Normalize permission keys
+        const normalizedPermissions = permissionsData.map(
+          (permission: any) => ({
+            ...permission,
+            hasPermission: permission.has_permission === "Yes",
+          })
+        );
+
+        setUsers(usersData);
+        setEntities(entitiesData);
+        setActions(actionsData);
+        setPermissions(normalizedPermissions);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // Dynamically generate category options from the products data
-  const rolesOptions = useMemo(() => {
-    const uniqueRoles = Array.from(new Set(users.map((user) => user.role)));
-    return Array.from(uniqueRoles).map((roles) => ({
-      value: roles,
-      label: roles,
+  const actionsOptions = useMemo(() => {
+    const uniqueActions = Array.from(
+      new Set(actions.map((action) => action.action_name))
+    );
+    return Array.from(uniqueActions).map((actions) => ({
+      value: actions,
+      label: actions,
     }));
-  }, [users]);
+  }, [actions]);
 
-  const filters = useMemo(() => [], [rolesOptions]);
+  const filters = useMemo(() => [], [actionsOptions]);
 
   const rowActions: RowAction<any>[] = [
     {
@@ -146,11 +179,10 @@ const RolesPage = () => {
   ];
 
   const filteredAndSortedData = useMemo(() => {
-    let result = searchData(users, searchTerm, "name");
-    result = filterData(result, filters, activeFilters);
-
-    return result;
-  }, [users, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+    let result = searchData(permissions, searchTerm, "user_name");
+    result = filterData(result, [], activeFilters);
+    return sortData(result, sortKey, sortDirection);
+  }, [permissions, searchTerm, activeFilters]);
 
   const paginatedData = useMemo(
     () =>
@@ -164,6 +196,12 @@ const RolesPage = () => {
   const handleSearch = (query: string) => {
     setSearchTerm(query);
     setCurrentPage(1);
+  };
+
+  const [isOpen, setIsOpen] = useState(false); // To manage dialog state
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
   };
 
   const handleFilter = (key: string, value: string) => {
@@ -193,8 +231,11 @@ const RolesPage = () => {
   };
 
   const handleSort = (key: string | number | symbol) => {
-    if (typeof key === "string" && includedKeys.includes(key as keyof User)) {
-      setSortKey(key as keyof User); // Set sort key safely
+    if (
+      typeof key === "string" &&
+      includedKeys.includes(key as keyof Permission)
+    ) {
+      setSortKey(key as keyof Permission); // Set sort key safely
     } else {
       console.error("Invalid sort key:", key);
     }
@@ -214,10 +255,6 @@ const RolesPage = () => {
     console.log("Selected rows:", selectedRows);
   };
 
-  const handleAddNew = () => {
-    console.log("Add new item");
-  };
-
   const handleClearFilter = (key: string, value: string) => {
     const newActiveFilters = { ...activeFilters };
     newActiveFilters[key] = newActiveFilters[key].filter((v) => v !== value);
@@ -229,7 +266,19 @@ const RolesPage = () => {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        {/* Trigger Button */}
+        <DialogTrigger asChild>
+          <Button className="mb-4">
+            <Plus className="mr-2 h-4 w-4" /> Add Permission
+          </Button>
+        </DialogTrigger>
+
+        {/* Dialog Content */}
+        <DialogContent>
+          <PermissionForm users={users} entities={entities} actions={actions} />
+        </DialogContent>
+      </Dialog>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && (
@@ -244,18 +293,18 @@ const RolesPage = () => {
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           onRowSelect={handleRowSelect}
-          onAddNew={handleAddNew}
+          onAddNew={() => handleOpenChange(true)}
           totalItems={filteredAndSortedData.length}
           currentPage={currentPage}
           rowsPerPage={rowsPerPage}
           activeFilters={activeFilters}
           onClearFilter={handleClearFilter}
           onResetFilters={handleResetFilters}
-          columnRenderers={columnRenderers}
+          columnRenderers={columnRenderers} // Add this prop if your DataTable supports it
         />
       )}
     </div>
   );
 };
 
-export default RolesPage;
+export default Permission;

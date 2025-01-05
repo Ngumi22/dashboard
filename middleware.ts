@@ -11,6 +11,7 @@ const protectedRoutes = [
   "/dashboard/:path*",
   "/api/:path*",
   "/api",
+  "/api/initialize",
 ];
 const publicRoutes = ["/login", "/signup"];
 const unprotectedApiRoutes = [

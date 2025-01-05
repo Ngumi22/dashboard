@@ -16,15 +16,19 @@ import {
 } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useRouter } from "next/navigation";
-import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
-const includedKeys: (keyof User)[] = [
-  "name",
-  "phone_number",
-  "email",
-  "role",
-  "is_verified",
-];
+import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { fetchEntities } from "@/lib/actions/Auth/entities/actions";
+import { Button } from "@/components/ui/button";
+import { EntityForm } from "../Forms/EntityForm";
+
+type Entity = {
+  entity_id: string;
+  entity_name: string;
+};
+
+const includedKeys: (keyof Entity)[] = ["entity_id", "entity_name"];
 
 const columnRenderers = {
   status: (item: { status: string }) => (
@@ -42,8 +46,8 @@ const columnRenderers = {
 };
 
 // Component
-const RolesPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
+const Entities = () => {
+  const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -53,28 +57,31 @@ const RolesPage = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {}
   );
-  const [sortKey, setSortKey] = useState<keyof User>("name");
+  const [sortKey, setSortKey] = useState<keyof Entity>("entity_name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Fetch data from the server
-  const Users = async () => {
+  const [isOpen, setIsOpen] = useState(false); // To manage dialog state
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
+
+  const Entities = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await fetchUsersWithRoles(); // Replace with your actual endpoint
+      const data = await fetchEntities(); // Replace with your actual endpoint
 
-      // Transform data to match the User type
-      const transformedUsers: User[] = data.map((user: User) => ({
-        user_id: user.user_id,
-        name: user.name,
-        phone_number: user.phone_number,
-        email: user.email,
-        role: user.role,
-        is_verified: user.is_verified,
+      // Correct the property names to match the data structure
+      const transformedEntities: Entity[] = data.map((entity: Entity) => ({
+        entity_id: entity.entity_id, // Ensure you're using correct property names here
+        entity_name: entity.entity_name, // Same as above
       }));
 
-      setUsers(transformedUsers);
+      console.log(transformedEntities);
+
+      setEntities(transformedEntities);
     } catch (error: any) {
       setError(error.message || "An unknown error occurred");
     } finally {
@@ -83,19 +90,21 @@ const RolesPage = () => {
   };
 
   useEffect(() => {
-    Users();
+    Entities();
   }, []);
 
   // Dynamically generate category options from the products data
-  const rolesOptions = useMemo(() => {
-    const uniqueRoles = Array.from(new Set(users.map((user) => user.role)));
-    return Array.from(uniqueRoles).map((roles) => ({
-      value: roles,
-      label: roles,
+  const entitiesOptions = useMemo(() => {
+    const uniqueEntities = Array.from(
+      new Set(entities.map((entity) => entity.entity_name))
+    );
+    return Array.from(uniqueEntities).map((entities) => ({
+      value: entities,
+      label: entities,
     }));
-  }, [users]);
+  }, [entities]);
 
-  const filters = useMemo(() => [], [rolesOptions]);
+  const filters = useMemo(() => [], [entitiesOptions]);
 
   const rowActions: RowAction<any>[] = [
     {
@@ -146,11 +155,11 @@ const RolesPage = () => {
   ];
 
   const filteredAndSortedData = useMemo(() => {
-    let result = searchData(users, searchTerm, "name");
+    let result = searchData(entities, searchTerm, "entity_name");
     result = filterData(result, filters, activeFilters);
 
     return result;
-  }, [users, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [entities, searchTerm, activeFilters, sortKey, sortDirection, filters]);
 
   const paginatedData = useMemo(
     () =>
@@ -193,8 +202,8 @@ const RolesPage = () => {
   };
 
   const handleSort = (key: string | number | symbol) => {
-    if (typeof key === "string" && includedKeys.includes(key as keyof User)) {
-      setSortKey(key as keyof User); // Set sort key safely
+    if (typeof key === "string" && includedKeys.includes(key as keyof Entity)) {
+      setSortKey(key as keyof Entity); // Set sort key safely
     } else {
       console.error("Invalid sort key:", key);
     }
@@ -229,7 +238,16 @@ const RolesPage = () => {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="flex items-end">
+            Create Entity
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <EntityForm />
+        </DialogContent>
+      </Dialog>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && (
@@ -244,7 +262,7 @@ const RolesPage = () => {
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           onRowSelect={handleRowSelect}
-          onAddNew={handleAddNew}
+          onAddNew={() => handleOpenChange(true)}
           totalItems={filteredAndSortedData.length}
           currentPage={currentPage}
           rowsPerPage={rowsPerPage}
@@ -258,4 +276,4 @@ const RolesPage = () => {
   );
 };
 
-export default RolesPage;
+export default Entities;

@@ -17,6 +17,9 @@ import {
 import DataTable from "@/components/Data-Table/data-table";
 import { useRouter } from "next/navigation";
 import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { UserForm } from "../Forms/UserForm";
 
 const includedKeys: (keyof User)[] = [
   "name",
@@ -42,7 +45,7 @@ const columnRenderers = {
 };
 
 // Component
-const RolesPage = () => {
+const Userrs = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +58,7 @@ const RolesPage = () => {
   );
   const [sortKey, setSortKey] = useState<keyof User>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [isOpen, setIsOpen] = useState(false); // To manage dialog state
 
   // Fetch data from the server
   const Users = async () => {
@@ -85,6 +89,10 @@ const RolesPage = () => {
   useEffect(() => {
     Users();
   }, []);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
 
   // Dynamically generate category options from the products data
   const rolesOptions = useMemo(() => {
@@ -229,7 +237,16 @@ const RolesPage = () => {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="flex items-end">
+            Create User
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <UserForm />
+        </DialogContent>
+      </Dialog>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && (
@@ -244,7 +261,7 @@ const RolesPage = () => {
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           onRowSelect={handleRowSelect}
-          onAddNew={handleAddNew}
+          onAddNew={() => handleOpenChange(true)}
           totalItems={filteredAndSortedData.length}
           currentPage={currentPage}
           rowsPerPage={rowsPerPage}
@@ -258,4 +275,4 @@ const RolesPage = () => {
   );
 };
 
-export default RolesPage;
+export default Userrs;

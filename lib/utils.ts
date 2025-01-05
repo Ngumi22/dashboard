@@ -285,8 +285,7 @@ export function mapProductRow(row: ProductRow): Product {
 export function mapUserRow(row: UserRow): User {
   return {
     id: row.id,
-    first_name: row.first_name,
-    last_name: row.last_name,
+    name: row.name,
     email: row.email,
     role: row.role,
   };

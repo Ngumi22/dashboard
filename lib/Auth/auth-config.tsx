@@ -1,210 +1,126 @@
-export type Role = "super-admin" | "admin" | "user";
+type Role = "super-admin" | "admin" | "manager" | "user";
 
-export type Action = "view" | "create" | "update" | "delete";
-
-export type Entity =
-  | "products"
-  | "categories"
-  | "brands"
-  | "users"
-  | "suppliers"
-  | "carousel"
-  | "banners"
-  | "reviews"
-  | "blog"
-  | "customers"
-  | "orders"
-  | "coupons"
-  | "productVariants";
-
-export type User = {
-  id: string;
-  roles: Role[];
-  blockedBy: string[];
-};
-
-export type PermissionCheck<E extends Entity> =
+type PermissionCheck<Key extends keyof Permissions> =
   | boolean
-  | ((user: User, entity?: E) => boolean);
+  | ((
+      user: User,
+      data: Permissions[Key]["dataType"],
+      context?: AuthContext
+    ) => boolean);
 
-export type RolePermissions = {
-  [R in Role]?: Partial<
-    Record<Entity, Partial<Record<Action, PermissionCheck<Entity>>>>
-  >;
+// Context for dynamic checks (e.g., current app state, user role details)
+type AuthContext = {
+  currentRole: Role;
+  userRoles: Role[];
+  // Extendable for additional metadata
+  [key: string]: any;
 };
 
-const ROLES: RolePermissions = {
+type RolesWithPermissions = {
+  [R in Role]: Partial<{
+    [Key in keyof Permissions]: Partial<{
+      [Action in Permissions[Key]["action"]]: PermissionCheck<Key>;
+    }>;
+  }>;
+};
+
+// Permissions for various resources
+type Permissions = {
+  products: {
+    dataType: Product;
+    action: "view" | "create" | "update" | "delete";
+  };
+  orders: { dataType: Order; action: "view" | "update" | "cancel" | "refund" };
+  users: {
+    dataType: User;
+    action: "view" | "block" | "unblock" | "create" | "update" | "delete";
+  };
+  categories: {
+    dataType: Category;
+    action: "view" | "create" | "update" | "delete";
+  };
+  brands: { dataType: Brand; action: "view" | "create" | "update" | "delete" };
+};
+
+type Product = { id: string; name: string; ownerId: string; createdAt: Date };
+type Order = { id: string; userId: string; status: string; createdAt: Date };
+type User = { blockedBy: string[]; roles: Role[]; id: string };
+type Category = {
+  id: string;
+  name: string;
+  createdBy: string;
+  createdAt: Date;
+};
+type Brand = { id: string; name: string; createdBy: string; createdAt: Date };
+
+// Role and permission configuration
+const ROLES = {
   "super-admin": {
-    products: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    categories: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    brands: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    users: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    suppliers: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    carousel: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    banners: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    reviews: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    blog: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    customers: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    orders: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    coupons: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
-    productVariants: {
-      view: true,
-      create: true,
-      update: true,
-      delete: true,
-    },
+    products: { view: true, create: true, update: true, delete: true },
+    orders: { view: true, update: true, cancel: true, refund: true },
+    users: { view: true, block: true, unblock: true, update: true },
+    categories: { view: true, create: true, update: true, delete: true },
+    brands: { view: true, create: true, update: true, delete: true },
   },
   admin: {
     products: {
       view: true,
       create: true,
-      update: true,
+      update: (user, product) => product.ownerId === user.id,
       delete: false,
     },
-    categories: {
-      view: true,
-      create: true,
-      update: true,
-      delete: false,
-    },
-    brands: {
-      view: true,
-      create: true,
-      update: true,
-      delete: false,
-    },
-    users: {
-      view: true,
-      update: true,
-    },
-    suppliers: {
-      view: true,
-      create: true,
-      update: true,
-    },
-    orders: {
-      view: true,
-      update: true,
-    },
-    reviews: {
-      view: true,
-      update: (user) => !user.blockedBy.includes(user.id),
-    },
+    orders: { view: true, update: true, cancel: true, refund: false },
+    users: { view: true, block: false, unblock: false, update: false },
+    categories: { view: true, create: true, update: true, delete: true },
+    brands: { view: true, create: true, update: true, delete: true },
+  },
+  manager: {
+    products: { view: true, create: true, update: true, delete: false },
+    orders: { view: true, update: true, cancel: false, refund: false },
+    categories: { view: true, create: false, update: true, delete: false },
+    brands: { view: true, create: false, update: true, delete: false },
   },
   user: {
-    products: {
-      view: true,
-    },
-    categories: {
-      view: true,
-    },
-    reviews: {
-      view: true,
-      create: true,
-      update: (user) => !user.blockedBy.includes(user.id),
-    },
+    products: { view: true, create: false, update: false, delete: false },
     orders: {
-      view: true,
-      create: true,
+      view: (user, order) => order.userId === user.id,
+      cancel: false,
+      refund: false,
     },
+    users: {},
+    categories: { view: true },
+    brands: { view: true },
   },
+} as const satisfies RolesWithPermissions;
+
+// Permission Check Function
+export function hasPermission<Resource extends keyof Permissions>(
+  user: User,
+  resource: Resource,
+  action: Permissions[Resource]["action"],
+  data?: Permissions[Resource]["dataType"],
+  context?: AuthContext
+) {
+  return user.roles.some((role) => {
+    const permission = (ROLES[role] as RolesWithPermissions[Role])[resource]?.[
+      action
+    ];
+    if (permission == null) return false;
+
+    if (typeof permission === "boolean") return permission;
+    return data != null && permission(user, data, context);
+  });
+}
+
+// Example Usage
+const user: User = { blockedBy: ["2"], id: "1", roles: ["admin"] };
+const product: Product = {
+  id: "3",
+  name: "Test Product",
+  ownerId: "1",
+  createdAt: new Date(),
 };
 
-function hasPermission<E extends Entity>(
-  user: User,
-  entity: E,
-  action: Action,
-  debug = false
-): boolean | { allowed: boolean; reason: string } {
-  for (const role of user.roles) {
-    const rolePermissions = ROLES[role]?.[entity]?.[action];
-    if (rolePermissions === undefined) continue;
-
-    if (typeof rolePermissions === "boolean") {
-      return debug
-        ? {
-            allowed: rolePermissions,
-            reason: rolePermissions
-              ? "Allowed by configuration."
-              : "Denied by configuration.",
-          }
-        : rolePermissions;
-    }
-
-    if (typeof rolePermissions === "function") {
-      const allowed = rolePermissions(user, entity);
-      return debug
-        ? {
-            allowed,
-            reason: allowed
-              ? "Allowed by function evaluation."
-              : "Denied by function evaluation.",
-          }
-        : allowed;
-    }
-  }
-
-  return debug
-    ? { allowed: false, reason: "No matching permissions found." }
-    : false;
-}
+// Check if user can update the product
+const canUpdateProduct = hasPermission(user, "products", "update", product);
+console.log({ canUpdateProduct }); // true or false

@@ -33,6 +33,7 @@ export default function DataTable<T extends { id: string | number }>({
   activeFilters,
   onClearFilter,
   columnRenderers,
+  noDataMessage,
 }: DataTableProps<T>) {
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
@@ -63,13 +64,9 @@ export default function DataTable<T extends { id: string | number }>({
     onRowSelect(newSelectedRows);
   };
 
-  const handleAddNew = () => {
-    router.push("/dashboard/products/create");
-  };
-
   return (
     <div className="space-y-4">
-      <TableHeader onSearch={onSearch} onAddNew={handleAddNew} />
+      <TableHeader onSearch={onSearch} onAddNew={onAddNew} />
       <TableFilters
         filters={filters}
         activeFilters={activeFilters}

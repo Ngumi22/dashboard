@@ -1,16 +1,21 @@
 import "server-only";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
-import { SessionPayload } from "./definitions";
+
 import { redirect } from "next/navigation";
+
+export type SessionPayload = {
+  userId: string | number;
+  expiresAt: Date;
+};
 
 const secretKey = process.env.JWT_SECRET;
 const key = new TextEncoder().encode(secretKey);
 
 // Encrypt payload with an expiration
 export async function encrypt(payload: SessionPayload, expiresIn: string) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
     .sign(key);

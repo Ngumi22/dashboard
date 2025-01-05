@@ -1,5 +1,5 @@
-import { getCache, setCache } from "./cache";
-import { getConnection } from "./db";
+import { getCache, setCache } from "../cache";
+import { getConnection } from "../db";
 import { FieldPacket, PoolConnection, RowDataPacket } from "mysql2/promise";
 
 // This module is responsible for creating indexes. It also imports the getConnection function from db.ts

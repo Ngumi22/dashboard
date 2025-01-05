@@ -16,15 +16,19 @@ import {
 } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useRouter } from "next/navigation";
-import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
-const includedKeys: (keyof User)[] = [
-  "name",
-  "phone_number",
-  "email",
-  "role",
-  "is_verified",
-];
+import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { fetchRoles } from "@/lib/actions/Auth/user-roles/actions";
+import { Button } from "@/components/ui/button";
+import RoleForm from "../Forms/RoleForm";
+
+type Role = {
+  role_id: string;
+  role_name: string;
+};
+
+const includedKeys: (keyof Role)[] = ["role_id", "role_name"];
 
 const columnRenderers = {
   status: (item: { status: string }) => (
@@ -42,8 +46,8 @@ const columnRenderers = {
 };
 
 // Component
-const RolesPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
+const Roles = () => {
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -53,28 +57,23 @@ const RolesPage = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {}
   );
-  const [sortKey, setSortKey] = useState<keyof User>("name");
+  const [sortKey, setSortKey] = useState<keyof Role>("role_name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Fetch data from the server
-  const Users = async () => {
+  const fetchRolesData = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const data = await fetchUsersWithRoles(); // Replace with your actual endpoint
-
-      // Transform data to match the User type
-      const transformedUsers: User[] = data.map((user: User) => ({
-        user_id: user.user_id,
-        name: user.name,
-        phone_number: user.phone_number,
-        email: user.email,
-        role: user.role,
-        is_verified: user.is_verified,
-      }));
-
-      setUsers(transformedUsers);
+      const data = await fetchRoles();
+      if (Array.isArray(data)) {
+        const transformedRoles: Role[] = data.map((role) => ({
+          role_id: role.role_id || "", // Ensure fallback if data is missing
+          role_name: role.role_name || "Unknown Role", // Fallback for missing role names
+        }));
+        setRoles(transformedRoles);
+      } else {
+        setError("Failed to fetch roles. Unexpected data structure.");
+      }
     } catch (error: any) {
       setError(error.message || "An unknown error occurred");
     } finally {
@@ -83,17 +82,19 @@ const RolesPage = () => {
   };
 
   useEffect(() => {
-    Users();
+    fetchRolesData();
   }, []);
 
   // Dynamically generate category options from the products data
   const rolesOptions = useMemo(() => {
-    const uniqueRoles = Array.from(new Set(users.map((user) => user.role)));
+    const uniqueRoles = Array.from(
+      new Set(roles.map((user) => user.role_name))
+    );
     return Array.from(uniqueRoles).map((roles) => ({
       value: roles,
       label: roles,
     }));
-  }, [users]);
+  }, [roles]);
 
   const filters = useMemo(() => [], [rolesOptions]);
 
@@ -146,11 +147,11 @@ const RolesPage = () => {
   ];
 
   const filteredAndSortedData = useMemo(() => {
-    let result = searchData(users, searchTerm, "name");
+    let result = searchData(roles, searchTerm, "role_name");
     result = filterData(result, filters, activeFilters);
 
     return result;
-  }, [users, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [roles, searchTerm, activeFilters, sortKey, sortDirection, filters]);
 
   const paginatedData = useMemo(
     () =>
@@ -193,8 +194,8 @@ const RolesPage = () => {
   };
 
   const handleSort = (key: string | number | symbol) => {
-    if (typeof key === "string" && includedKeys.includes(key as keyof User)) {
-      setSortKey(key as keyof User); // Set sort key safely
+    if (typeof key === "string" && includedKeys.includes(key as keyof Role)) {
+      setSortKey(key as keyof Role); // Set sort key safely
     } else {
       console.error("Invalid sort key:", key);
     }
@@ -229,7 +230,16 @@ const RolesPage = () => {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="flex items-end">
+            Create Role
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <RoleForm />
+        </DialogContent>
+      </Dialog>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && (
@@ -252,10 +262,11 @@ const RolesPage = () => {
           onClearFilter={handleClearFilter}
           onResetFilters={handleResetFilters}
           columnRenderers={columnRenderers}
+          noDataMessage="No roles found in the database."
         />
       )}
     </div>
   );
 };
 
-export default RolesPage;
+export default Roles;

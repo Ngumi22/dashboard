@@ -64,6 +64,7 @@ export interface DataTableProps<T> {
   activeFilters: Record<string, string[]>;
   onClearFilter: (key: string, value: string) => void;
   columnRenderers?: Partial<Record<keyof T, (item: T) => React.ReactNode>>;
+  noDataMessage?: string;
 }
 
 export type ProductStatus = "draft" | "pending" | "approved";
@@ -93,4 +94,16 @@ export interface Product {
     thumbnail5: string | null;
   };
   tags?: string[];
+}
+
+// Define the User type
+export interface User {
+  user_id: number;
+  name: string;
+  phone_number: string;
+  email: string;
+  is_verified: boolean;
+  role: "Super-Admin" | "Admin" | "User";
+  is_blocked?: boolean; // Derived field
+  password_hash?: string; // Optional if this data is required
 }

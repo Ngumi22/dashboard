@@ -2,7 +2,7 @@
 
 import { initDbConnection } from "./db";
 import { setupTables } from "./dbTables";
-import { createIndexes } from "./indexdb";
+import { createIndexes } from "./MysqlDB/indexdb";
 
 // This main script imports the necessary modules and initializes them in the correct order
 

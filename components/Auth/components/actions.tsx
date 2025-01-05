@@ -16,15 +16,19 @@ import {
 } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useRouter } from "next/navigation";
-import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
 
-const includedKeys: (keyof User)[] = [
-  "name",
-  "phone_number",
-  "email",
-  "role",
-  "is_verified",
-];
+import { fetchUsersWithRoles } from "@/lib/actions/Auth/users/fetch";
+import { fetchActions } from "@/lib/actions/Auth/actions/actions";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ActionForm } from "../Forms/ActionForm";
+import { Button } from "@/components/ui/button";
+
+type Action = {
+  action_id: string;
+  action_name: string;
+};
+
+const includedKeys: (keyof Action)[] = ["action_id", "action_name"];
 
 const columnRenderers = {
   status: (item: { status: string }) => (
@@ -42,8 +46,8 @@ const columnRenderers = {
 };
 
 // Component
-const RolesPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
+const Actions = () => {
+  const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -53,28 +57,25 @@ const RolesPage = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {}
   );
-  const [sortKey, setSortKey] = useState<keyof User>("name");
+  const [sortKey, setSortKey] = useState<keyof Action>("action_name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Fetch data from the server
-  const Users = async () => {
+  const Actions = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await fetchUsersWithRoles(); // Replace with your actual endpoint
+      const data = await fetchActions(); // Replace with your actual endpoint
 
-      // Transform data to match the User type
-      const transformedUsers: User[] = data.map((user: User) => ({
-        user_id: user.user_id,
-        name: user.name,
-        phone_number: user.phone_number,
-        email: user.email,
-        role: user.role,
-        is_verified: user.is_verified,
+      // Correct the property names to match the data structure
+      const transformedAction: Action[] = data.map((action: Action) => ({
+        action_id: action.action_id, // Ensure you're using correct property names here
+        action_name: action.action_name, // Same as above
       }));
 
-      setUsers(transformedUsers);
+      console.log(transformedAction);
+
+      setActions(transformedAction);
     } catch (error: any) {
       setError(error.message || "An unknown error occurred");
     } finally {
@@ -83,19 +84,21 @@ const RolesPage = () => {
   };
 
   useEffect(() => {
-    Users();
+    Actions();
   }, []);
 
   // Dynamically generate category options from the products data
-  const rolesOptions = useMemo(() => {
-    const uniqueRoles = Array.from(new Set(users.map((user) => user.role)));
-    return Array.from(uniqueRoles).map((roles) => ({
-      value: roles,
-      label: roles,
+  const actionsOptions = useMemo(() => {
+    const uniqueActions = Array.from(
+      new Set(actions.map((action) => action.action_name))
+    );
+    return Array.from(uniqueActions).map((actions) => ({
+      value: actions,
+      label: actions,
     }));
-  }, [users]);
+  }, [actions]);
 
-  const filters = useMemo(() => [], [rolesOptions]);
+  const filters = useMemo(() => [], [actionsOptions]);
 
   const rowActions: RowAction<any>[] = [
     {
@@ -146,11 +149,11 @@ const RolesPage = () => {
   ];
 
   const filteredAndSortedData = useMemo(() => {
-    let result = searchData(users, searchTerm, "name");
+    let result = searchData(actions, searchTerm, "action_name");
     result = filterData(result, filters, activeFilters);
 
     return result;
-  }, [users, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [actions, searchTerm, activeFilters, sortKey, sortDirection, filters]);
 
   const paginatedData = useMemo(
     () =>
@@ -193,8 +196,8 @@ const RolesPage = () => {
   };
 
   const handleSort = (key: string | number | symbol) => {
-    if (typeof key === "string" && includedKeys.includes(key as keyof User)) {
-      setSortKey(key as keyof User); // Set sort key safely
+    if (typeof key === "string" && includedKeys.includes(key as keyof Action)) {
+      setSortKey(key as keyof Action); // Set sort key safely
     } else {
       console.error("Invalid sort key:", key);
     }
@@ -229,7 +232,16 @@ const RolesPage = () => {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="">
+            Create Action
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <ActionForm />
+        </DialogContent>
+      </Dialog>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && (
@@ -258,4 +270,4 @@ const RolesPage = () => {
   );
 };
 
-export default RolesPage;
+export default Actions;

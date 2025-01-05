@@ -136,22 +136,27 @@ export function getMenuList(pathname: string): Group[] {
         },
       ],
     },
+
     {
       groupLabel: "Settings",
       menus: [
         {
           href: "/dashboard/users",
-          label: "Users",
+          label: "User Management",
           active: pathname.includes("/dashboard/users"),
           icon: Users,
-          submenus: [],
-        },
-        {
-          href: "/account",
-          label: "Account",
-          active: pathname.includes("/account"),
-          icon: Settings,
-          submenus: [],
+          submenus: [
+            {
+              href: "/dashboard/users",
+              label: "Users",
+              active: pathname.includes("/dashboard/users"),
+            },
+            {
+              href: "/dashboard/roles",
+              label: "Roles and Permissions",
+              active: pathname.includes("/dashboard/roles"),
+            },
+          ],
         },
       ],
     },
