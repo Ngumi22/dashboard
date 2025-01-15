@@ -1,7 +1,7 @@
 import { RowDataPacket } from "mysql2/promise";
 import { cache, getCache, setCache } from "../cache";
-import { getConnection } from "../database";
 import { Buffer } from "buffer"; // Import buffer for better type consistency
+import { getConnection } from "../MysqlDB/initDb";
 
 const LIMITS = {
   brand: 5,

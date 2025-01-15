@@ -27,27 +27,28 @@ async function compressAndEncodeBase64(
 export async function getUniqueBanners() {
   const cacheKey = "unique_banners";
 
-  // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value; // Return cached data if it hasn't expired
+      return cachedData.value;
     }
-    cache.delete(cacheKey); // Invalidate expired cache
+    cache.delete(cacheKey);
   }
 
   const connection = await getConnection();
   try {
-    // Fetch all unique banners
     const [banners] = await connection.query<RowDataPacket[]>(
       `SELECT banner_id, title, description, link, image, text_color, background_color, usage_context, status FROM banners ORDER BY banner_id DESC`
     );
 
     if (banners.length === 0) {
-      return null; // Return null if no banners exists
+      cache.set(cacheKey, {
+        value: [],
+        expiry: Date.now() + 36 * 10,
+      });
+      return [];
     }
 
-    // Map the result and compress the image for each banner
     const uniqueBanners: Banner[] = await Promise.all(
       banners.map(async (banner) => ({
         banner_id: banner.banner_id,
@@ -56,7 +57,7 @@ export async function getUniqueBanners() {
         link: banner.link,
         image: banner.image
           ? await compressAndEncodeBase64(banner.image)
-          : null, // Compress image if it exists
+          : null,
         text_color: banner.text_color,
         background_color: banner.background_color,
         status: banner.status,
@@ -64,10 +65,9 @@ export async function getUniqueBanners() {
       }))
     );
 
-    // Cache the result with an expiry time
     cache.set(cacheKey, {
       value: uniqueBanners,
-      expiry: Date.now() + 36 * 10, // 1 hour expiration
+      expiry: Date.now() + 36 * 10,
     });
 
     return uniqueBanners;

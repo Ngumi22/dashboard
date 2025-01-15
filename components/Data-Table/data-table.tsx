@@ -12,7 +12,6 @@ import TableRowActions from "./table-row-actions";
 import TableFilters from "./table-filters";
 import ActiveFilters from "./active-filters";
 import { DataTableProps, SortDirection } from "./types";
-import { useRouter } from "next/navigation";
 
 export default function DataTable<T extends { id: string | number }>({
   data,
@@ -38,8 +37,6 @@ export default function DataTable<T extends { id: string | number }>({
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-  const router = useRouter();
 
   const handleSort = (key: keyof T) => {
     const newDirection =

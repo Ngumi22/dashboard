@@ -1,8 +1,8 @@
 "use server";
+
 import { cache, setCache } from "@/lib/cache";
-import { getConnection } from "@/lib/MysqlDB/initDb";
-import { RowDataPacket } from "mysql2/promise";
 import { Supplier } from "./supplierTypes";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function getUniqueSuppliers() {
   const cacheKey = "unique_suppliers";
@@ -16,75 +16,67 @@ export async function getUniqueSuppliers() {
     cache.delete(cacheKey); // Invalidate expired cache
   }
 
-  const connection = await getConnection();
-  try {
+  return dbOperation(async (connection) => {
     // Fetch all unique suppliers
-    const [suppliers] = await connection.query<RowDataPacket[]>(`
+    const [suppliers] = await connection.query(`
       SELECT DISTINCT
         s.supplier_id,
         s.supplier_name,
         s.supplier_email,
         s.supplier_phone_number,
         s.supplier_location
-        FROM suppliers s
-        JOIN product_suppliers ps
-        ON s.supplier_id = ps.supplier_id`);
+      FROM suppliers s
+      JOIN product_suppliers ps
+      ON s.supplier_id = ps.supplier_id
+    `);
 
-    if (suppliers.length === 0) {
-      return null; // Return null if no suppliers exists
+    // If no suppliers exist, return null
+    if (!suppliers || suppliers.length === 0) {
+      return null;
     }
 
-    // Map the result
-    const uniqueSuppliers: Supplier[] = await Promise.all(
-      suppliers.map(async (supplier) => ({
-        supplier_id: supplier.supplier_id,
-        supplier_name: supplier.supplier_name,
-        supplier_email: supplier.supplier_email,
-        supplier_phone_number: supplier.supplier_phone_number,
-        supplier_location: supplier.supplier_location,
-      }))
-    );
+    // Map the result into Supplier objects
+    const uniqueSuppliers: Supplier[] = suppliers.map((supplier: any) => ({
+      supplier_id: supplier.supplier_id,
+      supplier_name: supplier.supplier_name,
+      supplier_email: supplier.supplier_email,
+      supplier_phone_number: supplier.supplier_phone_number,
+      supplier_location: supplier.supplier_location,
+    }));
 
-    // Cache the result with an expiry time
-    cache.set(cacheKey, {
-      value: uniqueSuppliers,
-      expiry: Date.now() + 36 * 10, // 1 hour expiration
-    });
-
+    // Cache the result with an expiry time of 1 hour
+    setCache(cacheKey, uniqueSuppliers, { ttl: 60 * 60 * 1000 });
     return uniqueSuppliers;
-  } catch (error) {
-    console.error("Error fetching unique suppliers:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
+  });
 }
 
-export async function fetchSupplierById(supplier_id: number) {
+export async function fetchSupplierById(
+  supplier_id: number
+): Promise<Supplier | null> {
   const cacheKey = `supplier_${supplier_id}`;
 
+  // Check if data is in cache
   if (cache.has(cacheKey)) {
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value; // Return cached data if it hasn't expired
+      return cachedData.value as Supplier; // Return cached data if not expired
     }
     cache.delete(cacheKey); // Invalidate expired cache
   }
 
-  const connection = await getConnection();
-  try {
-    // Query the database
-    const [rows] = await connection.query<RowDataPacket[]>(
-      `SELECT supplier_id, supplier_name, supplier_email, supplier_phone_number, supplier_location FROM suppliers WHERE supplier_id = ?`,
+  return dbOperation(async (connection) => {
+    const [rows]: [Supplier[]] = await connection.query(
+      `SELECT supplier_id, supplier_name, supplier_email, supplier_phone_number, supplier_location
+       FROM suppliers
+       WHERE supplier_id = ?`,
       [supplier_id]
     );
 
-    // If no rows are returned, return null
     if (rows.length === 0) {
-      return null;
+      return null; // No supplier found
     }
 
-    // Map database results to a Supplier object
+    // Map result to a Supplier object
     const supplier: Supplier = {
       supplier_id: rows[0].supplier_id,
       supplier_name: rows[0].supplier_name,
@@ -93,13 +85,9 @@ export async function fetchSupplierById(supplier_id: number) {
       supplier_location: rows[0].supplier_location,
     };
 
-    setCache(cacheKey, supplier, { ttl: 60 }); // Cache for 1 minutes
+    // Cache the result with a TTL of 60 seconds
+    setCache(cacheKey, supplier, { ttl: 60 * 1000 });
 
     return supplier;
-  } catch (error) {
-    console.error("Database query error:", error);
-    throw new Error("Failed to fetch supplier");
-  } finally {
-    connection.release();
-  }
+  });
 }

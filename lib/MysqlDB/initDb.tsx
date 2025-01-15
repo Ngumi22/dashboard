@@ -1,73 +1,97 @@
 import mysql from "mysql2/promise";
 import { performance } from "perf_hooks";
 
-// This module initializes the database pool and provides utility functions for querying the database.
-
 let slowQueryThreshold = 1000; // in ms, adjust as needed
 
 let pool: mysql.Pool | null = null;
 let activeConnections = 0;
 let totalConnectionsCreated = 0;
 
-export async function initDbConnection(): Promise<void> {
+/**
+ * Ensures the database exists. If it doesn't, creates it.
+ */
+async function ensureDatabaseExists(): Promise<void> {
+  const { DTB_HOST, DTB_USER, DTB_PASSWORD, DTB_NAME } = process.env;
+
+  if (!DTB_NAME) {
+    throw new Error(
+      "Database name (DTB_NAME) is not set in environment variables."
+    );
+  }
+
+  // Create a temporary connection without specifying a database
+  const connection = await mysql.createConnection({
+    host: DTB_HOST!,
+    user: DTB_USER!,
+    password: DTB_PASSWORD!,
+  });
+
+  try {
+    // Ensure the database exists
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DTB_NAME}\`;`);
+    console.log(`Database '${DTB_NAME}' ensured to exist.`);
+  } catch (error) {
+    console.error("Error ensuring database existence:", error);
+    throw error;
+  } finally {
+    await connection.end(); // Close the temporary connection
+  }
+}
+
+/**
+ * Initializes the database connection pool.
+ */
+export async function initDbConnection(): Promise<mysql.Pool> {
   if (!pool) {
+    await ensureDatabaseExists(); // Ensure the database exists before initializing the pool
+
     pool = mysql.createPool({
-      host: "127.0.0.1",
-      user: "root",
-      password: "123456",
-      database: "bernzzz",
+      host: process.env.DTB_HOST!,
+      user: process.env.DTB_USER!,
+      password: process.env.DTB_PASSWORD!,
+      database: process.env.DTB_NAME!,
       waitForConnections: true,
-      connectionLimit: 100000,
+      connectionLimit: 100,
       queueLimit: 0,
     });
 
-    // Check if pool and config are accessible
-    if (pool && pool.pool && pool.pool.config) {
-      console.log("Database pool initialized successfully.");
-    } else {
-      console.error("Error: Pool initialized, but config is not accessible.");
-    }
+    console.log("Database pool initialized successfully.");
 
     // Track total connections created
     pool.on("connection", () => {
       totalConnectionsCreated++;
-      // console.log(`Total connections created: ${totalConnectionsCreated}`);
     });
 
     // Track active connections
     pool.on("acquire", () => {
       activeConnections++;
-      // console.log(`Active connections: ${activeConnections}`);
     });
 
     pool.on("release", () => {
       activeConnections--;
-      // console.log(`Active connections: ${activeConnections}`);
     });
-  } else {
-    console.log("Database pool is already initialized.");
   }
+  return pool;
 }
 
-export function getConnectionPoolMetrics() {
-  if (!pool || !pool.pool || !pool.pool.config) {
-    console.error(
-      "Error: Database pool is not initialized or config is inaccessible"
-    );
-    return {
-      error: "Database pool is not initialized or config is inaccessible",
-    };
+/**
+ * Gets a connection from the pool.
+ */
+export async function getConnection(): Promise<mysql.PoolConnection> {
+  if (!pool) {
+    await initDbConnection();
   }
 
-  // console.log("Fetching connection pool metrics...");
+  if (!pool) {
+    throw new Error("Database pool is not initialized");
+  }
 
-  return {
-    activeConnections,
-    totalConnectionsCreated,
-    connectionLimit: pool.pool.config.connectionLimit, // Access the correct config
-  };
+  return pool.getConnection();
 }
 
+/**
+ * Executes a query and logs performance.
+ */
 export async function query(sql: string, params: any[] = []): Promise<any> {
   if (!pool) {
     await initDbConnection();
@@ -94,20 +118,8 @@ export async function query(sql: string, params: any[] = []): Promise<any> {
     return results;
   } catch (error) {
     console.error("Database error:", error);
-    throw error; // rethrow the error after logging it
+    throw error; // Rethrow the error after logging it
   } finally {
     connection.release(); // Release the connection back to the pool
   }
-}
-
-export async function getConnection(): Promise<mysql.PoolConnection> {
-  if (!pool) {
-    await initDbConnection();
-  }
-
-  if (!pool) {
-    throw new Error("Database pool is not initialized");
-  }
-
-  return pool.getConnection();
 }

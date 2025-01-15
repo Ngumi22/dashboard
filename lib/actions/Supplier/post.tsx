@@ -84,8 +84,6 @@ export async function createSupplier(formData: FormData, productId: number) {
             supplier.supplier_email || null,
             supplier.supplier_phone_number || null,
             supplier.supplier_location || null,
-            null, // created_by defaults to NULL
-            null, // updated_by defaults to NULL
           ]);
 
           const [insertResult] = await connection.query(
@@ -93,9 +91,7 @@ export async function createSupplier(formData: FormData, productId: number) {
               supplier_name,
               supplier_email,
               supplier_phone_number,
-              supplier_location,
-              created_by,
-              updated_by
+              supplier_location
             ) VALUES ?`,
             [insertValues]
           );

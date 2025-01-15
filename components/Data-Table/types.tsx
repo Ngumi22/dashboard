@@ -63,7 +63,7 @@ export interface DataTableProps<T> {
   onResetFilters: () => void;
   activeFilters: Record<string, string[]>;
   onClearFilter: (key: string, value: string) => void;
-  columnRenderers?: Partial<Record<keyof T, (item: T) => React.ReactNode>>;
+  columnRenderers?: Record<keyof T, (item: T) => React.ReactNode>;
   noDataMessage?: string;
 }
 
@@ -94,6 +94,14 @@ export interface Product {
     thumbnail5: string | null;
   };
   tags?: string[];
+}
+
+export interface Category {
+  category_id: number;
+  category_name: string;
+  category_image: string;
+  category_description: string;
+  category_status: "Active" | "Inactive";
 }
 
 // Define the User type

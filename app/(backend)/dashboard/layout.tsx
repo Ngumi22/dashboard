@@ -10,11 +10,6 @@ import { ThemeProvider } from "next-themes";
 import { Roboto } from "next/font/google";
 import "@/app/globals.css";
 
-const roboto = Roboto({
-  subsets: ["latin"],
-  weight: "400",
-});
-
 export default function AdminPanelLayout({
   children,
 }: {
@@ -25,7 +20,7 @@ export default function AdminPanelLayout({
 
   return (
     <html lang="en">
-      <body className={roboto.className} suppressHydrationWarning={true}>
+      <body className="font" suppressHydrationWarning={true}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

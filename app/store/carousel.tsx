@@ -1,6 +1,6 @@
 import {
   deleteCarousel,
-  getUniqueCarousel,
+  getUniqueCarousels,
 } from "@/lib/actions/Carousel/fetch";
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
@@ -11,7 +11,7 @@ export interface Carousel {
   short_description?: string;
   description?: string;
   link?: string;
-  image?: File;
+  image?: File | string | null; // Adjusted for base64 handling
   status: "active" | "inactive";
   text_color: string;
   background_color: string;
@@ -22,7 +22,7 @@ export interface CarouselState {
   loading: boolean;
   error: string | null;
   fetchCarousels: () => Promise<void>;
-  deleteCarouselState: (carousel_id: number) => void;
+  deleteCarouselState: (carousel_id: number) => Promise<boolean>;
 }
 
 export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
@@ -42,50 +42,41 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
     set({ loading: true, error: null });
 
     try {
-      const freshData: Carousel[] = await getUniqueCarousel();
+      const freshData: Carousel[] = await getUniqueCarousels();
 
-      // Cache the fetched data with a TTL of 6 minutes
       setCachedData(cacheKey, freshData, { ttl: 1 * 60 });
-
       set({ carousels: freshData, loading: false, error: null });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Error fetching carousels",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Unexpected error while fetching carousels.",
         loading: false,
       });
     }
   },
+
   deleteCarouselState: async (carousel_id: number) => {
     set({ loading: true });
 
     try {
-      // Server action to delete the carousel
       await deleteCarousel(carousel_id);
+      set({ carousels: [], error: null });
 
-      // Invalidate the cache
-      const cacheKey = "carouselsData";
-      setCachedData(cacheKey, null); // Clear the cached data
-
-      // Refetch the latest carousel data
-      const freshData: Carousel[] = await getUniqueCarousel();
-
-      // Update the cache with the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 1 * 60 });
-
-      // Update the state with the latest carousels
-      set({ carousels: freshData, loading: false, error: null });
-
-      // Optionally, show a success toast or notification
-      return { success: true };
+      const freshData: Carousel[] = await getUniqueCarousels();
+      setCachedData("carouselsData", freshData, { ttl: 1 * 60 });
+      set({ carousels: freshData, loading: false });
+      return true;
     } catch (err) {
-      // Handle any errors that occur
       set({
-        error: err instanceof Error ? err.message : "Error deleting carousel",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Unexpected error while deleting the carousel.",
         loading: false,
       });
-
-      // Optionally, show an error toast or notification
-      return { success: false };
+      return false;
     }
   },
 });

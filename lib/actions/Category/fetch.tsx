@@ -6,21 +6,21 @@ import sharp from "sharp";
 import { getConnection } from "@/lib/MysqlDB/initDb";
 import { Category } from "./catType";
 
-// Compress image utility
-async function compressAndEncodeBase64(
+export async function compressAndEncodeBase64(
   buffer: Buffer | null
 ): Promise<string | null> {
   if (!buffer) return null;
 
   try {
     const compressedBuffer = await sharp(buffer)
-      .resize(100) // Resize to 100px width
+      .resize({ width: 100, height: 100, fit: "cover" }) // Resize with fixed dimensions
       .webp({ quality: 70 }) // Convert to WebP with 70% quality
       .toBuffer();
 
     return compressedBuffer.toString("base64");
-  } catch (error) {
-    console.error("Image compression error:", error);
+  } catch (error: any) {
+    console.error("Image compression error:", error.message);
+    console.error("Buffer content:", buffer);
     return null;
   }
 }
@@ -40,7 +40,7 @@ export async function getUniqueCategories() {
   const connection = await getConnection();
   try {
     const [categories] = await connection.query<RowDataPacket[]>(
-      `SELECT category_id, category_name, category_image, category_description, status FROM categories`
+      `SELECT category_id, category_name, category_image, category_description, category_status FROM categories`
     );
 
     const uniqueCategories: Category[] = await Promise.all(
@@ -48,15 +48,19 @@ export async function getUniqueCategories() {
         category_id: cat.category_id,
         category_name: cat.category_name,
         category_image: cat.category_image
-          ? await compressAndEncodeBase64(cat.category_image)
-          : null, // Compress image if it exists
+          ? await compressAndEncodeBase64(
+              Buffer.isBuffer(cat.category_image)
+                ? cat.category_image
+                : Buffer.from(cat.category_image, "binary")
+            )
+          : null,
+
         category_description: cat.category_description,
-        status: cat.status,
+        category_status: cat.category_status,
       }))
     );
 
     setCache(cacheKey, uniqueCategories, { ttl: 300 }); // Cache for 5 minutes
-    // Ensure plain objects are returned
     return uniqueCategories;
   } catch (error) {
     console.error("Error fetching unique categories:", error);
@@ -126,7 +130,7 @@ export async function fetchCategoryByIdFromDb(id: string) {
   try {
     // Query the database
     const [rows] = await connection.query<RowDataPacket[]>(
-      `SELECT category_id, category_name, category_image, category_description, status FROM categories WHERE category_id = ?`,
+      `SELECT category_id, category_name, category_image, category_description, category_status FROM categories WHERE category_id = ?`,
       [id]
     );
 
@@ -143,7 +147,7 @@ export async function fetchCategoryByIdFromDb(id: string) {
         ? await compressAndEncodeBase64(rows[0].category_image)
         : null, // Compress image if it exists
       category_description: rows[0].category_description,
-      status: rows[0].status,
+      category_status: rows[0].category_status,
     };
 
     setCache(cacheKey, category, { ttl: 300 }); // Cache for 5 minutes

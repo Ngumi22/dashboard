@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import router from "next/router";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -45,23 +45,19 @@ export default function BannerComponent({ isAdmin }: HeroBannersProps) {
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch banners when the component mounts if not already loaded
   useEffect(() => {
-    if (!banners.length) {
-      fetchBanners();
-    }
-  }, [banners, fetchBanners]);
+    fetchBanners(); // Fetch banners only when the component mounts
+  }, [fetchBanners]); // Ensure fetchBanners is memoized or stable
 
   const handleDelete = async (banner_id: number) => {
     try {
-      removeBanner(banner_id); // Update Zustand state
+      removeBanner(banner_id);
       toast({
         variant: "destructive",
         title: "Delete banner",
         description: `Banner with id ${banner_id} deleted successfully`,
         action: <ToastAction altText="Close">Close</ToastAction>,
       });
-      router.push("http://localhost:3000/dashboard/banners");
     } catch (error) {
       toast({
         variant: "destructive",
@@ -72,18 +68,12 @@ export default function BannerComponent({ isAdmin }: HeroBannersProps) {
     }
   };
 
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (error) {
-    return <p>Error Loading</p>;
-  }
-
-  // Filter banners for non-admin users to show only "active" banners and limit to 4
-  const filteredBanners = isAdmin
-    ? banners // Show all banners for admins
-    : banners.filter((banner) => banner.status === "active").slice(0, 4); // Show only active banners for non-admins
+  // Filter banners safely
+  const filteredBanners = banners?.length
+    ? isAdmin
+      ? banners
+      : banners.filter((banner) => banner.status === "active").slice(0, 4)
+    : [];
 
   return (
     <div className="grid">
@@ -97,6 +87,27 @@ export default function BannerComponent({ isAdmin }: HeroBannersProps) {
           </SheetContent>
         </Sheet>
       )}
+
+      {/* Display a message if no banners are available */}
+      {!loading && filteredBanners.length === 0 && (
+        <div className="text-center my-4">
+          <p>No banners available.</p>
+          {isAdmin && (
+            <Button onClick={() => setIsDialogOpen(true)}>
+              Add New Banner
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Display loading indicator */}
+      {loading && (
+        <div className="text-center my-4">
+          <p>Loading banners...</p>
+        </div>
+      )}
+
+      {/* Display banners */}
       <ul className="md:size-96 md:w-full grid grid-cols-2 gap-4">
         {filteredBanners.map((banner) => (
           <li

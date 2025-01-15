@@ -1,25 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Plus, FileDown, Edit, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import React, { useEffect, useMemo, useState } from "react";
+import { Edit, Trash, Eye, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Category, Filter, RowAction } from "@/components/Data-Table/types";
+import { filterData, searchData } from "@/components/Data-Table/utils";
+import DataTable from "@/components/Data-Table/data-table";
+import { useStore } from "@/app/store";
+import Image from "next/image";
+
 import {
   Dialog,
   DialogContent,
@@ -27,269 +16,244 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@radix-ui/react-checkbox";
-import Image from "next/image";
+
+import { useRouter, useParams } from "next/navigation";
+import Base64Image from "@/components/Data-Table/base64-image";
+import { useToast } from "@/hooks/use-toast";
 import CategoryForm from "@/components/Categories/form";
-import { getUniqueCategories } from "@/lib/actions/Category/fetch";
+import { Button } from "@/components/ui/button";
 import { deleteCategory } from "@/lib/actions/Category/delete";
 
-interface CategoryData {
-  category_id: number;
-  category_name: string;
-  category_image: string;
-  category_description: string;
-  status: "active" | "inactive";
-}
+const includedKeys: (keyof Category)[] = [
+  "category_id",
+  "category_name",
+  "category_image",
+  "category_description",
+  "category_status",
+];
+
+const columnRenderers = {
+  category_image: (category: Category) => (
+    <Base64Image
+      src={category.category_image}
+      alt={category.category_name}
+      width={50}
+      height={50}
+    />
+  ),
+  status: (category: { status: string }) => (
+    <Badge
+      variant={
+        category.status === "Active"
+          ? "default"
+          : category.status === "Inactive"
+          ? "secondary"
+          : "destructive"
+      }>
+      {category.status.charAt(0).toUpperCase() + category.status.slice(1)}
+    </Badge>
+  ),
+};
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<CategoryData[]>([]);
-  const [filteredCategories, setFilteredCategories] = useState<CategoryData[]>(
+  const fetchUniqueCategories = useStore(
+    (state) => state.fetchUniqueCategories
+  );
+  const categories = useStore((state) => state.categories);
+  // const deleteCategory = useStore((state) => state.deleteCategoryState);
+  const loading = useStore((state) => state.loading);
+  const error = useStore((state) => state.error);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {}
+  );
+  const [sortKey, setSortKey] = useState<keyof Category>("category_name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] =
+    useState<keyof Category>("category_id");
+  const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchUniqueCategories(); // Fetch initial page
+  }, [fetchUniqueCategories, currentPage]);
+
+  const filters: Filter<any>[] = useMemo(
+    () => [
+      {
+        key: "status",
+        label: "Status",
+        type: "select",
+        options: [
+          { value: "active", label: "Active" },
+          { value: "inactive", label: "Inactive" },
+        ],
+      },
+    ],
     []
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-  const [editingCategory, setEditingCategory] = useState<CategoryData | null>(
-    null
+
+  const rowActions: RowAction<any>[] = [
+    {
+      label: "Edit",
+      icon: Edit,
+      onClick: (category) => {
+        setEditingCategory(category);
+        setIsDialogOpen(true);
+      },
+    },
+    {
+      label: "Delete",
+      icon: Trash,
+      onClick: async (category) => {
+        const confirmDelete = window.confirm(
+          `Are you sure you want to delete the category "${category.category_name}"?`
+        );
+        if (!confirmDelete) return;
+
+        try {
+          const response = await deleteCategory(category.category_id);
+          if (response.success) {
+            toast({ title: "Success", description: response.message });
+            fetchUniqueCategories(); // Refresh the data
+          } else {
+            toast({ title: "Error", description: response.error });
+          }
+        } catch (error) {
+          console.error(error);
+          toast({
+            title: "Error",
+            description: "An error occurred while deleting the category.",
+          });
+        }
+      },
+    },
+
+    {
+      label: "View",
+      icon: Eye,
+      onClick: (category) => {
+        router.push(`/dashboard/categories/${category.category_id}/category`);
+      },
+    },
+  ];
+
+  const filteredAndSortedData = useMemo(() => {
+    let result = searchData(categories, searchTerm, "category_name");
+    result = filterData(result, filters, activeFilters);
+    return result;
+  }, [categories, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+
+  const paginatedData = filteredAndSortedData.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
   );
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { toast } = useToast();
-
-  const fetchCategories = async () => {
-    try {
-      setIsLoading(true);
-      const categories: CategoryData[] = await getUniqueCategories();
-      setCategories(categories);
-    } catch (error: any) {
-      setError(error);
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSearch = (query: string) => {
+    setSearchTerm(query);
+    setCurrentPage(1);
   };
 
-  // Memoize the filterCategories function with useCallback
-  const filterCategories = useCallback(() => {
-    let filtered = categories;
-    if (statusFilter !== "All") {
-      filtered = filtered.filter(
-        (category) =>
-          category.status.toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
-    if (searchTerm) {
-      filtered = filtered.filter((category) =>
-        category.category_name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    setFilteredCategories(filtered);
-  }, [categories, searchTerm, statusFilter]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) {
-      filterCategories();
-    }
-  }, [categories, searchTerm, statusFilter, isLoading, filterCategories]);
-
-  const handleStatusChange = (value: string) => setStatusFilter(value);
-
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) =>
-    setSearchTerm(event.target.value);
-
-  const handleSelectCategory = (categoryId: number) => {
-    setSelectedCategories((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((id) => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedCategories.length === filteredCategories.length) {
-      setSelectedCategories([]);
-    } else {
-      setSelectedCategories(filteredCategories.map((c) => c.category_id));
-    }
-  };
-
-  const handleDelete = async (category_id: number) => {
-    try {
-      // Call the server action
-      const response = await deleteCategory(String(category_id));
-
-      if (!response.success) {
-        throw new Error(response.error || "Failed to delete category");
+  const handleFilter = (key: string, value: string) => {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev };
+      if (key === "price" || key === "discount") {
+        // For range filters, we only want one active value at a time
+        newFilters[key] = [value];
+      } else {
+        if (newFilters[key]) {
+          const index = newFilters[key].indexOf(value);
+          if (index > -1) {
+            newFilters[key] = newFilters[key].filter((v) => v !== value);
+            if (newFilters[key].length === 0) {
+              delete newFilters[key];
+            }
+          } else {
+            newFilters[key] = [...newFilters[key], value];
+          }
+        } else {
+          newFilters[key] = [value];
+        }
       }
+      return newFilters;
+    });
+    setCurrentPage(1);
+  };
 
-      // Update state
-      setCategories((prev) =>
-        prev.filter((c) => c.category_id !== category_id)
-      );
+  const handleResetFilters = () => {
+    setActiveFilters({});
+    setCurrentPage(1);
+  };
 
-      // Show success toast
-      toast({
-        title: "Category deleted",
-        description: response.message || "Successfully deleted.",
-      });
-    } catch (error: any) {
-      // Show error toast
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete category.",
-        variant: "destructive",
-      });
+  const handleSort = (key: string | number | symbol) => {
+    if (
+      typeof key === "string" &&
+      includedKeys.includes(key as keyof Category)
+    ) {
+      setSortKey(key as keyof Category); // Set sort key safely
+    } else {
+      console.error("Invalid sort key:", key);
     }
   };
 
-  const exportData = () => {
-    const dataToExport = filteredCategories.map(
-      ({ category_id, category_name, status }) => ({
-        category_id,
-        category_name,
-        status,
-      })
-    );
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      Object.keys(dataToExport[0]).join(",") +
-      "\n" +
-      dataToExport.map((row) => Object.values(row).join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "categories.csv");
-    link.click();
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchUniqueCategories(); // Fetch data for the new page
+  };
+
+  const handleRowsPerPageChange = (rows: number) => {
+    setRowsPerPage(rows);
+    setCurrentPage(1);
+  };
+
+  const handleRowSelect = (selectedRows: any[]) => {
+    console.log("Selected rows:", selectedRows);
+  };
+
+  const handleAddNew = () => {
+    setIsDialogOpen(true);
+  };
+
+  const handleClearFilter = (key: string, value: string) => {
+    const newActiveFilters = { ...activeFilters };
+    newActiveFilters[key] = newActiveFilters[key].filter((v) => v !== value);
+    if (newActiveFilters[key].length === 0) {
+      delete newActiveFilters[key];
+    }
+    setActiveFilters(newActiveFilters);
   };
 
   return (
-    <div className="md:container p-2 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Categories</h1>
-        <Button
-          onClick={() => {
-            setEditingCategory(null);
-            setIsDialogOpen(true);
-          }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Category
-        </Button>
-      </div>
-
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2">
-          <Input
-            placeholder="Search categories..."
-            value={searchTerm}
-            onChange={handleSearch}
-            className="w-64"
-          />
-          <Select onValueChange={handleStatusChange} defaultValue="All">
-            <SelectTrigger className="w-[100px] md:w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={exportData}>
-          <FileDown className="mr-2 h-4 w-4" />
-          <span className="hidden md:flex">Export</span>
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center">
-          <p>Loading....</p>
-        </div>
+    <div className="container mx-auto py-10">
+      {loading ? (
+        <p>Loading...</p>
       ) : error ? (
-        <div className="text-center text-red-500">{error}</div>
-      ) : filteredCategories.length === 0 ? (
-        <div className="text-center">No categories found.</div>
+        <p>Error</p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={
-                    selectedCategories.length === filteredCategories.length
-                  }
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
-              <TableHead>Id</TableHead>
-              <TableHead className="hidden sm:table-cell">Image</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="m-0">
-            {filteredCategories.map((category) => (
-              <TableRow key={category.category_id}>
-                <TableCell className="font-medium">
-                  <Checkbox
-                    checked={selectedCategories.includes(category.category_id)}
-                    onCheckedChange={() =>
-                      handleSelectCategory(category.category_id)
-                    }
-                  />
-                </TableCell>
-                <TableCell>{category.category_id}</TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  <Image
-                    src={`data:image/jpeg;base64,${category.category_image}`}
-                    alt={category.category_name}
-                    width={20}
-                    height={20}
-                    className="rounded-md h-20 w-20 object-contain"
-                  />
-                </TableCell>
-                <TableCell>{category.category_name}</TableCell>
-                <TableCell>{category.category_description}</TableCell>
-                <TableCell>
-                  <span
-                    className={`${
-                      category.status === "active"
-                        ? "text-green-600"
-                        : "text-gray-600"
-                    }`}>
-                    {category.status}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingCategory(category);
-                        setIsDialogOpen(true);
-                      }}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => handleDelete(category.category_id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <DataTable
+          data={paginatedData}
+          includedKeys={includedKeys}
+          filters={filters}
+          rowActions={rowActions}
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          onSort={handleSort}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          onRowSelect={handleRowSelect}
+          onAddNew={handleAddNew}
+          totalItems={filteredAndSortedData.length}
+          currentPage={currentPage}
+          rowsPerPage={rowsPerPage}
+          activeFilters={activeFilters}
+          onClearFilter={handleClearFilter}
+          onResetFilters={handleResetFilters}
+          columnRenderers={columnRenderers} // Updated
+        />
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

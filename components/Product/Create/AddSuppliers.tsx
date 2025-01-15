@@ -64,9 +64,10 @@ export default function Component({
     const fetchSuppliers = async () => {
       try {
         const suppliers = await getUniqueSuppliers();
-        setExistingSuppliers(suppliers);
+        setExistingSuppliers(suppliers || []); // Ensure it defaults to an empty array
       } catch (error) {
         console.error("Failed to fetch suppliers:", error);
+        setExistingSuppliers([]); // Fallback to empty array on error
       }
     };
 
@@ -93,15 +94,14 @@ export default function Component({
         ...newSupplier,
         isNew: true,
       });
+      // Clear new supplier fields after adding
+      setValue("newSupplier", {
+        supplier_name: "",
+        supplier_email: "",
+        supplier_phone_number: "",
+        supplier_location: "",
+      });
     }
-
-    setValue("selectedSupplier", "");
-    setValue("newSupplier", {
-      supplier_name: "",
-      supplier_email: "",
-      supplier_phone_number: "",
-      supplier_location: "",
-    });
   });
 
   return (

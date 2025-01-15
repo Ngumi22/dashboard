@@ -24,7 +24,7 @@ async function compressAndEncodeBase64(
   }
 }
 
-export async function getUniqueCarousel() {
+export async function getUniqueCarousels() {
   const cacheKey = "unique_carousels";
 
   // Check if the result is already in the cache
@@ -47,6 +47,7 @@ export async function getUniqueCarousel() {
     );
 
     if (carousels.length === 0) {
+      console.log("No carousels in the database");
       return null; // Return null if no carousel exists
     }
 

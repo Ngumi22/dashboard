@@ -30,7 +30,7 @@ interface Category {
   category_name: string;
   category_image: string | File | null;
   category_description: string;
-  status: "active" | "inactive";
+  category_status: "Active" | "Inactive";
 }
 
 export default function CategoryForm({
@@ -42,7 +42,7 @@ export default function CategoryForm({
     category_name: initialData?.category_name || "",
     category_image: initialData?.category_image || null,
     category_description: initialData?.category_description || "",
-    status: initialData?.status || "active",
+    category_status: initialData?.category_status || "Active",
   });
 
   const [existingImage, setExistingImage] = useState<string | null>(
@@ -88,7 +88,7 @@ export default function CategoryForm({
   const handleStatusChange = (value: string) => {
     setCategory((prev) => ({
       ...prev,
-      status: value as "active" | "inactive",
+      category_status: value as "Active" | "Inactive",
     }));
   };
 
@@ -127,6 +127,16 @@ export default function CategoryForm({
           category.category_id.toString(),
           formData
         );
+      }
+
+      if (result.message === "Category already exists") {
+        toast({
+          title: "Duplicate Category",
+          description: "A category with this name already exists.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       if (result) {
@@ -220,16 +230,16 @@ export default function CategoryForm({
 
       {/* Status */}
       <div>
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor="category_status">Status</Label>
         <Select
           onValueChange={handleStatusChange}
-          defaultValue={category.status}>
+          defaultValue={category.category_status}>
           <SelectTrigger>
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="Active">Active</SelectItem>
+            <SelectItem value="Inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>

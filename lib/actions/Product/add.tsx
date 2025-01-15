@@ -4,11 +4,11 @@ import { NewProductSchemaServer } from "@/lib/ZodSchemas/productSchema";
 import { ParsedProductData } from "./productTypes";
 import { addBrand } from "../Brand/post";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { dbsetupTables } from "@/lib/MysqlTables";
 import { createSupplier } from "../Supplier/post";
 import { createProductImages } from "../Images/post";
 import { createProductTags } from "../Tags/post";
 import { createProductSpecifications } from "../Specifications/post";
+import { dbsetupTables } from "@/lib/MysqlDB/tables";
 
 export type FormState = {
   message: string;
@@ -66,8 +66,8 @@ async function createProduct(parsedData: ParsedProductData, data: FormData) {
       }
 
       const [result] = await connection.query(
-        `INSERT INTO products (product_name, product_sku, product_description, product_price, product_quantity, product_discount, product_status, category_id, brand_id, created_by, updated_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO products (product_name, product_sku, product_description, product_price, product_quantity, product_discount, product_status, category_id, brand_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           validatedData.product_name,
           validatedData.product_sku,
@@ -78,8 +78,6 @@ async function createProduct(parsedData: ParsedProductData, data: FormData) {
           validatedData.product_status,
           validatedData.category_id, // Use validatedData instead of parsedData
           parsedData.brand_id,
-          parsedData.created_by || null,
-          parsedData.updated_by || null,
         ]
       );
 

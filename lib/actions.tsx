@@ -2,7 +2,6 @@
 
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { signUpSchema } from "./utils";
-import { getConnection } from "./db";
 import bcrypt from "bcryptjs";
 import {
   createSession,
@@ -11,6 +10,7 @@ import {
 } from "./sessions";
 import { FormState, LoginFormSchema } from "./definitions";
 import { sendVerificationEmail } from "./emailVerification";
+import { getConnection } from "./MysqlDB/initDb";
 
 export async function signUp(
   state: FormState,
@@ -36,7 +36,7 @@ export async function signUp(
     await connection.beginTransaction();
 
     const [existingUserRows] = await connection.query<RowDataPacket[]>(
-      "SELECT * FROM users WHERE email = ?",
+      "SELECT * FROM staff_accounts WHERE email = ?",
       [email]
     );
     if (existingUserRows.length > 0) {
@@ -46,7 +46,7 @@ export async function signUp(
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const [userResult] = await connection.query<RowDataPacket[]>(
-      "INSERT INTO users (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO staff_accounts (first_name, last_name, role, email, password) VALUES (?, ?, ?, ?, ?)",
       [first_name, last_name, role, email, hashedPassword]
     );
 
@@ -97,7 +97,7 @@ export async function login(
 
   try {
     const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      `SELECT id, email, password, is_verified FROM users WHERE email = ?`,
+      `SELECT staff_id, email, password, is_verified FROM staff_accounts WHERE email = ?`,
       [email]
     );
 

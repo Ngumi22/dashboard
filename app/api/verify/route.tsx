@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     // Perform the update query and destructure the result tuple
     const [result] = (await connection.query(
-      "UPDATE users SET is_verified = TRUE WHERE id = ?",
+      "UPDATE staff_accounts SET is_verified = TRUE WHERE id = ?",
       [payload.userId]
     )) as [QueryResultWithAffectedRows, any];
 

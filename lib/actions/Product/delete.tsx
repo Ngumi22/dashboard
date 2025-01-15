@@ -2,7 +2,7 @@
 
 import { cache } from "@/lib/cache";
 import { getConnection } from "@/lib/MysqlDB/initDb";
-import { dbsetupTables } from "@/lib/MysqlTables";
+import { dbsetupTables } from "@/lib/MysqlDB/tables";
 import { getErrorMessage } from "@/lib/utils";
 
 export async function dbOperation<T>(

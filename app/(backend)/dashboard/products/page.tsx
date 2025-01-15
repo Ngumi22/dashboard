@@ -12,6 +12,9 @@ import {
 import DataTable from "@/components/Data-Table/data-table";
 import { useStore } from "@/app/store";
 
+import { useRouter, useParams } from "next/navigation";
+import Base64Image from "@/components/Data-Table/base64-image";
+
 const includedKeys: (keyof Product)[] = [
   "sku",
   "name",
@@ -22,9 +25,6 @@ const includedKeys: (keyof Product)[] = [
   "price",
   "discount",
 ];
-
-import { useRouter, useParams } from "next/navigation";
-import Base64Image from "@/components/Data-Table/base64-image";
 
 const columnRenderers = {
   status: (item: { status: string }) => (
@@ -57,11 +57,9 @@ const columnRenderers = {
 
 export default function Home() {
   const fetchProducts = useStore((state) => state.fetchProducts);
-
   const products = useStore((state) => state.products);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -268,7 +266,7 @@ export default function Home() {
   };
 
   const handleAddNew = () => {
-    console.log("Add new item");
+    router.push("/dashboard/products/create");
   };
 
   const handleClearFilter = (key: string, value: string) => {
@@ -285,28 +283,26 @@ export default function Home() {
       <h1 className="text-2xl font-bold mb-4">Product Management</h1>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
-      {!loading && !error && (
-        <DataTable
-          data={paginatedData}
-          includedKeys={includedKeys}
-          filters={filters}
-          rowActions={rowActions}
-          onSearch={handleSearch}
-          onFilter={handleFilter}
-          onSort={handleSort}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          onRowSelect={handleRowSelect}
-          onAddNew={handleAddNew}
-          totalItems={filteredAndSortedData.length}
-          currentPage={currentPage}
-          rowsPerPage={rowsPerPage}
-          activeFilters={activeFilters}
-          onClearFilter={handleClearFilter}
-          onResetFilters={handleResetFilters}
-          columnRenderers={columnRenderers}
-        />
-      )}
+      <DataTable
+        data={paginatedData}
+        includedKeys={includedKeys}
+        filters={filters}
+        rowActions={rowActions}
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        onSort={handleSort}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        onRowSelect={handleRowSelect}
+        onAddNew={handleAddNew}
+        totalItems={filteredAndSortedData.length}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        activeFilters={activeFilters}
+        onClearFilter={handleClearFilter}
+        onResetFilters={handleResetFilters}
+        columnRenderers={columnRenderers}
+      />
     </div>
   );
 }

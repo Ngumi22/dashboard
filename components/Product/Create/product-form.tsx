@@ -22,51 +22,9 @@ import { getUniqueCategories } from "@/lib/actions/Category/fetch";
 import AddSpecifications from "./AddSpecs";
 import AddSuppliers from "./AddSuppliers";
 import { getUniqueBrands } from "@/lib/actions/Brand/fetch";
+import { Brand, Category, Product } from "./types";
 
-interface Supplier {
-  supplier_id?: number;
-  supplier_name?: string;
-  supplier_email?: string;
-  supplier_phone_number?: string;
-  supplier_location?: string;
-  isNew?: boolean;
-}
-
-interface Brand {
-  brand_id: number;
-  brand_name: string;
-}
-
-interface Product {
-  product_id: number;
-  product_name: string;
-  product_sku: string;
-  product_description: string;
-  product_price: number;
-  product_quantity: number;
-  product_discount: number;
-  product_status: "draft" | "pending" | "approved";
-  tags: string[];
-  main_image: File | null;
-  thumbnails: File[];
-  brand_id: string;
-  brand_name: string;
-  brand_image: File | null;
-  category_id: string;
-  suppliers: Supplier[];
-  specifications: {
-    specification_name: string;
-    specification_value: string;
-    category_id: string;
-  }[];
-}
-
-interface Category {
-  category_id: string;
-  category_name: string;
-}
-
-interface ProductFormProps {
+export interface ProductFormProps {
   initialData?: Partial<Product>;
 }
 
@@ -99,6 +57,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
   const [isNewBrand, setIsNewBrand] = useState(false);
+  const [existingBrands, setExistingBrands] = useState<Brand[]>([]);
+  const [selectedOption, setSelectedOption] = useState<string>("");
+  const [newBrandName, setNewBrandName] = useState<string>("");
+  const [newBrandImage, setNewBrandImage] = useState<string | null>(null);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -107,19 +69,65 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const fetchedCategories = await getUniqueCategories();
         const fetchedBrands = await getUniqueBrands();
-        setBrands(fetchedBrands);
-        setCategories(fetchedCategories);
+        const fetchedCategories = await getUniqueCategories();
+        setExistingBrands(fetchedBrands || []);
+        setCategories(fetchedCategories || []);
       } catch (error) {
-        console.error("Failed to fetch categories:", error);
-        setError("Failed to load categories. Please try again later.");
+        console.error("Failed to fetch brands:", error);
+        setError("Failed to load brands. Please try again later.");
+        setBrands([]); // Fallback to empty array in case of error
+        setCategories([]); // Fallback to empty array in case of error
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  const handleOptionChange = (value: string) => {
+    setSelectedOption(value);
+    if (value !== "new") {
+      setNewBrandName("");
+      setNewBrandImage(null);
+    }
+  };
+
+  const handleBrandChange = (value: string) => {
+    if (value === "new") {
+      setIsNewBrand(true); // Show inputs for new brand
+      setSelectedBrandId(null); // Clear selected brand
+      setProduct((prev) => ({
+        ...prev,
+        brand_id: "",
+        brand_name: "",
+        brand_image: null, // Ensure image is reset
+      }));
+      resetBrandImageInput();
+    } else if (value === "") {
+      setIsNewBrand(false); // Hide new brand inputs
+      setSelectedBrandId(null); // Reset brand ID
+      setProduct((prev) => ({
+        ...prev,
+        brand_id: "",
+        brand_name: "",
+        brand_image: null,
+      }));
+      resetBrandImageInput();
+    } else {
+      setIsNewBrand(false); // Hide new brand inputs
+      const brandId = parseInt(value, 10);
+      setSelectedBrandId(brandId);
+      const selectedBrand = brands.find((brand) => brand.brand_id === brandId);
+      setProduct((prev) => ({
+        ...prev,
+        brand_id: brandId.toString(),
+        brand_name: selectedBrand?.brand_name || "",
+        brand_image: null, // Ensure image is reset
+      }));
+      resetBrandImageInput();
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -216,42 +224,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     ) as HTMLInputElement;
     if (fileInput) {
       fileInput.value = "";
-    }
-  };
-
-  const handleBrandChange = (value: string) => {
-    if (value === "new") {
-      setIsNewBrand(true); // Show inputs for new brand
-      setSelectedBrandId(null); // Clear selected brand
-      setProduct((prev) => ({
-        ...prev,
-        brand_id: "",
-        brand_name: "",
-        brand_image: null, // Ensure image is reset
-      }));
-      resetBrandImageInput();
-    } else if (value === "") {
-      setIsNewBrand(false); // Hide new brand inputs
-      setSelectedBrandId(null); // Reset brand ID
-      setProduct((prev) => ({
-        ...prev,
-        brand_id: "",
-        brand_name: "",
-        brand_image: null,
-      }));
-      resetBrandImageInput();
-    } else {
-      setIsNewBrand(false); // Hide new brand inputs
-      const brandId = parseInt(value, 10);
-      setSelectedBrandId(brandId);
-      const selectedBrand = brands.find((brand) => brand.brand_id === brandId);
-      setProduct((prev) => ({
-        ...prev,
-        brand_id: brandId.toString(),
-        brand_name: selectedBrand?.brand_name || "",
-        brand_image: null, // Ensure image is reset
-      }));
-      resetBrandImageInput();
     }
   };
 
@@ -478,58 +450,104 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
             {/* Brand */}
 
-            <div className="space-y-8">
-              {/* Brand */}
-              <div className="border rounded-md p-2 space-y-2">
-                <Label className="font-semibold text-xl">Brand</Label>
-                <Select
-                  value={selectedBrandId ? selectedBrandId.toString() : "new"}
-                  onValueChange={handleBrandChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select brand" />
-                  </SelectTrigger>
-                  {isLoading || error ? (
-                    <p>Something is happening</p>
-                  ) : (
-                    <SelectContent>
-                      <SelectItem value="new">Add new brand</SelectItem>
-                      {brands.map((brand) => (
-                        <SelectItem
-                          key={brand.brand_id}
-                          value={brand.brand_id.toString()}>
-                          {brand.brand_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  )}
-                </Select>
-                {isNewBrand && (
-                  <>
+            <div className="space-y-4 w-full max-w-md mx-auto">
+              <Select onValueChange={handleOptionChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  {existingBrands.map((brand) => (
+                    <SelectItem
+                      key={brand.brand_id}
+                      value={String(brand.brand_id)}>
+                      {brand.brand_name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="new">Add New Brand</SelectItem>
+                </SelectContent>
+              </Select>
+              {selectedOption === "new" && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="brand_name">Brand Name</Label>
                     <Input
                       name="brand_name"
-                      placeholder="New Brand Name"
+                      placeholder="brand_name"
                       value={product.brand_name}
                       onChange={handleChange}
                       required
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="brand_image">Brand Image</Label>
                     <Input
                       name="brand_image"
                       type="file"
                       onChange={(e) => handleImageChange(e, "brand_image")}
                       accept="image/*"
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
                     />
-                  </>
-                )}
-                {product.brand_image && (
-                  <Image
-                    src={URL.createObjectURL(product.brand_image)}
-                    alt="Brand Preview"
-                    width={100}
-                    height={100}
-                    className="mt-2 h-20 w-20 object-cover"
-                  />
-                )}
-              </div>
+                  </div>
+                  <div>
+                    {newBrandImage && (
+                      <div>
+                        <Label>Image Preview</Label>
+                        <div className="">
+                          <Image
+                            src={
+                              product.brand_image
+                                ? URL.createObjectURL(product.brand_image)
+                                : ""
+                            }
+                            alt="Brand Preview"
+                            width={100}
+                            height={100}
+                            className="mt-2 h-20 w-20 object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedOption && selectedOption !== "new" && (
+                <div>
+                  <Label>Selected Brand</Label>
+                  <div className="mt-2 flex items-center space-x-4">
+                    <div className="relative w-16 h-16">
+                      <Image
+                        src={(() => {
+                          const selectedBrand = existingBrands.find(
+                            (b) => String(b.brand_id) === selectedOption
+                          );
+
+                          const brandImage = selectedBrand?.brand_image;
+
+                          if (typeof brandImage === "string") {
+                            return brandImage; // A valid string URL
+                          } else if (brandImage instanceof File) {
+                            return URL.createObjectURL(brandImage); // Convert File to URL
+                          } else {
+                            return "/fallback-image.png"; // Provide a fallback image
+                          }
+                        })()}
+                        alt="Selected brand"
+                        fill
+                        style={{ objectFit: "cover" }}
+                        className="rounded-md"
+                      />
+                    </div>
+                    <span className="text-lg font-medium">
+                      {
+                        existingBrands.find(
+                          (b) => String(b.brand_id) === selectedOption
+                        )?.brand_name
+                      }
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Product Images */}

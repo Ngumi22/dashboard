@@ -1,5 +1,5 @@
-import { getConnection } from "../database";
 import { getErrorMessage } from "../utils";
+import { getConnection } from "./initDb";
 
 // Core database operation with transaction and retry
 export async function dbOperation<T>(

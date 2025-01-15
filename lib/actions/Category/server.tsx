@@ -1,7 +1,7 @@
 "use server";
 
 import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
-import { fileToBuffer, getErrorMessage, parseNumberField } from "@/lib/utils";
+import { fileToBuffer, getErrorMessage } from "@/lib/utils";
 import { cache } from "@/lib/cache";
 import { getConnection } from "@/lib/MysqlDB/initDb";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
@@ -23,8 +23,8 @@ export async function CategorySubmitAction(
     const parsed = CategorySchema.safeParse({
       category_name: data.get("category_name"),
       category_description: data.get("category_description"),
-      status: data.get("status"),
-      category_image: data.get("category_image"), // Get the image from data
+      category_status: data.get("category_status"),
+      category_image: data.get("category_image"),
     });
 
     if (!parsed.success) {
@@ -39,22 +39,17 @@ export async function CategorySubmitAction(
       };
     }
 
-    // Perform the database operation
+    // Check if the category already exists in the database
     const result = await dbOperation(async (connection) => {
-      // Check if the category already exists
       const [existingCategory]: any[] = await connection.query(
-        "SELECT category_id FROM categories WHERE category_name = ?",
+        "SELECT category_id FROM categories WHERE category_name = ? LIMIT 1",
         [parsed.data.category_name]
       );
 
       if (existingCategory.length > 0) {
         return {
           success: false,
-          message: "Category already exists",
-          fields: {
-            category_name: parsed.data.category_name,
-            category_description: parsed.data.category_description,
-          },
+          message: `Category already exists`,
         };
       }
 
@@ -65,36 +60,34 @@ export async function CategorySubmitAction(
 
       // Insert new category
       const [insertResult]: any = await connection.query(
-        "INSERT INTO categories (category_name, category_image, category_description, status, created_by, updated_by) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO categories (category_name, category_image, category_description, category_status) VALUES (?, ?, ?, ?)",
         [
           parsed.data.category_name,
           categoryImageBuffer,
           parsed.data.category_description,
-          parsed.data.status,
-          parseNumberField(data, "created_by"),
-          parseNumberField(data, "updated_by"),
+          parsed.data.category_status,
         ]
       );
+
+      console.log("Inserted category with ID:", insertResult.insertId);
 
       return {
         success: true,
         message: "Category created successfully",
-        categoryId: insertResult.insertId,
-        fields: {
-          category_name: parsed.data.category_name,
-          category_description: parsed.data.category_description,
-        },
       };
     });
 
-    if (result.success) {
-      // Invalidate the global categories cache
-      cache.delete(uniqueCategoriesCacheKey);
+    if (!result.success) {
+      return {
+        message: result.message,
+      };
     }
 
+    // Invalidate the categories cache if applicable
+    cache.delete(uniqueCategoriesCacheKey);
+
     return {
-      message: result.message,
-      fields: result.fields,
+      message: "Category created successfully",
     };
   } catch (error) {
     console.error("Error in CategorySubmitAction:", error);
@@ -116,7 +109,7 @@ export async function updateCategoryAction(
   try {
     const categoryName = formData.get("category_name");
     const categoryDescription = formData.get("category_description");
-    const status = formData.get("status");
+    const categoryStatus = formData.get("category_status");
     const newImageFile = formData.get("category_image");
 
     const updates: string[] = [];
@@ -132,9 +125,9 @@ export async function updateCategoryAction(
       values.push(categoryDescription);
     }
 
-    if (status) {
-      updates.push("status = ?");
-      values.push(status);
+    if (categoryStatus) {
+      updates.push("category_status = ?");
+      values.push(categoryStatus);
     }
 
     if (newImageFile) {

@@ -1,17 +1,13 @@
 "use client";
-import * as React from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
-
 import { useStore } from "@/app/store";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,18 +27,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { getUniqueCarousels } from "@/lib/actions/Carousel/fetch";
 
 interface HeroCarouselsProps {
-  isAdmin?: boolean; // Pass this prop to determine if admin features should be shown
+  isAdmin?: boolean;
 }
 
-interface Carousel {
+export interface Carousel {
   carousel_id?: number;
   title: string;
   short_description?: string;
   description?: string;
   link?: string;
-  image?: File;
+  image?: File | string | null;
   status: "active" | "inactive";
   text_color: string;
   background_color: string;
@@ -59,37 +56,66 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
   const [editingCarousel, setEditingCarousel] = useState<Carousel | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch carousels when the component mounts if not already loaded
+  const [data, setData] = useState<Carousel[]>([]);
+
   useEffect(() => {
-    if (!carousels.length) {
+    const fetchData = async () => {
+      const res = await getUniqueCarousels();
+      setData(res);
+    };
+    fetchData();
+  }, []);
+
+  // Fetch carousels only once when the component mounts
+  useEffect(() => {
+    if (carousels.length === 0) {
       fetchCarousels();
     }
-  }, [carousels, fetchCarousels]);
+  }, [fetchCarousels, carousels.length]);
 
-  const handleDelete = async (carousel_id: number) => {
-    try {
-      removeCarousel(carousel_id); // Update Zustand state
-      toast({
-        variant: "destructive",
-        title: "Delete Carousel",
-        description: `Carousel with id ${carousel_id} deleted successfully`,
-        action: <ToastAction altText="Close">Close</ToastAction>,
-      });
-      router.push("http://localhost:3000/dashboard/carousel");
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Delete Carousel",
-        description: `Carousel with id ${carousel_id} was not deleted successfully`,
-        action: <ToastAction altText="Un do">Un do</ToastAction>,
-      });
+  const handleDelete = useCallback(
+    async (carousel_id: number) => {
+      try {
+        removeCarousel(carousel_id);
+        toast({
+          variant: "destructive",
+          title: "Delete Carousel",
+          description: `Carousel with ID ${carousel_id} deleted successfully.`,
+          action: <ToastAction altText="Close">Close</ToastAction>,
+        });
+        router.push("http://localhost:3000/dashboard/carousel");
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Delete Carousel",
+          description: `Failed to delete carousel with ID ${carousel_id}.`,
+          action: <ToastAction altText="Undo">Undo</ToastAction>,
+        });
+      }
+    },
+    [removeCarousel, toast]
+  );
+
+  // Filtered carousel data
+  const filteredCarousel = useMemo(() => {
+    if (isAdmin) {
+      return carousels;
     }
-  };
+    return carousels.filter((banner) => banner.status === "active").slice(0, 4);
+  }, [carousels, isAdmin]);
 
-  // Filter carousels for non-admin users to show only "active" carousels and limit to 4
-  const filteredCarousel = isAdmin
-    ? carousels // Show all carousels for admins
-    : carousels.filter((banner) => banner.status === "active").slice(0, 4); // Show only active carousels for non-admins
+  // Memoize carousel autoplay plugin
+  const autoplayPlugin = useMemo(
+    () =>
+      !isAdmin
+        ? [
+            Autoplay({
+              delay: 4000,
+            }),
+          ]
+        : [],
+    [isAdmin]
+  );
 
   return (
     <div className="grid">
@@ -102,8 +128,8 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
             <SheetDescription>
               <SheetTitle>
                 {editingCarousel
-                  ? "Modify the Carousel details below."
-                  : "Create a new Carousel."}
+                  ? "Modify the carousel details below."
+                  : "Create a new carousel."}
               </SheetTitle>
             </SheetDescription>
             <CarouselForm initialData={editingCarousel || undefined} />
@@ -117,15 +143,7 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
       ) : (
         <Carousel
           className="rounded-lg"
-          plugins={
-            !isAdmin
-              ? [
-                  Autoplay({
-                    delay: 4000,
-                  }),
-                ]
-              : []
-          }
+          plugins={autoplayPlugin}
           opts={{
             loop: true,
           }}>
@@ -145,7 +163,6 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                     }}>
                     {carousel.title}
                   </h1>
-
                   <strong
                     className="text-md block font-extrabold"
                     style={{
@@ -153,7 +170,6 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                     }}>
                     {carousel.short_description}
                   </strong>
-
                   <p
                     className="mt-4 text-start max-w-lg sm:text-sm/relaxed line-clamp-2 md:line-clamp-none"
                     style={{
@@ -162,11 +178,8 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                     Lorem ipsum dolor sit amet consectetur, adipisicing elit.
                     Nesciunt illo tenetur fuga ducimus numquam ea!
                   </p>
-
                   <Button className="w-40">
-                    <a href={carousel.link} className="">
-                      BUY NOW
-                    </a>
+                    <a href={carousel.link}>BUY NOW</a>
                   </Button>
                 </div>
                 <div className="-col-span-2 overflow-hidden grid justify-self-end mr-2">
@@ -179,7 +192,6 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                     width={200}
                   />
                 </div>
-
                 {isAdmin && (
                   <div className="absolute top-4 right-4">
                     <DropdownMenu>
@@ -206,9 +218,6 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
                     </DropdownMenu>
                   </div>
                 )}
-
-                <CarouselPrevious className="absolute top-1/2" />
-                <CarouselNext className="absolute top-1/2" />
               </CarouselItem>
             ))}
           </CarouselContent>

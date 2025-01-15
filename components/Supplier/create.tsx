@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
+import { getUniqueSuppliers } from "@/lib/actions/Supplier/fetch";
 
 interface Supplier {
   supplier_id?: number;
@@ -62,13 +63,11 @@ export default function CreateSupplier({
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await fetch("http://localhost:3000/api/supplier");
-        const data = await response.json();
-        if (data.suppliers && data.suppliers.supplier) {
-          setExistingSuppliers(data.suppliers.supplier);
-        }
+        const data = (await getUniqueSuppliers()) || []; // Ensure data is an array
+        setExistingSuppliers(data);
       } catch (error) {
         console.error("Failed to fetch suppliers:", error);
+        setExistingSuppliers([]); // Fallback to empty array on error
       }
     };
 
@@ -120,22 +119,29 @@ export default function CreateSupplier({
                 <SelectValue placeholder="Select a supplier" />
               </SelectTrigger>
               <SelectContent>
-                {existingSuppliers.map((supplier) => (
-                  <SelectItem
-                    key={supplier.supplier_id ?? "no-id"}
-                    value={
-                      supplier.supplier_id
-                        ? supplier.supplier_id.toString()
-                        : ""
-                    }>
-                    {supplier.supplier_name}
+                {existingSuppliers.length > 0 ? (
+                  existingSuppliers.map((supplier) => (
+                    <SelectItem
+                      key={supplier.supplier_id ?? "no-id"}
+                      value={
+                        supplier.supplier_id
+                          ? supplier.supplier_id.toString()
+                          : ""
+                      }>
+                      {supplier.supplier_name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No suppliers available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           )}
         />
 
+        {/* New Supplier Fields */}
         <div className="space-y-2">
           <h2>Add New</h2>
           <Controller
@@ -149,7 +155,6 @@ export default function CreateSupplier({
               />
             )}
           />
-
           <Controller
             name="newSupplier.supplier_email"
             control={control}
@@ -162,7 +167,6 @@ export default function CreateSupplier({
               />
             )}
           />
-
           <Controller
             name="newSupplier.supplier_phone_number"
             control={control}
@@ -174,7 +178,6 @@ export default function CreateSupplier({
               />
             )}
           />
-
           <Controller
             name="newSupplier.supplier_location"
             control={control}
@@ -197,6 +200,7 @@ export default function CreateSupplier({
           Add Supplier
         </Button>
 
+        {/* Display Selected Suppliers */}
         <div className="mt-4">
           {fields.length > 0 ? (
             <ul className="space-y-2">

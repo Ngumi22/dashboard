@@ -1,63 +1,11 @@
-import { mapUserRow } from "./utils";
-import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { UserRow, User } from "./definitions";
-import { getConnection } from "./MysqlDB/initDb";
-import { cache } from "@/lib/cache";
-export async function fetchUsers(): Promise<User[]> {
-  const connection = await getConnection();
+"use server";
 
-  try {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      `SELECT * FROM staff_accounts`
-    );
-
-    // Map each row to a User object
-    const staff_accounts = (rows as UserRow[]).map(mapUserRow);
-
-    return staff_accounts;
-  } catch (error) {
-    console.error("Error fetching staff_accounts:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-export async function fetchUserByEmail(email: string): Promise<UserRow[]> {
-  const connection = await getConnection();
-
-  try {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      `SELECT staff_id, first_name, last_name, email, password FROM staff_accounts WHERE email = ?`,
-      [email]
-    );
-    return rows as UserRow[];
-  } catch (error) {
-    console.error("Error fetching staff_accounts:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-export async function getUserById(userId: any) {
-  const connection = await getConnection();
-  try {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await connection.execute(
-      "SELECT * FROM staff_accounts WHERE staff_id = ?",
-      [userId]
-    );
-    if (rows.length === 0) return null;
-    return rows[0];
-  } catch (error) {
-    console.error("Error fetching user by Id:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
+import { cache } from "@/lib/cache"; // Assuming you have a cache system in place
+import { getConnection } from "@/lib/MysqlDB/initDb";
+import { RowDataPacket } from "mysql2/promise";
 
 // Define the User type
-export interface Userz {
+export interface User {
   staff_id: number;
   name: string;
   phone_number: string;
@@ -70,7 +18,7 @@ export interface Userz {
   password_hash?: string; // Optional if this data is required
 }
 
-export async function fetchsUsers() {
+export async function fetchUsers() {
   const cacheKey = "users";
 
   // Check if the result is already in the cache
@@ -168,7 +116,7 @@ export async function fetchUserById(staff_id: number) {
     }
 
     // Map the result to the desired format
-    const user: Userz = {
+    const user: User = {
       staff_id: rows[0].staff_id,
       role: rows[0].role,
       name: rows[0].name, // Combined name

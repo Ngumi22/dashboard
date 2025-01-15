@@ -6,6 +6,9 @@ import Loading from "./loading";
 import { lazy, Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
+import { initialize } from "@/lib/MysqlDB/initialize";
+
+initialize();
 
 const roboto = Roboto({
   subsets: ["latin"],

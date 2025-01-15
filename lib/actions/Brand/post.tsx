@@ -73,7 +73,7 @@ export async function addBrand(data: FormData) {
       }
 
       const [result] = await connection.query(
-        "INSERT INTO brands (brand_name, brand_image, created_by, updated_by) VALUES (?, ?, null, null)",
+        "INSERT INTO brands (brand_name, brand_image) VALUES (?, ?)",
         [validatedData.brand_name, brandImageBuffer]
       );
 

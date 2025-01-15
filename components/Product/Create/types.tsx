@@ -10,6 +10,7 @@ export interface Supplier {
 export interface Brand {
   brand_id: number;
   brand_name: string;
+  brand_image: File | null | string;
 }
 
 export interface Product {
@@ -39,8 +40,4 @@ export interface Product {
 export interface Category {
   category_id: string;
   category_name: string;
-}
-
-export interface ProductFormProps {
-  initialData?: Partial<Product>;
 }

@@ -6,18 +6,15 @@ const allowedOrigins = ["https://bernzz-front.vercel.app"];
 
 // Route categories
 
-const protectedRoutes = [
-  "/dashboard",
-  "/dashboard/:path*",
-  "/api/:path*",
-  "/api",
-  "/api/initialize",
-];
+const protectedRoutes = ["/api/:path*", "/api"];
 const publicRoutes = ["/login", "/signup"];
 const unprotectedApiRoutes = [
   "/api/products",
   "/api/categories",
   "/api/verify",
+  "/dashboard",
+  "/dashboard/:path*",
+  "/api/initialize",
 ];
 
 export default async function middleware(req: NextRequest) {
