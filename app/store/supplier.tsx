@@ -2,7 +2,7 @@ import {
   fetchSupplierById,
   getUniqueSuppliers,
 } from "@/lib/actions/Supplier/fetch";
-import { getCachedData, setCachedData } from "@/lib/utils";
+import { CacheUtil } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface Supplier {
@@ -19,7 +19,7 @@ export interface SupplierState {
   loading: boolean;
   error: string | null;
   fetchUniqueSuppliers: () => Promise<void>;
-  fetchSupplierByIdState: (supplier_id: number) => void;
+  fetchSupplierByIdState: (supplier_id: number) => Promise<Supplier | null>;
 }
 
 export const createSupplierSlice: StateCreator<SupplierState> = (set) => ({
@@ -29,7 +29,7 @@ export const createSupplierSlice: StateCreator<SupplierState> = (set) => ({
 
   fetchUniqueSuppliers: async () => {
     const cacheKey = "suppliersData";
-    const cachedData = getCachedData<Supplier[]>(cacheKey);
+    const cachedData = CacheUtil.get<Supplier[]>(cacheKey);
 
     if (cachedData) {
       set({ suppliers: cachedData, loading: false, error: null });
@@ -39,12 +39,17 @@ export const createSupplierSlice: StateCreator<SupplierState> = (set) => ({
     set({ loading: true, error: null });
 
     try {
-      const freshData: Supplier[] = await getUniqueSuppliers();
+      const freshData = await getUniqueSuppliers();
 
-      // Cache the fetched data with a TTL of
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+      if (Array.isArray(freshData)) {
+        // Cache the fetched data
+        CacheUtil.set(cacheKey, freshData);
 
-      set({ suppliers: freshData, loading: false, error: null });
+        // Update state
+        set({ suppliers: freshData, loading: false, error: null });
+      } else {
+        throw new Error("Invalid supplier data format");
+      }
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Error fetching suppliers",
@@ -54,36 +59,35 @@ export const createSupplierSlice: StateCreator<SupplierState> = (set) => ({
   },
 
   fetchSupplierByIdState: async (supplier_id: number) => {
-    set({ loading: true });
+    const cacheKey = `supplier_${supplier_id}`;
+    const cachedSupplier = CacheUtil.get<Supplier>(cacheKey);
+
+    if (cachedSupplier) {
+      set({ loading: false, error: null });
+      return cachedSupplier;
+    }
+
+    set({ loading: true, error: null });
 
     try {
-      // Call server action to delete the supplier
-      await fetchSupplierById(supplier_id);
+      const supplier = await fetchSupplierById(supplier_id);
 
-      // Invalidate the cache
-      const cacheKey = "suppliersData";
-      setCachedData(cacheKey, null); // Clear the cached data
+      if (supplier) {
+        // Cache the fetched supplier data
+        CacheUtil.set(cacheKey, supplier);
 
-      // Refetch suppliers after deletion to ensure the latest data
-      const freshData: Supplier[] = await getUniqueSuppliers();
-
-      // Update the cache with the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
-
-      // Update the state with the latest suppliers
-      set({ suppliers: freshData, loading: false, error: null });
-
-      // Optionally, show a success toast or notification
-      return { success: true };
+        // Optionally update state if selected supplier is needed
+        set({ loading: false, error: null });
+        return supplier;
+      } else {
+        throw new Error(`Supplier with ID ${supplier_id} not found`);
+      }
     } catch (err) {
-      // Handle any errors that occur
       set({
-        error: err instanceof Error ? err.message : "Error getting supplier",
+        error: err instanceof Error ? err.message : "Error fetching supplier",
         loading: false,
       });
-
-      // Optionally, show an error toast or notification
-      return { success: false };
+      return null;
     }
   },
 });

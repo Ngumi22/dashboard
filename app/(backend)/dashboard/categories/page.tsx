@@ -7,8 +7,6 @@ import { Category, Filter, RowAction } from "@/components/Data-Table/types";
 import { filterData, searchData } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useStore } from "@/app/store";
-import Image from "next/image";
-
 import {
   Dialog,
   DialogContent,
@@ -16,13 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
 import CategoryForm from "@/components/Categories/form";
-import { Button } from "@/components/ui/button";
-import { deleteCategory } from "@/lib/actions/Category/delete";
+import ReusableAlertDialog from "@/components/alert-dialog";
+import { fetchCategoryById } from "@/lib/actions/Category/fetch";
 
 const includedKeys: (keyof Category)[] = [
   "category_id",
@@ -41,16 +38,17 @@ const columnRenderers = {
       height={50}
     />
   ),
-  status: (category: { status: string }) => (
+  category_status: (category: { category_status: string }) => (
     <Badge
       variant={
-        category.status === "Active"
+        category.category_status === "active"
           ? "default"
-          : category.status === "Inactive"
+          : category.category_status === "inactive"
           ? "secondary"
           : "destructive"
       }>
-      {category.status.charAt(0).toUpperCase() + category.status.slice(1)}
+      {category.category_status.charAt(0).toUpperCase() +
+        category.category_status.slice(1)}
     </Badge>
   ),
 };
@@ -60,7 +58,7 @@ export default function CategoriesPage() {
     (state) => state.fetchUniqueCategories
   );
   const categories = useStore((state) => state.categories);
-  // const deleteCategory = useStore((state) => state.deleteCategoryState);
+  const deleteCategory = useStore((state) => state.deleteCategoryState);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,11 +68,11 @@ export default function CategoriesPage() {
     {}
   );
   const [sortKey, setSortKey] = useState<keyof Category>("category_name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deletingCategory, setDeletingCategory] =
-    useState<keyof Category>("category_id");
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [viewingCategory, setViewingCategory] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -82,8 +80,25 @@ export default function CategoriesPage() {
     fetchUniqueCategories(); // Fetch initial page
   }, [fetchUniqueCategories, currentPage]);
 
+  // Dynamically generate category supplier_name from the products data
+  const categoryOptions = useMemo(() => {
+    const uniqueCategories = new Set(
+      categories.map((category) => category.category_name)
+    );
+    return Array.from(uniqueCategories).map((category) => ({
+      value: category || "",
+      label: category || "",
+    }));
+  }, [categories]);
+
   const filters: Filter<any>[] = useMemo(
     () => [
+      {
+        key: "category_name",
+        label: "Name",
+        type: "select",
+        options: categoryOptions, // Dynamically populated suppliers
+      },
       {
         key: "status",
         label: "Status",
@@ -97,6 +112,49 @@ export default function CategoriesPage() {
     []
   );
 
+  const handleDeleteCategory = async (category_id: string | null) => {
+    if (!category_id) {
+      alert("No category ID provided.");
+      return;
+    }
+
+    try {
+      const result = deleteCategory(category_id);
+      if (result == result) {
+        toast({
+          title: "Success",
+          description: "Category deleted successfully.",
+        });
+        fetchUniqueCategories(); // Refresh data
+      } else {
+        throw new Error("Failed to delete category.");
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the category.",
+      });
+    } finally {
+      setDeletingCategory(null);
+      setIsAlertDialogOpen(false);
+    }
+  };
+
+  const handleViewCategory = async (category_id: string | null) => {
+    if (!category_id) {
+      alert("No category ID provided.");
+      return;
+    }
+
+    const result = fetchCategoryById(category_id);
+    if (result == result) {
+      router.push(`/dashboard/categories/${category_id}/category`);
+    } else {
+      throw new Error("Failed to delete category.");
+    }
+  };
+
   const rowActions: RowAction<any>[] = [
     {
       label: "Edit",
@@ -109,27 +167,9 @@ export default function CategoriesPage() {
     {
       label: "Delete",
       icon: Trash,
-      onClick: async (category) => {
-        const confirmDelete = window.confirm(
-          `Are you sure you want to delete the category "${category.category_name}"?`
-        );
-        if (!confirmDelete) return;
-
-        try {
-          const response = await deleteCategory(category.category_id);
-          if (response.success) {
-            toast({ title: "Success", description: response.message });
-            fetchUniqueCategories(); // Refresh the data
-          } else {
-            toast({ title: "Error", description: response.error });
-          }
-        } catch (error) {
-          console.error(error);
-          toast({
-            title: "Error",
-            description: "An error occurred while deleting the category.",
-          });
-        }
+      onClick: (category) => {
+        setDeletingCategory(category.category_id); // Extract and set only the `category_id`
+        setIsAlertDialogOpen(true);
       },
     },
 
@@ -137,7 +177,7 @@ export default function CategoriesPage() {
       label: "View",
       icon: Eye,
       onClick: (category) => {
-        router.push(`/dashboard/categories/${category.category_id}/category`);
+        handleViewCategory(category.category_id); // Extract and set only the `category_id`
       },
     },
   ];
@@ -146,7 +186,7 @@ export default function CategoriesPage() {
     let result = searchData(categories, searchTerm, "category_name");
     result = filterData(result, filters, activeFilters);
     return result;
-  }, [categories, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [categories, searchTerm, activeFilters, sortKey, filters]);
 
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * rowsPerPage,
@@ -255,7 +295,6 @@ export default function CategoriesPage() {
           columnRenderers={columnRenderers} // Updated
         />
       )}
-
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[40rem]">
           <DialogHeader>
@@ -274,6 +313,19 @@ export default function CategoriesPage() {
           />
         </DialogContent>
       </Dialog>
+      <ReusableAlertDialog
+        triggerElement=""
+        title="Delete Category"
+        description={`Are you sure you want to delete the category with id ${deletingCategory}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isOpen={isAlertDialogOpen}
+        onConfirm={() => handleDeleteCategory(deletingCategory)}
+        onCancel={() => {
+          setDeletingCategory(null);
+          setIsAlertDialogOpen(false);
+        }}
+      />
     </div>
   );
 }

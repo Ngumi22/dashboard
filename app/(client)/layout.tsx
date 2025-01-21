@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+
 import "../globals.css";
 import Loading from "./loading";
 
 import { lazy, Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
-import { initialize } from "@/lib/MysqlDB/initialize";
+import { Inter } from "next/font/google";
+import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
 
-initialize();
-
-const roboto = Roboto({
-  subsets: ["latin"],
-  weight: "400",
-});
+// If loading a variable font, you don't need to specify the font weight
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -27,9 +24,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font" suppressHydrationWarning={true}>
+      <body className={inter.className}>
         <ClientSideWrapper>
-          <Suspense fallback={<Loading />}>{children}</Suspense>
+          <Suspense fallback={<Loading />}>
+            <NewNavbar />
+            {children}
+          </Suspense>
         </ClientSideWrapper>
         <ToastContainer position="bottom-left" />
       </body>

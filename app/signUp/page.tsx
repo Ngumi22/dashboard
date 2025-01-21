@@ -1,9 +1,9 @@
-import SignUpForm from "./signUpForm";
+import { StaffSignupForm } from "./form";
 
 export default function LoginPage() {
   return (
     <div className="flex items-center justify-center h-screen">
-      <SignUpForm />
+      <StaffSignupForm />
     </div>
   );
 }

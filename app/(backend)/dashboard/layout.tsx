@@ -34,9 +34,9 @@ export default function AdminPanelLayout({
             )}>
             <Navbar title="Dashboard" />
             {children}
-            <Toaster />
           </main>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );

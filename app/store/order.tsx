@@ -1,6 +1,6 @@
 import { deleteCategory } from "@/lib/actions/Category/delete";
 import { getUniqueCategories } from "@/lib/actions/Category/fetch";
-import { getCachedData, setCachedData } from "@/lib/utils";
+import { CacheUtil } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 interface Category {
@@ -26,7 +26,7 @@ export const createCategorySlice: StateCreator<CategoryState> = (set) => ({
 
   fetchUniqueCategories: async () => {
     const cacheKey = "categoriesData";
-    const cachedData = getCachedData<Category[]>(cacheKey);
+    const cachedData = CacheUtil.get<Category[]>(cacheKey);
 
     if (cachedData) {
       set({ categories: cachedData, loading: false, error: null });
@@ -36,10 +36,10 @@ export const createCategorySlice: StateCreator<CategoryState> = (set) => ({
     set({ loading: true, error: null });
 
     try {
-      const freshData: Category[] = await getUniqueCategories();
+      const freshData = (await getUniqueCategories()) as Category[];
 
       // Cache the fetched data with a TTL of
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+      CacheUtil.set(cacheKey, freshData);
 
       set({ categories: freshData, loading: false, error: null });
     } catch (err) {
@@ -59,13 +59,13 @@ export const createCategorySlice: StateCreator<CategoryState> = (set) => ({
 
       // Invalidate the cache
       const cacheKey = "categorysData";
-      setCachedData(cacheKey, null); // Clear the cached data
+      CacheUtil.set(cacheKey, null); // Clear the cached data
 
       // Refetch categorys after deletion to ensure the latest data
-      const freshData: Category[] = await getUniqueCategories();
+      const freshData = (await getUniqueCategories()) as Category[];
 
       // Update the cache with the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+      CacheUtil.set(cacheKey, freshData);
 
       // Update the state with the latest categorys
       set({ categories: freshData, loading: false, error: null });

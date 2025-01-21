@@ -86,7 +86,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   images: {
-    mainImage: string;
+    mainImage: string | null;
     thumbnail1: string | null;
     thumbnail2: string | null;
     thumbnail3: string | null;
@@ -101,7 +101,7 @@ export interface Category {
   category_name: string;
   category_image: string;
   category_description: string;
-  category_status: "Active" | "Inactive";
+  category_status: "active" | "inactive";
 }
 
 // Define the User type

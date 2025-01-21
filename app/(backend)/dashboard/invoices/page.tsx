@@ -7,8 +7,6 @@ import { Category, Filter, RowAction } from "@/components/Data-Table/types";
 import { filterData, searchData } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useStore } from "@/app/store";
-import Image from "next/image";
-
 import {
   Dialog,
   DialogContent,
@@ -16,12 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
 import CategoryForm from "@/components/Categories/form";
-import { Button } from "@/components/ui/button";
+import ReusableAlertDialog from "@/components/alert-dialog";
+import { fetchCategoryById } from "@/lib/actions/Category/fetch";
 
 const includedKeys: (keyof Category)[] = [
   "category_id",
@@ -32,27 +30,26 @@ const includedKeys: (keyof Category)[] = [
 ];
 
 const columnRenderers = {
-  status: (category: { status: string }) => (
+  category_image: (category: Category) => (
+    <Base64Image
+      src={category.category_image}
+      alt={category.category_name}
+      width={50}
+      height={50}
+    />
+  ),
+  category_status: (category: { category_status: string }) => (
     <Badge
       variant={
-        category.status === "Active"
+        category.category_status === "active"
           ? "default"
-          : category.status === "Inactive"
+          : category.category_status === "inactive"
           ? "secondary"
           : "destructive"
       }>
-      {category.status
-        ? category.status.charAt(0).toUpperCase() + category.status.slice(1)
-        : "Unknown"}
+      {category.category_status.charAt(0).toUpperCase() +
+        category.category_status.slice(1)}
     </Badge>
-  ),
-
-  images: (category: Category) => (
-    <img
-      src={`data:image/jpeg;base64,${category.category_image}`}
-      alt={category.category_name}
-      style={{ width: "50px", height: "50px" }}
-    />
   ),
 };
 
@@ -61,6 +58,7 @@ export default function CategoriesPage() {
     (state) => state.fetchUniqueCategories
   );
   const categories = useStore((state) => state.categories);
+  const deleteCategory = useStore((state) => state.deleteCategoryState);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,7 +69,10 @@ export default function CategoriesPage() {
   );
   const [sortKey, setSortKey] = useState<keyof Category>("category_name");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [viewingCategory, setViewingCategory] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -82,7 +83,7 @@ export default function CategoriesPage() {
   const filters: Filter<any>[] = useMemo(
     () => [
       {
-        key: "status",
+        key: "category_status",
         label: "Status",
         type: "select",
         options: [
@@ -94,32 +95,72 @@ export default function CategoriesPage() {
     []
   );
 
+  const handleDeleteCategory = async (category_id: string | null) => {
+    if (!category_id) {
+      alert("No category ID provided.");
+      return;
+    }
+
+    try {
+      const result = deleteCategory(category_id);
+      if (result == result) {
+        toast({
+          title: "Success",
+          description: "Category deleted successfully.",
+        });
+        fetchUniqueCategories(); // Refresh data
+      } else {
+        throw new Error("Failed to delete category.");
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the category.",
+      });
+    } finally {
+      setDeletingCategory(null);
+      setIsAlertDialogOpen(false);
+    }
+  };
+
+  const handleViewCategory = async (category_id: string | null) => {
+    if (!category_id) {
+      alert("No category ID provided.");
+      return;
+    }
+
+    const result = fetchCategoryById(category_id);
+    if (result == result) {
+      router.push(`/dashboard/categories/${category_id}/category`);
+    } else {
+      throw new Error("Failed to delete category.");
+    }
+  };
+
   const rowActions: RowAction<any>[] = [
     {
       label: "Edit",
       icon: Edit,
       onClick: (category) => {
-        return (
-          <Button
-            onClick={() => {
-              setEditingCategory(null);
-              setIsDialogOpen(true);
-            }}>
-            <Plus className="mr-2 h-4 w-4" /> Add Category
-          </Button>
-        );
+        setEditingCategory(category);
+        setIsDialogOpen(true);
       },
     },
     {
       label: "Delete",
       icon: Trash,
-      onClick: async (category) => {},
+      onClick: (category) => {
+        setDeletingCategory(category.category_id); // Extract and set only the `category_id`
+        setIsAlertDialogOpen(true);
+      },
     },
+
     {
       label: "View",
       icon: Eye,
       onClick: (category) => {
-        router.push(`/dashboard/categories/${category.category_id}/category`);
+        handleViewCategory(category.category_id); // Extract and set only the `category_id`
       },
     },
   ];
@@ -234,10 +275,9 @@ export default function CategoriesPage() {
           activeFilters={activeFilters}
           onClearFilter={handleClearFilter}
           onResetFilters={handleResetFilters}
-          columnRenderers={columnRenderers}
+          columnRenderers={columnRenderers} // Updated
         />
       )}
-
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[40rem]">
           <DialogHeader>
@@ -256,6 +296,19 @@ export default function CategoriesPage() {
           />
         </DialogContent>
       </Dialog>
+      <ReusableAlertDialog
+        triggerElement=""
+        title="Delete Category"
+        description={`Are you sure you want to delete the category with id ${deletingCategory}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isOpen={isAlertDialogOpen}
+        onConfirm={() => handleDeleteCategory(deletingCategory)}
+        onCancel={() => {
+          setDeletingCategory(null);
+          setIsAlertDialogOpen(false);
+        }}
+      />
     </div>
   );
 }

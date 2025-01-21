@@ -1,19 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // experimental: {
-    //     allowedOrigins: ['http://localhost:3000'],
-    //     bodySizeLimit: '5mb',
-    // },
-
-    // async redirects() {
-    //     return [
-    //         {
-    //             source: '/',
-    //             destination: '/login',
-    //             permanent: false,
-    //         },
-    //     ]
-    // },
+    experimental: {
+        allowedOrigins: ['http://localhost:3000'],
+        bodySizeLimit: '5mb',
+    },
     async headers() {
         return [
             {

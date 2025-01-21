@@ -16,7 +16,7 @@ export async function CategorySubmitAction(
   prevState: FormState,
   data: FormData
 ): Promise<FormState> {
-  const uniqueCategoriesCacheKey = "unique_categories";
+  const uniqueCategoriesCacheKey = "categoriesData";
 
   try {
     // Validate form data using Zod schema
@@ -102,7 +102,7 @@ export async function updateCategoryAction(
   category_id: string,
   formData: FormData
 ) {
-  const uniqueCategoriesCacheKey = "unique_categories";
+  const uniqueCategoriesCacheKey = "categoriesData";
   const categoryCacheKey = `category_${category_id}`;
 
   const connection = await getConnection();

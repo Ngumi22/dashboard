@@ -1,12 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFormState, useFormStatus } from "react-dom";
-import { login } from "@/lib/actions";
 import Image from "next/image";
 
 import Link from "next/link";
@@ -17,17 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { login } from "@/lib/actions/Auth/login";
 
 export default function LoginForm() {
   const router = useRouter();
   const [state, action] = useFormState(login, undefined);
-
-  useEffect(() => {
-    if (state?.success) {
-      // Redirect to dashboard on successful login
-      router.push("/dashboard");
-    }
-  }, [state, router]);
 
   return (
     <div className="w-full lg:grid lg:min-h-[400px] lg:grid-cols-2 xl:min-h-[600px]">
@@ -68,12 +60,6 @@ export default function LoginForm() {
                     {state.errors.password.join(", ")}
                   </p>
                 )}
-
-                {state?.errors?.server && (
-                  <p className="text-sm text-red-500">
-                    {state.errors.server.join(", ")}
-                  </p>
-                )}
               </div>
               <LoginButton />
             </div>
@@ -92,7 +78,7 @@ export default function LoginForm() {
           alt="Image"
           width="1920"
           height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          className="h-screen w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>
     </div>

@@ -3,69 +3,62 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Edit, Trash, Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Product, RowAction } from "@/components/Data-Table/types";
-import {
-  filterData,
-  searchData,
-  sortData,
-} from "@/components/Data-Table/utils";
+import { Category, Filter, RowAction } from "@/components/Data-Table/types";
+import { filterData, searchData } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useStore } from "@/app/store";
-
-interface Category {
-  category_id: number;
-  category_name: string;
-  category_image: string;
-  category_description: string;
-  status: "active" | "inactive";
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
+import Base64Image from "@/components/Data-Table/base64-image";
+import { useToast } from "@/hooks/use-toast";
+import CategoryForm from "@/components/Categories/form";
+import ReusableAlertDialog from "@/components/alert-dialog";
+import { fetchCategoryById } from "@/lib/actions/Category/fetch";
 
 const includedKeys: (keyof Category)[] = [
   "category_id",
   "category_name",
   "category_image",
   "category_description",
-  "status",
+  "category_status",
 ];
 
-import { useRouter, useParams } from "next/navigation";
-import Base64Image from "@/components/Data-Table/base64-image";
-import { useToast } from "@/hooks/use-toast";
-
 const columnRenderers = {
-  status: (item: { status: string }) => (
+  category_image: (category: Category) => (
+    <Base64Image
+      src={category.category_image}
+      alt={category.category_name}
+      width={50}
+      height={50}
+    />
+  ),
+  category_status: (category: { category_status: string }) => (
     <Badge
       variant={
-        item.status === "active"
+        category.category_status === "active"
           ? "default"
-          : item.status === "inactive"
+          : category.category_status === "inactive"
           ? "secondary"
           : "destructive"
       }>
-      {item.status
-        ? item.status.charAt(0).toUpperCase() + item.status.slice(1)
-        : "Unknown"}
+      {category.category_status.charAt(0).toUpperCase() +
+        category.category_status.slice(1)}
     </Badge>
   ),
-
-  images: (item: Category) =>
-    item.category_image && item.category_image ? (
-      <Base64Image
-        src={item.category_image}
-        alt={item.category_name}
-        width={50}
-        height={50}
-      />
-    ) : (
-      <span>No image</span>
-    ),
 };
 
-export default function Home() {
+export default function CategoriesPage() {
   const fetchUniqueCategories = useStore(
     (state) => state.fetchUniqueCategories
   );
   const categories = useStore((state) => state.categories);
+  const deleteCategory = useStore((state) => state.deleteCategoryState);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,9 +68,11 @@ export default function Home() {
     {}
   );
   const [sortKey, setSortKey] = useState<keyof Category>("category_name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [viewingCategory, setViewingCategory] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -85,27 +80,10 @@ export default function Home() {
     fetchUniqueCategories(); // Fetch initial page
   }, [fetchUniqueCategories, currentPage]);
 
-  // Dynamically generate category category_name from the products data
-  const categoryOptions = useMemo(() => {
-    const uniqueCategories = new Set(
-      categories.map((category) => category.category_name)
-    );
-    return Array.from(uniqueCategories).map((category) => ({
-      value: category,
-      label: category,
-    }));
-  }, [categories]);
-
   const filters: Filter<any>[] = useMemo(
     () => [
       {
-        key: "category",
-        label: "Category",
-        type: "select",
-        options: categoryOptions, // Dynamically populated categories
-      },
-      {
-        key: "status",
+        key: "category_status",
         label: "Status",
         type: "select",
         options: [
@@ -114,28 +92,75 @@ export default function Home() {
         ],
       },
     ],
-    [categoryOptions]
+    []
   );
+
+  const handleDeleteCategory = async (category_id: string | null) => {
+    if (!category_id) {
+      alert("No category ID provided.");
+      return;
+    }
+
+    try {
+      const result = deleteCategory(category_id);
+      if (result == result) {
+        toast({
+          title: "Success",
+          description: "Category deleted successfully.",
+        });
+        fetchUniqueCategories(); // Refresh data
+      } else {
+        throw new Error("Failed to delete category.");
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the category.",
+      });
+    } finally {
+      setDeletingCategory(null);
+      setIsAlertDialogOpen(false);
+    }
+  };
+
+  const handleViewCategory = async (category_id: string | null) => {
+    if (!category_id) {
+      alert("No category ID provided.");
+      return;
+    }
+
+    const result = fetchCategoryById(category_id);
+    if (result == result) {
+      router.push(`/dashboard/categories/${category_id}/category`);
+    } else {
+      throw new Error("Failed to delete category.");
+    }
+  };
 
   const rowActions: RowAction<any>[] = [
     {
       label: "Edit",
       icon: Edit,
       onClick: (category) => {
-        // Navigate to the edit page
-        router.push(`/dashboard/categories/${category.category_id}/edit`);
+        setEditingCategory(category);
+        setIsDialogOpen(true);
       },
     },
     {
       label: "Delete",
       icon: Trash,
-      onClick: async (category) => {},
+      onClick: (category) => {
+        setDeletingCategory(category.category_id); // Extract and set only the `category_id`
+        setIsAlertDialogOpen(true);
+      },
     },
+
     {
       label: "View",
       icon: Eye,
       onClick: (category) => {
-        router.push(`/dashboard/categories/${category.category_id}/category`);
+        handleViewCategory(category.category_id); // Extract and set only the `category_id`
       },
     },
   ];
@@ -144,7 +169,7 @@ export default function Home() {
     let result = searchData(categories, searchTerm, "category_name");
     result = filterData(result, filters, activeFilters);
     return result;
-  }, [categories, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [categories, searchTerm, activeFilters, sortKey, filters]);
 
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * rowsPerPage,
@@ -213,7 +238,7 @@ export default function Home() {
   };
 
   const handleAddNew = () => {
-    router.push("/dashboard/products/create");
+    setIsDialogOpen(true);
   };
 
   const handleClearFilter = (key: string, value: string) => {
@@ -227,28 +252,62 @@ export default function Home() {
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Customers Management</h1>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-      <DataTable
-        data={paginatedData}
-        includedKeys={includedKeys}
-        filters={filters}
-        rowActions={rowActions}
-        onSearch={handleSearch}
-        onFilter={handleFilter}
-        onSort={handleSort}
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        onRowSelect={handleRowSelect}
-        onAddNew={handleAddNew}
-        totalItems={filteredAndSortedData.length}
-        currentPage={currentPage}
-        rowsPerPage={rowsPerPage}
-        activeFilters={activeFilters}
-        onClearFilter={handleClearFilter}
-        onResetFilters={handleResetFilters}
-        columnRenderers={columnRenderers}
+      {loading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <p>Error</p>
+      ) : (
+        <DataTable
+          data={paginatedData}
+          includedKeys={includedKeys}
+          filters={filters}
+          rowActions={rowActions}
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          onSort={handleSort}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          onRowSelect={handleRowSelect}
+          onAddNew={handleAddNew}
+          totalItems={filteredAndSortedData.length}
+          currentPage={currentPage}
+          rowsPerPage={rowsPerPage}
+          activeFilters={activeFilters}
+          onClearFilter={handleClearFilter}
+          onResetFilters={handleResetFilters}
+          columnRenderers={columnRenderers} // Updated
+        />
+      )}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[40rem]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? "Edit Category" : "Add New Category"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCategory
+                ? "Modify the category details below."
+                : "Create a new category."}
+            </DialogDescription>
+          </DialogHeader>
+          <CategoryForm
+            initialData={editingCategory || undefined}
+            onCancel={() => setIsDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+      <ReusableAlertDialog
+        triggerElement=""
+        title="Delete Category"
+        description={`Are you sure you want to delete the category with id ${deletingCategory}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isOpen={isAlertDialogOpen}
+        onConfirm={() => handleDeleteCategory(deletingCategory)}
+        onCancel={() => {
+          setDeletingCategory(null);
+          setIsAlertDialogOpen(false);
+        }}
       />
     </div>
   );

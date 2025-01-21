@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decrypt } from "./lib/sessions";
+import { decrypt } from "./lib/actions/Auth/sessions";
 
 // Allowed origins for CORS
 const allowedOrigins = ["https://bernzz-front.vercel.app"];
 
 // Route categories
 
-const protectedRoutes = ["/api/:path*", "/api"];
-const publicRoutes = ["/login", "/signup"];
-const unprotectedApiRoutes = [
-  "/api/products",
-  "/api/categories",
-  "/api/verify",
+const protectedRoutes = [
   "/dashboard",
   "/dashboard/:path*",
-  "/api/initialize",
+  "/api/:path*",
+  "/api",
 ];
+const publicRoutes = ["/login", "/signup"];
+const unprotectedApiRoutes = ["/api/verify", "/api/initialize"];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -76,7 +74,7 @@ export default async function middleware(req: NextRequest) {
   if (isProtectedRoute && !isUnprotectedApiRoute && !session?.userId) {
     if (path.startsWith("/api")) {
       return new NextResponse(
-        JSON.stringify({ error: "Unauthorized: Please log in." }),
+        JSON.stringify({ error: "Unauthorized: You must be logged in." }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }

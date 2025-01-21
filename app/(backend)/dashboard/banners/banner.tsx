@@ -1,58 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { createBanner } from "@/lib/actions/Banners/post";
 import { updateBannerAction } from "@/lib/actions/Banners/update";
+import { bannerSchema } from "@/lib/ZodSchemas/bannerschema";
+import { useStore } from "@/app/store";
+import { fetchUsageContexts } from "@/lib/actions/Banners/fetch";
+import { Banner } from "@/lib/actions/Banners/bannerType";
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-const bannerSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().max(500).optional(),
-  link: z.string().url().optional(),
-  image: z
-    .any()
-    .refine((file) => file?.size <= MAX_FILE_SIZE, "Max file size is 100MB.")
-    .refine(
-      (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-      "Only .jpg, .png, and .webp formats are supported."
-    )
-    .optional(),
-  text_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color"),
-  background_color: z
-    .string()
-    .regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color"),
-  status: z.enum(["active", "inactive"]),
-  usage_context: z.string().min(1, "Context is required"),
-});
-
-interface Banner {
-  banner_id?: number;
-  title: string;
-  description?: string;
-  link?: string;
-  image?: string | File;
-  text_color: string;
-  background_color: string;
-  usage_context: string;
-  status: "active" | "inactive";
+export interface UsageContext {
+  context_id: number | string;
+  name: string;
 }
 
 interface BannerFormProps {
   initialData?: Banner;
+  onClose?: () => void;
 }
 
 export default function BannerForm({ initialData }: BannerFormProps) {
@@ -62,6 +43,7 @@ export default function BannerForm({ initialData }: BannerFormProps) {
       ? `data:image/jpeg;base64,${initialData.image}`
       : null
   );
+  const [usageContexts, setUsageContexts] = useState<UsageContext[]>([]);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -75,7 +57,11 @@ export default function BannerForm({ initialData }: BannerFormProps) {
       text_color: initialData?.text_color || "#000000",
       background_color: initialData?.background_color || "#FFFFFF",
       status: initialData?.status || "active",
-      usage_context: initialData?.usage_context || "",
+      context_type: initialData?.usage_context_id ? "existing" : "new",
+      usage_context_id: initialData?.usage_context_id || "",
+      new_context_name: initialData?.usage_context_id
+        ? ""
+        : initialData?.new_context_name || "",
     },
   });
 
@@ -84,23 +70,38 @@ export default function BannerForm({ initialData }: BannerFormProps) {
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = form;
 
+  const contextType = watch("context_type");
+
+  useEffect(() => {
+    const loadUsageContexts = async () => {
+      const contexts = await fetchUsageContexts();
+      setUsageContexts(contexts || []);
+
+      if (initialData?.usage_context_id) {
+        setValue("usage_context_id", initialData.usage_context_id);
+        setValue("context_type", "existing");
+      }
+    };
+    loadUsageContexts();
+  }, [initialData, setValue]);
+
   const onSubmit = async (data: Banner) => {
-    if (isSubmitting) return; // Prevent multiple submissions
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     const formData = new FormData();
 
-    // Add banner data to FormData
     Object.entries(data).forEach(([key, value]) => {
       if (key === "image" && value instanceof File) {
         formData.append(key, value);
       } else if (key === "image" && initialData?.image) {
         formData.append("existing_image", initialData.image as string);
-      } else {
-        formData.append(key, value as string);
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
       }
     });
 
@@ -159,27 +160,28 @@ export default function BannerForm({ initialData }: BannerFormProps) {
 
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* Other form fields remain unchanged */}
+
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" {...register("title")} />
             {errors.title && <p>{errors.title.message}</p>}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="usage_context">Usage Context</Label>
-            <Textarea id="usage_context" {...register("usage_context")} />
-            {errors.usage_context && <p>{errors.usage_context.message}</p>}
-          </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" {...register("description")} />
+            {errors.description && <p>{errors.description.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="link">Link to</Label>
             <Input id="link" type="url" {...register("link")} />
+            {errors.link && <p>{errors.link.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="text_color">Text Colour</Label>
             <Input id="text_color" type="color" {...register("text_color")} />
+            {errors.text_color && <p>{errors.text_color.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="background_color">Background Colour</Label>
@@ -188,6 +190,9 @@ export default function BannerForm({ initialData }: BannerFormProps) {
               type="color"
               {...register("background_color")}
             />
+            {errors.background_color && (
+              <p>{errors.background_color.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="image">Image</Label>
@@ -197,9 +202,10 @@ export default function BannerForm({ initialData }: BannerFormProps) {
               accept="image/*"
               onChange={handleImageChange}
             />
+            {errors.image && <p>{errors.image.message}</p>}
             {imagePreview && (
               <Image
-                src={imagePreview}
+                src={imagePreview || "/placeholder.svg"}
                 alt="Preview"
                 height={100}
                 width={100}
@@ -223,9 +229,111 @@ export default function BannerForm({ initialData }: BannerFormProps) {
                 <Label htmlFor="inactive">Inactive</Label>
               </div>
             </RadioGroup>
+            {errors.status && <p>{errors.status.message}</p>}
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="context_type">Usage Context</Label>
+            <Controller
+              name="context_type"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    if (value === "new") {
+                      setValue("usage_context_id", "");
+                    } else {
+                      setValue("new_context_name", "");
+                    }
+                  }}
+                  value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select context type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="existing">
+                      Select Existing Context
+                    </SelectItem>
+                    <SelectItem value="new">Create New Context</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          {contextType === "existing" ? (
+            <div className="space-y-2">
+              <Label htmlFor="usage_context_id">Select Context</Label>
+              <Controller
+                name="usage_context_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(value) => {
+                      console.log("Selected context_id:", value); // Logs the selected context_id
+                      field.onChange(value);
+
+                      // Ensure value is a number to match against context_id
+                      const matchedContext = usageContexts.find(
+                        (context) => context.context_id === value
+                      );
+
+                      // Debugging log to check if the matched context is found
+                      console.log("Matched context:", matchedContext);
+
+                      if (matchedContext) {
+                        // Update the field with the selected context name
+                        setValue("usage_context_name", matchedContext.name); // Update context name
+                      } else {
+                        setValue("usage_context_name", ""); // Clear the name if not found
+                      }
+                    }}
+                    value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue>
+                        <SelectValue>
+                          {field.value
+                            ? usageContexts.find(
+                                (context) =>
+                                  context.context_id === Number(field.value)
+                              )?.name || "Invalid context"
+                            : "Select a context"}
+                        </SelectValue>
+                      </SelectValue>
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {usageContexts.map((context) => (
+                        <SelectItem
+                          key={context.context_id}
+                          value={String(context.context_id)}>
+                          {context.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="new_context_name">New Context Name</Label>
+              <Input id="new_context_name" {...register("new_context_name")} />
+              {errors.new_context_name && (
+                <p className="text-red-500">
+                  {errors.new_context_name.message}
+                </p>
+              )}
+            </div>
+          )}
+
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Banner"}
+            {isSubmitting
+              ? "Submitting..."
+              : initialData
+              ? "Update Banner"
+              : "Create Banner"}
           </Button>
         </form>
       </CardContent>

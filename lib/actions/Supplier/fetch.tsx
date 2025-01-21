@@ -1,21 +1,10 @@
 "use server";
 
-import { cache, setCache } from "@/lib/cache";
+import { CacheUtil } from "@/lib/cache";
 import { Supplier } from "./supplierTypes";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function getUniqueSuppliers() {
-  const cacheKey = "unique_suppliers";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value; // Return cached data if it hasn't expired
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return dbOperation(async (connection) => {
     // Fetch all unique suppliers
     const [suppliers] = await connection.query(`
@@ -44,25 +33,17 @@ export async function getUniqueSuppliers() {
       supplier_location: supplier.supplier_location,
     }));
 
-    // Cache the result with an expiry time of 1 hour
-    setCache(cacheKey, uniqueSuppliers, { ttl: 60 * 60 * 1000 });
     return uniqueSuppliers;
   });
 }
 
-export async function fetchSupplierById(
-  supplier_id: number
-): Promise<Supplier | null> {
+export async function fetchSupplierById(supplier_id: number): Promise<any> {
   const cacheKey = `supplier_${supplier_id}`;
 
-  // Check if data is in cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Supplier; // Return cached data if not expired
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
+  if (!supplier_id) throw new Error("Invalid supplier ID");
+
+  const cachedProduct = CacheUtil.get<Supplier>(cacheKey);
+  if (cachedProduct) return cachedProduct;
 
   return dbOperation(async (connection) => {
     const [rows]: [Supplier[]] = await connection.query(
@@ -85,8 +66,7 @@ export async function fetchSupplierById(
       supplier_location: rows[0].supplier_location,
     };
 
-    // Cache the result with a TTL of 60 seconds
-    setCache(cacheKey, supplier, { ttl: 60 * 1000 });
+    CacheUtil.set(cacheKey, supplier); // Use CacheUtil for caching
 
     return supplier;
   });

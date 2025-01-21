@@ -1,14 +1,19 @@
 "use server";
-import { cache } from "@/lib/cache";
-import { getConnection } from "@/lib/MysqlDB/initDb";
+
+import { CacheUtil } from "@/lib/cache";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 import { revalidatePath } from "next/cache";
 
 export async function updateProduct(product_id: string, formData: FormData) {
-  const cacheKey = `product_${product_id}`;
-  const connection = await getConnection();
+  if (!product_id || !formData) {
+    throw new Error("Invalid product ID or form data");
+  }
 
-  try {
+  const cacheKey = `product_${product_id}`;
+  const allProductsCacheKey = `products`;
+
+  return dbOperation(async (connection) => {
     // Parse data from FormData
     const productName = formData.get("product_name") as string | null;
     const productSku = formData.get("product_sku") as string | null;
@@ -24,7 +29,6 @@ export async function updateProduct(product_id: string, formData: FormData) {
     const productStatus = formData.get("product_status") as string | null;
     const categoryId = formData.get("category_id") as string | null;
     const brandId = formData.get("brand_id") as string | null;
-
     const updatedBy = formData.get("updated_by") as string | null;
 
     // Prepare the SQL query for updating the product
@@ -72,20 +76,15 @@ export async function updateProduct(product_id: string, formData: FormData) {
 
     const updatedProduct = rows[0];
 
-    // Update cache with the updated product
-    cache.set(cacheKey, {
-      value: updatedProduct,
-      expiry: Date.now() + 3600 * 1000, // Cache expiry: 1 hour
-    });
+    // Update the cache for the specific product
+    CacheUtil.set(cacheKey, updatedProduct, 60); // Cache expiry: 1 hour
+
+    // Optionally, you can batch update or invalidate other relevant caches
+    CacheUtil.invalidate(allProductsCacheKey); // Invalidate allProducts cache to refresh the product list
 
     // Revalidate the products page
     revalidatePath("/dashboard/products");
 
     return { success: true, product: updatedProduct };
-  } catch (error) {
-    console.error("Error updating product:", error);
-    return { success: false, error: "Failed to update product" };
-  } finally {
-    connection.release();
-  }
+  });
 }

@@ -72,7 +72,11 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         const fetchedBrands = await getUniqueBrands();
         const fetchedCategories = await getUniqueCategories();
         setExistingBrands(fetchedBrands || []);
-        setCategories(fetchedCategories || []);
+        setCategories(
+          Array.isArray(fetchedCategories)
+            ? fetchedCategories
+            : fetchedCategories.products || []
+        );
       } catch (error) {
         console.error("Failed to fetch brands:", error);
         setError("Failed to load brands. Please try again later.");
@@ -87,45 +91,30 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
   const handleOptionChange = (value: string) => {
     setSelectedOption(value);
-    if (value !== "new") {
+
+    if (value === "new") {
+      setIsNewBrand(true);
+      setSelectedBrandId(null);
       setNewBrandName("");
       setNewBrandImage(null);
-    }
-  };
-
-  const handleBrandChange = (value: string) => {
-    if (value === "new") {
-      setIsNewBrand(true); // Show inputs for new brand
-      setSelectedBrandId(null); // Clear selected brand
       setProduct((prev) => ({
         ...prev,
         brand_id: "",
         brand_name: "",
-        brand_image: null, // Ensure image is reset
       }));
-      resetBrandImageInput();
-    } else if (value === "") {
-      setIsNewBrand(false); // Hide new brand inputs
-      setSelectedBrandId(null); // Reset brand ID
-      setProduct((prev) => ({
-        ...prev,
-        brand_id: "",
-        brand_name: "",
-        brand_image: null,
-      }));
-      resetBrandImageInput();
     } else {
-      setIsNewBrand(false); // Hide new brand inputs
-      const brandId = parseInt(value, 10);
-      setSelectedBrandId(brandId);
-      const selectedBrand = brands.find((brand) => brand.brand_id === brandId);
-      setProduct((prev) => ({
-        ...prev,
-        brand_id: brandId.toString(),
-        brand_name: selectedBrand?.brand_name || "",
-        brand_image: null, // Ensure image is reset
-      }));
-      resetBrandImageInput();
+      setIsNewBrand(false);
+      setSelectedBrandId(Number(value));
+      const selectedBrand = existingBrands.find(
+        (brand) => String(brand.brand_id) === value
+      );
+      if (selectedBrand) {
+        setProduct((prev) => ({
+          ...prev,
+          brand_id: selectedBrand.brand_id.toString(),
+          brand_name: selectedBrand.brand_name,
+        }));
+      }
     }
   };
 
@@ -215,15 +204,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       addTag();
-    }
-  };
-
-  const resetBrandImageInput = () => {
-    const fileInput = document.querySelector(
-      'input[name="brand_image"]'
-    ) as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = "";
     }
   };
 
@@ -451,7 +431,9 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             {/* Brand */}
 
             <div className="space-y-4 w-full max-w-md mx-auto">
-              <Select onValueChange={handleOptionChange}>
+              <Select
+                onValueChange={handleOptionChange}
+                defaultValue={product.brand_id?.toString() || ""}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a brand" />
                 </SelectTrigger>
@@ -466,6 +448,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                   <SelectItem value="new">Add New Brand</SelectItem>
                 </SelectContent>
               </Select>
+
               {selectedOption === "new" && (
                 <div className="space-y-4">
                   <div>
@@ -515,35 +498,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 <div>
                   <Label>Selected Brand</Label>
                   <div className="mt-2 flex items-center space-x-4">
-                    <div className="relative w-16 h-16">
-                      <Image
-                        src={(() => {
-                          const selectedBrand = existingBrands.find(
-                            (b) => String(b.brand_id) === selectedOption
-                          );
-
-                          const brandImage = selectedBrand?.brand_image;
-
-                          if (typeof brandImage === "string") {
-                            return brandImage; // A valid string URL
-                          } else if (brandImage instanceof File) {
-                            return URL.createObjectURL(brandImage); // Convert File to URL
-                          } else {
-                            return "/fallback-image.png"; // Provide a fallback image
-                          }
-                        })()}
-                        alt="Selected brand"
-                        fill
-                        style={{ objectFit: "cover" }}
-                        className="rounded-md"
-                      />
-                    </div>
                     <span className="text-lg font-medium">
-                      {
-                        existingBrands.find(
-                          (b) => String(b.brand_id) === selectedOption
-                        )?.brand_name
-                      }
+                      {existingBrands.find(
+                        (b) => String(b.brand_id) === selectedOption
+                      )?.brand_name || "Unknown Brand"}
                     </span>
                   </div>
                 </div>
@@ -606,22 +564,23 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 placeholder="Enter a tag (press Enter or comma to add)"
               />
               <div className="flex flex-wrap gap-2">
-                {product.tags.map((tag, index) => (
-                  <Badge
-                    key={index}
-                    variant="secondary"
-                    className="text-sm py-1 px-2">
-                    {tag}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-1 h-auto p-0"
-                      onClick={() => removeTag(tag)}>
-                      <X className="h-3 w-3" />
-                      <span className="sr-only">Remove</span>
-                    </Button>
-                  </Badge>
-                ))}
+                {Array.isArray(product?.tags) &&
+                  product.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="text-sm py-1 px-2">
+                      {tag}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1 h-auto p-0"
+                        onClick={() => removeTag(tag)}>
+                        <X className="h-3 w-3" />
+                        <span className="sr-only">Remove</span>
+                      </Button>
+                    </Badge>
+                  ))}
               </div>
             </div>
           </div>

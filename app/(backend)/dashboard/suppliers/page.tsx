@@ -1,14 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Edit, Trash, Eye, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Filter, Product, RowAction } from "@/components/Data-Table/types";
-import {
-  filterData,
-  searchData,
-  sortData,
-} from "@/components/Data-Table/utils";
+import { Edit, Trash, Eye } from "lucide-react";
+import { Filter, RowAction } from "@/components/Data-Table/types";
+import { filterData, searchData } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useStore } from "@/app/store";
 
@@ -27,29 +22,12 @@ const includedKeys: (keyof Supplier)[] = [
   "supplier_email",
   "supplier_phone_number",
   "supplier_location",
-  "isNew",
 ];
 
-import { useRouter, useParams } from "next/navigation";
-import Base64Image from "@/components/Data-Table/base64-image";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
-const columnRenderers = {
-  isNew: (item: { isNew: string }) => (
-    <Badge
-      variant={
-        item.isNew === "True"
-          ? "default"
-          : item.isNew === "False"
-          ? "secondary"
-          : "destructive"
-      }>
-      {item.isNew
-        ? item.isNew.charAt(0).toUpperCase() + item.isNew.slice(1)
-        : "New"}
-    </Badge>
-  ),
-};
+const columnRenderers = {};
 
 export default function Home() {
   const fetchUniqueSuppliers = useStore((state) => state.fetchUniqueSuppliers);
@@ -76,7 +54,7 @@ export default function Home() {
   // Dynamically generate category supplier_name from the products data
   const supplierOptions = useMemo(() => {
     const uniqueSuppliers = new Set(
-      suppliers.map((supplier) => supplier.supplier_name)
+      suppliers.map((supplier) => supplier.supplier_location)
     );
     return Array.from(uniqueSuppliers).map((supplier) => ({
       value: supplier || "",
@@ -87,19 +65,10 @@ export default function Home() {
   const filters: Filter<any>[] = useMemo(
     () => [
       {
-        key: "category",
-        label: "Supplier",
+        key: "location",
+        label: "Location",
         type: "select",
         options: supplierOptions, // Dynamically populated suppliers
-      },
-      {
-        key: "inNew",
-        label: "IsNew",
-        type: "select",
-        options: [
-          { value: "true", label: "True" },
-          { value: "false", label: "false" },
-        ],
       },
     ],
     [supplierOptions]

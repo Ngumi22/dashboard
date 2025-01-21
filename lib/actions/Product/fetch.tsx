@@ -1,23 +1,22 @@
 "use server";
 
-import { RowDataPacket } from "mysql2/promise";
-import { getCache, setCache } from "@/lib/cache";
+import { CacheUtil } from "@/lib/cache";
 import { DBQUERYLIMITS } from "@/lib/Constants";
-import { getErrorMessage } from "@/lib/utils";
-import { getConnection } from "@/lib/MysqlDB/initDb";
 import {
   mapProductRow,
   Product,
   ProductRow,
   SearchParams,
 } from "./productTypes";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function fetchProducts(
   currentPage: number,
   filter: SearchParams
 ): Promise<{ products: Product[]; errorMessage?: string }> {
-  const cacheKey = `filtered_products_${currentPage}_${JSON.stringify(filter)}`;
-  const cachedData = getCache(cacheKey);
+  const cacheKey = `products_${currentPage}_${JSON.stringify(filter)}`;
+  const cachedData = CacheUtil.get<{ products: Product[] }>(cacheKey);
+
   if (cachedData) return cachedData;
 
   const limit =
@@ -25,11 +24,10 @@ export async function fetchProducts(
     DBQUERYLIMITS.default;
   const offset = (currentPage - 1) * limit;
 
-  const connection = await getConnection();
-
-  try {
-    const { whereClause, queryParams } = buildFilterConditions(filter);
-    const query = `
+  return dbOperation(async (connection) => {
+    try {
+      const { whereClause, queryParams } = buildFilterConditions(filter);
+      const query = `
       SELECT
           p.product_id,
           p.product_name AS name,
@@ -66,19 +64,20 @@ export async function fetchProducts(
       ORDER BY p.product_id ASC
       LIMIT ? OFFSET ?`;
 
-    queryParams.push(limit, offset);
-    const [rows] = await connection.query<ProductRow[]>(query, queryParams);
-    const products = await Promise.all(rows.map(mapProductRow));
+      queryParams.push(limit, offset);
+      const [rows] = await connection.query(query, queryParams);
+      const products = await Promise.all(rows.map(mapProductRow));
 
-    const result = { products };
-    setCache(cacheKey, result, { ttl: 300 });
-    return result;
-  } catch (error) {
-    console.error("Error fetching filtered products:", error);
-    throw error;
-  } finally {
-    connection.release();
-  }
+      const result = { products };
+      CacheUtil.set(cacheKey, result); // Use CacheUtil for caching
+      return result;
+    } catch (error) {
+      console.error("Error fetching filtered products:", error);
+      return { products: [], errorMessage: "Unable to load products." };
+    } finally {
+      connection.release();
+    }
+  });
 }
 
 // Helper to build WHERE clause dynamically
@@ -128,19 +127,16 @@ function buildFilterConditions(filter: SearchParams) {
 }
 
 export async function fetchProductByIdFromDb(product_id: string) {
-  const cacheKey = `product:${product_id}`;
+  const cacheKey = `product_${product_id}`;
 
-  // Validate product_id
   if (!product_id) throw new Error("Invalid product ID");
 
-  // Check cache
-  const cachedProduct = getCache(cacheKey);
-  if (cachedProduct) return cachedProduct as Product;
+  const cachedProduct = CacheUtil.get<Product>(cacheKey);
+  if (cachedProduct) return cachedProduct;
 
-  const connection = await getConnection();
-
-  try {
-    const query = `
+  return dbOperation(async (connection) => {
+    try {
+      const query = `
       SELECT
           p.product_id,
           p.product_name AS name,
@@ -153,10 +149,10 @@ export async function fetchProductByIdFromDb(product_id: string) {
           p.product_description AS description,
           b.brand_name AS brand,
           GROUP_CONCAT(DISTINCT s.supplier_name ORDER BY s.supplier_name SEPARATOR ', ') AS suppliers,
-          COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings, -- Uses "rating" column
+          COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
           p.created_at AS createdAt,
           p.updated_at AS updatedAt,
-          MAX(pi.main_image) AS mainImage,
+          MAX(pi.main_image) AS main_image,
           MAX(pi.thumbnail_image1) AS thumbnail1,
           MAX(pi.thumbnail_image2) AS thumbnail2,
           MAX(pi.thumbnail_image3) AS thumbnail3,
@@ -170,27 +166,23 @@ export async function fetchProductByIdFromDb(product_id: string) {
       LEFT JOIN product_tags pt ON p.product_id = pt.product_id
       LEFT JOIN product_suppliers ps ON p.product_id = ps.product_id
       LEFT JOIN suppliers s ON ps.supplier_id = s.supplier_id
-      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id -- Ensure "product_id" exists
+      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
       LEFT JOIN tags t ON pt.tag_id = t.tag_id
-      WHERE p.product_id = ?
-      GROUP BY p.product_id;
+      WHERE p.product_id = ?;
     `;
 
-    const [rows] = await connection.query<RowDataPacket[]>(query, [product_id]);
+      const [rows] = await connection.query(query, [product_id]);
 
-    if (rows.length === 0) return null;
+      if (rows.length === 0) return null;
 
-    const product = mapProductRow(rows[0] as ProductRow);
-
-    // Cache the result
-    setCache(cacheKey, product, { ttl: 300 });
-
-    return product;
-  } catch (error) {
-    const errorMessage = getErrorMessage(error, "fetchProductById");
-    console.error(errorMessage); // This will log both the message and stack trace (on the server)
-    // Pass errorMessage to client or show in UI
-  } finally {
-    connection.release();
-  }
+      const product = mapProductRow(rows[0] as ProductRow);
+      CacheUtil.set(cacheKey, product); // Use CacheUtil for caching
+      return product;
+    } catch (error) {
+      console.error("Error fetching product by ID:", error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  });
 }

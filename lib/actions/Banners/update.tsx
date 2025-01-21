@@ -1,69 +1,76 @@
 "use server";
 
 import { fileToBuffer } from "@/lib/utils";
-import { cache } from "@/lib/cache";
-import { getConnection } from "@/lib/MysqlDB/initDb";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
+import { CacheUtil } from "@/lib/cache";
 
 export async function updateBannerAction(
   banner_id: string,
   formData: FormData
 ) {
-  const uniqueBannerCacheKey = "unique_banner";
-  const bannerCacheKey = `banner_${banner_id}`;
+  const uniqueBannerCacheKey = `banner_${banner_id}`;
+  CacheUtil.get(uniqueBannerCacheKey);
 
-  const connection = await getConnection();
-  try {
-    const bannerTitle = formData.get("title");
-    const bannerDescription = formData.get("description");
-    const bannerLink = formData.get("link");
-    const newImageFile = formData.get("image");
-    const Text_Color = formData.get("text_color");
-    const Background_Color = formData.get("background_color");
-    const status = formData.get("status");
-    const usageContext = formData.get("usage_context");
-
+  return await dbOperation(async (connection) => {
     const updates: string[] = [];
     const values: any[] = [];
+    let hasChanges = false;
 
-    if (bannerTitle) {
-      updates.push("title = ?");
-      values.push(bannerTitle);
+    // Fields for banners table
+    const fields = [
+      "title",
+      "description",
+      "link",
+      "text_color",
+      "background_color",
+      "status",
+    ];
+
+    for (const field of fields) {
+      const value = formData.get(field);
+      if (value !== null && value !== undefined && value !== "") {
+        updates.push(`${field} = ?`);
+        values.push(value);
+        hasChanges = true;
+      }
     }
 
-    if (bannerDescription) {
-      updates.push("description = ?");
-      values.push(bannerDescription);
+    // Handle usage context
+    const newContextName = formData.get("new_context_name") as string | null;
+    const usageContextId = formData.get("usage_context_id") as string | null;
+
+    if (newContextName) {
+      // Create a new usage context and get its ID
+      const [result]: [any, any] = await connection.execute(
+        `INSERT INTO usage_contexts (name) VALUES (?) ON DUPLICATE KEY UPDATE name = VALUES(name), context_id = LAST_INSERT_ID(context_id)`,
+        [newContextName]
+      );
+      const newContextId = result.insertId;
+
+      updates.push("usage_context_id = ?");
+      values.push(newContextId);
+      hasChanges = true;
+    } else if (usageContextId) {
+      updates.push("usage_context_id = ?");
+      values.push(usageContextId);
+      hasChanges = true;
+    } else {
+      throw new Error(
+        "Either 'usage_context_id' or 'new_context_name' must be provided."
+      );
     }
 
-    if (bannerLink) {
-      updates.push("link = ?");
-      values.push(bannerLink);
-    }
-
-    if (Text_Color) {
-      updates.push("text_color = ?");
-      values.push(Text_Color);
-    }
-
-    if (Background_Color) {
-      updates.push("background_color = ?");
-      values.push(Background_Color);
-    }
-
-    if (status) {
-      updates.push("status = ?");
-      values.push(status);
-    }
-
-    if (newImageFile) {
-      const newImageBuffer = await fileToBuffer(newImageFile as File);
+    // Handle image upload
+    const newImageFile = formData.get("image") as File | null;
+    if (newImageFile && newImageFile.size > 0) {
+      const newImageBuffer = await fileToBuffer(newImageFile);
       updates.push("image = ?");
       values.push(newImageBuffer);
+      hasChanges = true;
     }
 
-    // Ensure we have fields to update
-    if (updates.length === 0) {
-      return { success: false, message: "No fields to update." };
+    if (!hasChanges) {
+      return { success: false, message: "No updates were made." };
     }
 
     updates.push("updated_at = NOW()");
@@ -77,21 +84,12 @@ export async function updateBannerAction(
     const [result]: [any, any] = await connection.execute(query, values);
 
     if (result.affectedRows === 0) {
-      throw new Error("Failed to update banner. banner might not exist.");
+      throw new Error("Failed to update banner. Banner might not exist.");
     }
 
-    // Clear caches
-    cache.delete(bannerCacheKey);
-    cache.delete(uniqueBannerCacheKey);
+    // Invalidate the cache
+    CacheUtil.invalidate(uniqueBannerCacheKey);
 
     return { success: true, message: "Banner updated successfully." };
-  } catch (error: any) {
-    console.error("Error updating banner:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to update banner.",
-    };
-  } finally {
-    connection.release();
-  }
+  });
 }

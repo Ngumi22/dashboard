@@ -1,53 +1,98 @@
-import { deleteBanner, getUniqueBanners } from "@/lib/actions/Banners/fetch";
-import { getCachedData, setCachedData } from "@/lib/utils";
+import {
+  deleteBanner,
+  fetchUsageContexts,
+  getUniqueBanners,
+} from "@/lib/actions/Banners/fetch";
+import {
+  CacheUtil,
+  clearCachedData,
+  getCachedData,
+  setCachedData,
+} from "@/lib/cache";
 import { StateCreator } from "zustand";
 
-export interface Banner {
+interface Banner {
   banner_id?: number;
   title: string;
   description?: string;
   link?: string;
-  image?: File | string;
+  image?: string | File;
   text_color: string;
   background_color: string;
-  usage_context: string;
+  usage_context_id: string;
+  context_type: "new" | "existing";
   status: "active" | "inactive";
+  new_context_name: string;
+  usage_context_name: string;
+}
+
+interface Context {
+  context: string;
 }
 
 export interface BannerState {
   banners: Banner[];
+  contexts: any; // Explicitly typed as an array
   loading: boolean;
   error: string | null;
   fetchBanners: () => Promise<void>;
-  deleteBannerState: (banner_id: number) => void;
+  fetchUsageContexts: () => Promise<void>;
+  deleteBannerState: (banner_id: number) => Promise<{ success: boolean }>;
 }
 
 export const createBannerSlice: StateCreator<BannerState> = (set) => ({
-  banners: [],
+  banners: [], // Initialize as an empty array
+  contexts: [], // Initialize as an empty array
   loading: false,
   error: null,
 
   fetchBanners: async () => {
-    const cacheKey = "bannersData";
-    const cachedData = getCachedData<Banner[]>(cacheKey);
+    const cacheKey = "banners";
+    const cachedData = getCachedData<{ banners: Banner[] }>(cacheKey);
 
     if (cachedData) {
-      set({ banners: cachedData, loading: false, error: null });
+      set({ banners: cachedData.banners, loading: false, error: null });
       return;
     }
 
     set({ loading: true, error: null });
 
     try {
-      const freshData: Banner[] = await getUniqueBanners();
+      const banners = (await getUniqueBanners()) as Banner[];
 
-      // Cache the fetched data with a TTL of
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+      // Cache the fetched data with a TTL of 2 minutes
+      setCachedData(cacheKey, { banners }, { ttl: 2 * 60 });
 
-      set({ banners: freshData, loading: false, error: null });
+      set({ banners, loading: false, error: null });
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : "Error fetching banners",
+        loading: false,
+      });
+    }
+  },
+
+  fetchUsageContexts: async () => {
+    const cacheKey = "contexts";
+    const cachedData = getCachedData<Context[]>(cacheKey);
+
+    if (cachedData) {
+      set({ contexts: cachedData, loading: false, error: null });
+      return;
+    }
+
+    set({ loading: true, error: null });
+
+    try {
+      const contexts = await fetchUsageContexts();
+
+      // Cache the fetched data
+      setCachedData(cacheKey, contexts, { ttl: 2 * 60 });
+
+      set({ contexts, loading: false, error: null });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Error fetching contexts",
         loading: false,
       });
     }
@@ -57,32 +102,28 @@ export const createBannerSlice: StateCreator<BannerState> = (set) => ({
     set({ loading: true });
 
     try {
+      const cacheKey = "banners";
       // Call server action to delete the banner
       await deleteBanner(banner_id);
 
-      // Invalidate the cache
-      const cacheKey = "bannersData";
-      setCachedData(cacheKey, null); // Clear the cached data
+      // Clear the cached data
+      clearCachedData(cacheKey);
 
-      // Refetch banners after deletion to ensure the latest data
-      const freshData: Banner[] = await getUniqueBanners();
+      // Refetch banners after deletion
+      const banners = (await getUniqueBanners()) as Banner[];
 
-      // Update the cache with the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+      // Update the cache with fresh data
+      setCachedData(cacheKey, { banners });
 
-      // Update the state with the latest banners
-      set({ banners: freshData, loading: false, error: null });
+      // Update the state
+      set({ banners, loading: false, error: null });
 
-      // Optionally, show a success toast or notification
       return { success: true };
     } catch (err) {
-      // Handle any errors that occur
       set({
         error: err instanceof Error ? err.message : "Error deleting banner",
         loading: false,
       });
-
-      // Optionally, show an error toast or notification
       return { success: false };
     }
   },

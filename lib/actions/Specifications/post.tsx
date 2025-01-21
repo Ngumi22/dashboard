@@ -1,8 +1,8 @@
 "use server";
 
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { getConnection } from "@/lib/MysqlDB/initDb";
 import { getErrorMessage } from "@/lib/utils";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function createProductSpecifications(
   data: FormData,
@@ -48,61 +48,60 @@ export async function createProductSpecifications(
     throw new Error("No valid specifications provided.");
   }
 
-  const connection = await getConnection();
-  await connection.beginTransaction(); // Start a transaction to ensure data consistency
+  return await dbOperation(async (connection) => {
+    try {
+      const specificationIds: number[] = [];
 
-  try {
-    const specificationIds: number[] = [];
+      // Check if specifications exist or insert them
+      for (const spec of specifications) {
+        const [existingSpec]: [RowDataPacket[], FieldPacket[]] =
+          await connection.query(
+            `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
+            [spec.specification_name]
+          );
 
-    // Check if specifications exist or insert them
-    for (const spec of specifications) {
-      const [existingSpec]: [RowDataPacket[], FieldPacket[]] =
+        let specificationId: number;
+
+        if (existingSpec.length > 0) {
+          // Specification exists, use its ID
+          specificationId = existingSpec[0].specification_id;
+        } else {
+          // Specification does not exist, insert it and get the ID
+          const [insertResult]: [any, any] = await connection.query(
+            `INSERT INTO specifications (specification_name) VALUES (?)`,
+            [spec.specification_name]
+          );
+          specificationId = insertResult.insertId; // Access insertId from ResultSetHeader
+        }
+
+        specificationIds.push(specificationId);
+
+        // Insert into category_specifications table
         await connection.query(
-          `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
-          [spec.specification_name]
+          `INSERT IGNORE INTO category_specifications (category_id, specification_id) VALUES (?, ?)`,
+          [categoryId, specificationId]
         );
-
-      let specificationId: number;
-
-      if (existingSpec.length > 0) {
-        // Specification exists, use its ID
-        specificationId = existingSpec[0].specification_id;
-      } else {
-        // Specification does not exist, insert it and get the ID
-        const [insertResult]: [any, any] = await connection.query(
-          `INSERT INTO specifications (specification_name) VALUES (?)`,
-          [spec.specification_name]
-        );
-        specificationId = insertResult.insertId; // Access insertId from ResultSetHeader
       }
 
-      specificationIds.push(specificationId);
+      // Insert into product_specifications table
+      const productSpecInsertValues = specifications.map((spec, index) => [
+        productId,
+        specificationIds[index],
+        spec.specification_value,
+      ]);
 
-      // Insert into category_specifications table
       await connection.query(
-        `INSERT IGNORE INTO category_specifications (category_id, specification_id) VALUES (?, ?)`,
-        [categoryId, specificationId]
+        `INSERT INTO product_specifications (product_id, specification_id, value) VALUES ?`,
+        [productSpecInsertValues]
       );
+
+      await connection.commit(); // Commit the transaction if all queries succeed
+    } catch (error) {
+      await connection.rollback(); // Rollback if any error occurs
+      console.error("Error adding specifications:", getErrorMessage(error)); // Use getErrorMessage to handle the error
+      throw new Error(getErrorMessage(error)); // Throw a more readable error message
+    } finally {
+      connection.release(); // Release the connection
     }
-
-    // Insert into product_specifications table
-    const productSpecInsertValues = specifications.map((spec, index) => [
-      productId,
-      specificationIds[index],
-      spec.specification_value,
-    ]);
-
-    await connection.query(
-      `INSERT INTO product_specifications (product_id, specification_id, value) VALUES ?`,
-      [productSpecInsertValues]
-    );
-
-    await connection.commit(); // Commit the transaction if all queries succeed
-  } catch (error) {
-    await connection.rollback(); // Rollback if any error occurs
-    console.error("Error adding specifications:", getErrorMessage(error)); // Use getErrorMessage to handle the error
-    throw new Error(getErrorMessage(error)); // Throw a more readable error message
-  } finally {
-    connection.release(); // Release the connection
-  }
+  });
 }

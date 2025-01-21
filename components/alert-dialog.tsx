@@ -12,13 +12,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface ReusableAlertDialogProps {
-  triggerElement: React.ReactNode;
+  triggerElement: string;
   title: string;
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel?: () => void;
+  isOpen: boolean;
 }
 
 const ReusableAlertDialog: React.FC<ReusableAlertDialogProps> = ({
@@ -29,9 +30,18 @@ const ReusableAlertDialog: React.FC<ReusableAlertDialogProps> = ({
   cancelLabel = "Cancel",
   onConfirm,
   onCancel,
+  isOpen,
 }) => {
+  const handleConfirm = () => {
+    onConfirm?.();
+  };
+
+  const handleCancel = () => {
+    onCancel?.();
+  };
+
   return (
-    <AlertDialog>
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open}>
       <AlertDialogTrigger>{triggerElement}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -39,10 +49,10 @@ const ReusableAlertDialog: React.FC<ReusableAlertDialogProps> = ({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>
+          <AlertDialogCancel onClick={handleCancel}>
             {cancelLabel}
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          <AlertDialogAction onClick={handleConfirm}>
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

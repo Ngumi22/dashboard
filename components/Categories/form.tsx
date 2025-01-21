@@ -30,7 +30,7 @@ interface Category {
   category_name: string;
   category_image: string | File | null;
   category_description: string;
-  category_status: "Active" | "Inactive";
+  category_status: "active" | "inactive";
 }
 
 export default function CategoryForm({
@@ -42,7 +42,7 @@ export default function CategoryForm({
     category_name: initialData?.category_name || "",
     category_image: initialData?.category_image || null,
     category_description: initialData?.category_description || "",
-    category_status: initialData?.category_status || "Active",
+    category_status: initialData?.category_status || "active",
   });
 
   const [existingImage, setExistingImage] = useState<string | null>(
@@ -88,7 +88,7 @@ export default function CategoryForm({
   const handleStatusChange = (value: string) => {
     setCategory((prev) => ({
       ...prev,
-      category_status: value as "Active" | "Inactive",
+      category_status: value as "active" | "inactive",
     }));
   };
 
@@ -238,8 +238,8 @@ export default function CategoryForm({
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>

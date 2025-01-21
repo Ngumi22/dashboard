@@ -291,7 +291,7 @@ export function mapUserRow(row: UserRow): User {
   };
 }
 
-const passwordSchema = z
+export const passwordSchema = z
   .string()
   .min(4, { message: "Password must be at least 4 characters long." })
   .regex(/[a-z]/, {

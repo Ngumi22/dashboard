@@ -1,39 +1,13 @@
 "use server";
 
-import { cache } from "@/lib/cache";
-import { getConnection } from "@/lib/MysqlDB/initDb";
-import { dbsetupTables } from "@/lib/MysqlDB/tables";
-import { getErrorMessage } from "@/lib/utils";
+import { CacheUtil } from "@/lib/cache";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
-export async function dbOperation<T>(
-  operation: (connection: any) => Promise<T>
-): Promise<T> {
-  const connection = await getConnection();
+export async function handleDeleteAction(product_id: number) {
+  const productCacheKey = `product_${product_id}`;
+  const allProductsCacheKey = `products`;
 
-  try {
-    await connection.beginTransaction();
-    await dbsetupTables();
-
-    const result = await operation(connection);
-
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-
-    const errorMessage = getErrorMessage(error);
-
-    // Log the error to the server console
-    console.error(`[Server Error]: ${errorMessage}`);
-
-    throw new Error(errorMessage); // Re-throw for handling in API routes
-  } finally {
-    connection.release();
-  }
-}
-
-export async function handleDeleteAction(productId: number) {
-  if (!productId || productId === 0) {
+  if (!product_id || product_id === 0) {
     throw new Error("Invalid product ID provided");
   }
 
@@ -41,7 +15,7 @@ export async function handleDeleteAction(productId: number) {
     // Step 1: Retrieve the product's category
     const [productData]: [any[], any] = await connection.execute(
       "SELECT category_id FROM products WHERE product_id = ?",
-      [productId]
+      [product_id]
     );
 
     if (productData.length === 0) {
@@ -52,12 +26,12 @@ export async function handleDeleteAction(productId: number) {
 
     // Step 2: Delete associated tags
     await connection.execute("DELETE FROM product_tags WHERE product_id = ?", [
-      productId,
+      product_id,
     ]);
 
     // Step 3: Delete the product
     await connection.execute("DELETE FROM products WHERE product_id = ?", [
-      productId,
+      product_id,
     ]);
 
     // Step 4: Delete the category if no remaining products exist
@@ -70,32 +44,27 @@ export async function handleDeleteAction(productId: number) {
       await connection.execute("DELETE FROM categories WHERE category_id = ?", [
         category_id,
       ]);
+      // Invalidate the category cache
+      const categoryCacheKey = `category_${category_id}`;
+      CacheUtil.delete(categoryCacheKey);
     }
 
     // Step 5: Delete unused product images
     const [imageExists]: [any[], any] = await connection.execute(
       "SELECT 1 FROM product_images WHERE product_id = ? LIMIT 1",
-      [productId]
+      [product_id]
     );
 
     if (imageExists.length === 0) {
       await connection.execute(
         "DELETE FROM product_images WHERE product_id = ?",
-        [productId]
+        [product_id]
       );
     }
 
-    // Invalidate cache for the deleted product
-    const productCacheKey = `product_${productId}`;
-    cache.delete(productCacheKey);
-
-    // Invalidate cache for all products
-    const allProductsCacheKey = `all_products`;
-    cache.delete(allProductsCacheKey);
-
-    // Invalidate cache for related category if no products remain
-    const categoryCacheKey = `category_${category_id}`;
-    cache.delete(categoryCacheKey);
+    // Step 6: Invalidate caches using CacheUtil
+    CacheUtil.delete(productCacheKey); // Remove the deleted product's cache
+    CacheUtil.invalidate(allProductsCacheKey); // Invalidate allProducts cache to refresh the list
 
     return { message: "Product deleted successfully" };
   });

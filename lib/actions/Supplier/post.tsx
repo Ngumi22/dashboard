@@ -49,8 +49,6 @@ export async function createSupplier(formData: FormData, productId: number) {
       const newSuppliers: Array<z.infer<typeof SupplierSchema>> = [];
       const existingSupplierMap = new Map<string, number>(); // Map supplier_name -> supplier_id
 
-      await connection.beginTransaction();
-
       try {
         // Step 3: Fetch existing suppliers in bulk
         const supplierNames = suppliersArray.map((s) => s.supplier_name);

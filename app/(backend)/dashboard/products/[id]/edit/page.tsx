@@ -1,45 +1,106 @@
 "use client";
-import { useStore } from "@/app/store";
-import { useToast } from "@/components/ui/use-toast";
-import { Product } from "@/lib/actions/Product/productTypes";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
-export default function EditProduct({ params }: { params: { id: string } }) {
-  const { toast } = useToast();
-  const [productData, setProductData] = useState<Product | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const id = params.id;
+import { useStore } from "@/app/store";
+import Base64Image from "@/components/Data-Table/base64-image";
+import ProductForm from "@/components/Product/Create/product-form";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export interface Supplier {
+  supplier_id?: number;
+  supplier_name?: string;
+  supplier_email?: string;
+  supplier_phone_number?: string;
+  supplier_location?: string;
+  isNew?: boolean;
+}
+
+export interface Product {
+  product_id: number;
+  product_name: string;
+  product_sku: string;
+  product_description: string;
+  product_price: number;
+  product_quantity: number;
+  product_discount: number;
+  product_status: "draft" | "pending" | "approved";
+  tags: string[];
+  main_image: File | null;
+  thumbnails: File[];
+  brand_id: string;
+  brand_name: string;
+  brand_image: File | null;
+  category_id: string;
+  category_name: string;
+  suppliers: Supplier[];
+  specifications: {
+    specification_name: string;
+    specification_value: string;
+    category_id: string;
+  }[];
+}
+
+export default function UpdateProduct({ params }: { params: { id: string } }) {
+  const fetchProduct = useStore((state) => state.fetchProductById);
+  const product = useStore((state) => state.selectedProduct);
+  const loading = useStore((state) => state.loading);
+  const error = useStore((state) => state.error);
   const router = useRouter();
 
-  const fetchProductById = useStore((state) => state.fetchProductById);
-
   useEffect(() => {
-    if (id) {
-      const fetchProduct = async () => {
-        try {
-          setLoading(true);
-          const product = await fetchProductById(id); // Now it returns Product or null
-          setProductData(product); // Set the fetched product to state
-        } catch (err) {
-          setError("Failed to fetch product");
-          toast({
-            title: "Error",
-            description: "There was an issue fetching the product.",
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
+    fetchProduct(params.id);
+  }, [fetchProduct]);
 
-      fetchProduct();
-    }
-  }, [id, toast, fetchProductById]);
+  if (loading) {
+    return <p>Loading product details...</p>;
+  }
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) {
+    return (
+      <div>
+        <p>{error}</p>
+        <button
+          onClick={() => router.push("/dashboard/categories")}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+          Back to Products
+        </button>
+      </div>
+    );
+  }
 
-  return <p>Product ID: {productData?.product_id}</p>;
+  if (!product) {
+    return (
+      <div>
+        <p>Product not found.</p>
+        <button
+          onClick={() => router.push("/dashboard/categories")}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+          Back to Products
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <ProductForm
+      initialData={{
+        product_id: Number(product.product_id),
+        product_name: product.name,
+        product_price: product.price,
+        product_sku: product.sku,
+        product_discount: product.discount,
+        product_quantity: product.quantity,
+        product_description: product.description,
+        product_status: product.status,
+        specifications: product.specifications,
+        tags: product.tags,
+        main_image: product.images.mainImage
+          ? new File([product.images.mainImage], "main_image")
+          : null,
+        suppliers: product?.supplier?.map((supplier) => ({
+          supplier_name: supplier,
+        })),
+      }}
+    />
+  );
 }

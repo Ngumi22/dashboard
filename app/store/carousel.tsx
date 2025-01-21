@@ -2,7 +2,7 @@ import {
   deleteCarousel,
   getUniqueCarousels,
 } from "@/lib/actions/Carousel/fetch";
-import { getCachedData, setCachedData } from "@/lib/utils";
+import { clearCachedData, getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface Carousel {
@@ -31,7 +31,7 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
   error: null,
 
   fetchCarousels: async () => {
-    const cacheKey = "carouselsData";
+    const cacheKey = "carousels";
     const cachedData = getCachedData<Carousel[]>(cacheKey);
 
     if (cachedData) {
@@ -42,9 +42,11 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
     set({ loading: true, error: null });
 
     try {
-      const freshData: Carousel[] = await getUniqueCarousels();
+      const freshData = (await getUniqueCarousels()) as Carousel[];
 
-      setCachedData(cacheKey, freshData, { ttl: 1 * 60 });
+      // Cache the fetched data with a TTL of 2 minutes
+      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+
       set({ carousels: freshData, loading: false, error: null });
     } catch (err) {
       set({
@@ -61,12 +63,22 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
     set({ loading: true });
 
     try {
+      // Invalidate the cache
+      const cacheKey = "carousels";
       await deleteCarousel(carousel_id);
-      set({ carousels: [], error: null });
 
-      const freshData: Carousel[] = await getUniqueCarousels();
-      setCachedData("carouselsData", freshData, { ttl: 1 * 60 });
-      set({ carousels: freshData, loading: false });
+      // Clear the cached data
+      clearCachedData(cacheKey);
+
+      // Refetch carousels after deletion
+      const freshData = (await getUniqueCarousels()) as Carousel[];
+
+      // Cache the fresh data
+      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+
+      // Update the state with the latest data
+      set({ carousels: freshData, loading: false, error: null });
+
       return true;
     } catch (err) {
       set({

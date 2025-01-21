@@ -130,7 +130,7 @@ export default function BrandSelector() {
 
                   if (typeof brandImage === "string") {
                     return brandImage; // A valid string URL
-                  } else if (brandImage instanceof File) {
+                  } else if (brandImage) {
                     return URL.createObjectURL(brandImage); // Convert File to URL
                   } else {
                     return "/fallback-image.png"; // Provide a fallback image

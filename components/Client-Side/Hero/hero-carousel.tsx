@@ -56,15 +56,12 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
   const [editingCarousel, setEditingCarousel] = useState<Carousel | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const [data, setData] = useState<Carousel[]>([]);
-
+  // Fetch carousels only once when the component mounts
   useEffect(() => {
-    const fetchData = async () => {
-      const res = await getUniqueCarousels();
-      setData(res);
-    };
-    fetchData();
-  }, []);
+    if (carousels.length === 0) {
+      fetchCarousels();
+    }
+  }, [fetchCarousels, carousels.length]);
 
   // Fetch carousels only once when the component mounts
   useEffect(() => {

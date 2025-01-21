@@ -1,28 +1,30 @@
 import { fetchBrandById, getUniqueBrands } from "@/lib/actions/Brand/fetch";
-import { getCachedData, setCachedData } from "@/lib/utils";
+import { getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface Brand {
   brand_id: number;
   brand_name: string;
-  brand_image: string | File | null;
+  brand_image: File | string | null;
 }
 
 export interface BrandState {
   brands: Brand[];
   loading: boolean;
   error: string | null;
+  selectedBrand: Brand | null;
   fetchUniqueBrands: () => Promise<void>;
-  fetchBrandByIdState: (brand_id: number) => void;
+  fetchBrandByIdState: (brand_id: string) => Promise<Brand | null>;
 }
 
 export const createBrandSlice: StateCreator<BrandState> = (set) => ({
   brands: [],
   loading: false,
   error: null,
+  selectedBrand: null,
 
   fetchUniqueBrands: async () => {
-    const cacheKey = "brandsData";
+    const cacheKey = "brands";
     const cachedData = getCachedData<Brand[]>(cacheKey);
 
     if (cachedData) {
@@ -33,9 +35,9 @@ export const createBrandSlice: StateCreator<BrandState> = (set) => ({
     set({ loading: true, error: null });
 
     try {
-      const freshData: Brand[] = await getUniqueBrands();
+      const freshData = (await getUniqueBrands()) as Brand[];
 
-      // Cache the fetched data with a TTL of
+      // Cache the fetched data with a TTL of 2 minutes
       setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
 
       set({ brands: freshData, loading: false, error: null });
@@ -47,37 +49,41 @@ export const createBrandSlice: StateCreator<BrandState> = (set) => ({
     }
   },
 
-  fetchBrandByIdState: async (brand_id: number) => {
-    set({ loading: true });
+  fetchBrandByIdState: async (brand_id: string) => {
+    const cacheKey = `brand_${brand_id}`;
+    const cachedBrand = getCachedData<Brand>(cacheKey);
+
+    if (cachedBrand) {
+      set({ selectedBrand: cachedBrand, loading: false, error: null });
+      return cachedBrand;
+    }
+
+    set({ loading: true, error: null });
 
     try {
-      // Call server action to delete the brand
-      await fetchBrandById(brand_id);
+      const brand = await fetchBrandById(Number(brand_id));
 
-      // Invalidate the cache
-      const cacheKey = "brandsData";
-      setCachedData(cacheKey, null); // Clear the cached data
+      if (brand) {
+        // Cache the brand with a TTL of 2 minutes
+        setCachedData(cacheKey, brand, { ttl: 2 * 60 });
 
-      // Refetch brands after deletion to ensure the latest data
-      const freshData: Brand[] = await getUniqueBrands();
-
-      // Update the cache with the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
-
-      // Update the state with the latest brands
-      set({ brands: freshData, loading: false, error: null });
-
-      // Optionally, show a success toast or notification
-      return { success: true };
+        set({ selectedBrand: brand, loading: false, error: null });
+        return brand;
+      } else {
+        set({
+          selectedBrand: null,
+          error: "Brand not found",
+          loading: false,
+        });
+        return null;
+      }
     } catch (err) {
-      // Handle any errors that occur
       set({
-        error: err instanceof Error ? err.message : "Error getting brand",
+        error:
+          err instanceof Error ? err.message : "Error fetching brand details",
         loading: false,
       });
-
-      // Optionally, show an error toast or notification
-      return { success: false };
+      return null;
     }
   },
 });

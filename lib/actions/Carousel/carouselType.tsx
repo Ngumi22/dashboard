@@ -4,7 +4,7 @@ export interface Carousel {
   short_description?: string;
   description?: string;
   link?: string;
-  image?: Buffer | string | null;
+  image?: Buffer | null;
   status: "active" | "inactive";
   text_color: string;
   background_color: string;

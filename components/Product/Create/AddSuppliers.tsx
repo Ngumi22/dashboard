@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
@@ -13,15 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { getUniqueSuppliers } from "@/lib/actions/Supplier/fetch";
-
-interface Supplier {
-  supplier_id?: number;
-  supplier_name?: string;
-  supplier_email?: string;
-  supplier_phone_number?: string;
-  supplier_location?: string;
-  isNew?: boolean;
-}
+import { Supplier } from "@/lib/actions/Supplier/supplierTypes";
 
 interface AddSuppliersProps {
   onSuppliersChange: (suppliers: Supplier[]) => void;
@@ -36,6 +26,7 @@ export default function Component({
 
   const { control, watch, setValue, handleSubmit } = useForm({
     defaultValues: {
+      isNewSupplier: false,
       selectedSupplier: "",
       newSupplier: {
         supplier_name: "",
@@ -52,6 +43,7 @@ export default function Component({
     name: "suppliers",
   });
 
+  const isNewSupplier = watch("isNewSupplier");
   const selectedSupplier = watch("selectedSupplier");
   const newSupplier = watch("newSupplier");
   const suppliers = watch("suppliers");
@@ -75,7 +67,20 @@ export default function Component({
   }, []);
 
   const handleAddSupplier = handleSubmit(() => {
-    if (selectedSupplier) {
+    if (isNewSupplier && newSupplier.supplier_name) {
+      // Add new supplier
+      append({
+        ...newSupplier,
+        isNew: true,
+      });
+      setValue("newSupplier", {
+        supplier_name: "",
+        supplier_email: "",
+        supplier_phone_number: "",
+        supplier_location: "",
+      });
+    } else if (!isNewSupplier && selectedSupplier) {
+      // Add existing supplier
       const existingSupplier = existingSuppliers.find(
         (s) => s.supplier_id?.toString() === selectedSupplier
       );
@@ -89,18 +94,6 @@ export default function Component({
           isNew: false,
         });
       }
-    } else if (newSupplier.supplier_name) {
-      append({
-        ...newSupplier,
-        isNew: true,
-      });
-      // Clear new supplier fields after adding
-      setValue("newSupplier", {
-        supplier_name: "",
-        supplier_email: "",
-        supplier_phone_number: "",
-        supplier_location: "",
-      });
     }
   });
 
@@ -109,82 +102,99 @@ export default function Component({
       <h2 className="text-xl font-semibold">Product Suppliers</h2>
 
       <div className="space-y-4">
-        <Controller
-          name="selectedSupplier"
-          control={control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger id="supplier">
-                <SelectValue placeholder="Select a supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                {existingSuppliers.map((supplier) => (
-                  <SelectItem
-                    key={supplier.supplier_id ?? "no-id"}
-                    value={
-                      supplier.supplier_id
-                        ? supplier.supplier_id.toString()
-                        : ""
-                    }>
-                    {supplier.supplier_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-
-        <div className="space-y-2">
-          <h2>Add New</h2>
-          <Controller
-            name="newSupplier.supplier_name"
-            control={control}
-            render={({ field }) => (
-              <Input
-                id="newSupplierName"
-                placeholder="Supplier Name"
-                {...field}
-              />
-            )}
-          />
-
-          <Controller
-            name="newSupplier.supplier_email"
-            control={control}
-            render={({ field }) => (
-              <Input
-                id="newSupplierEmail"
-                type="email"
-                placeholder="supplier@example.com"
-                {...field}
-              />
-            )}
-          />
-
-          <Controller
-            name="newSupplier.supplier_phone_number"
-            control={control}
-            render={({ field }) => (
-              <Input
-                id="newSupplierPhone"
-                placeholder="123-456-7890"
-                {...field}
-              />
-            )}
-          />
-
-          <Controller
-            name="newSupplier.supplier_location"
-            control={control}
-            render={({ field }) => (
-              <Input
-                id="newSupplierLocation"
-                placeholder="City, Country"
-                {...field}
-              />
-            )}
-          />
+        <div className="flex items-center space-x-4">
+          <Button
+            type="button"
+            variant={isNewSupplier ? "default" : "outline"}
+            onClick={() => setValue("isNewSupplier", true)}>
+            Add New Supplier
+          </Button>
+          <Button
+            type="button"
+            variant={!isNewSupplier ? "default" : "outline"}
+            onClick={() => setValue("isNewSupplier", false)}>
+            Select Existing Supplier
+          </Button>
         </div>
+
+        {!isNewSupplier ? (
+          <Controller
+            name="selectedSupplier"
+            control={control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger id="supplier">
+                  <SelectValue placeholder="Select a supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {existingSuppliers.map((supplier) => (
+                    <SelectItem
+                      key={supplier.supplier_id ?? "no-id"}
+                      value={
+                        supplier.supplier_id
+                          ? supplier.supplier_id.toString()
+                          : ""
+                      }>
+                      {supplier.supplier_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        ) : (
+          <div className="space-y-2">
+            <h2>Add New</h2>
+            <Controller
+              name="newSupplier.supplier_name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="newSupplierName"
+                  placeholder="Supplier Name"
+                  {...field}
+                />
+              )}
+            />
+
+            <Controller
+              name="newSupplier.supplier_email"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="newSupplierEmail"
+                  type="email"
+                  placeholder="supplier@example.com"
+                  {...field}
+                />
+              )}
+            />
+
+            <Controller
+              name="newSupplier.supplier_phone_number"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="newSupplierPhone"
+                  placeholder="123-456-7890"
+                  {...field}
+                />
+              )}
+            />
+
+            <Controller
+              name="newSupplier.supplier_location"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="newSupplierLocation"
+                  placeholder="City, Country"
+                  {...field}
+                />
+              )}
+            />
+          </div>
+        )}
 
         <Button
           type="button"

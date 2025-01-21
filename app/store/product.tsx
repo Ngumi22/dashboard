@@ -1,38 +1,13 @@
+import { Product } from "@/components/Data-Table/types";
+import { Supplier } from "@/components/Product/Create/types";
+import { handleDeleteAction } from "@/lib/actions/Product/delete";
 import {
   fetchProductByIdFromDb,
   fetchProducts,
 } from "@/lib/actions/Product/fetch";
+import { clearCachedData } from "@/lib/cache";
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
-
-export type ProductStatus = "draft" | "pending" | "approved";
-
-export interface Product {
-  product_id: string;
-  name: string;
-  sku: string;
-  price: number;
-  discount: number;
-  quantity: number;
-  ratings: number;
-  category: string;
-  status: ProductStatus;
-  description: string;
-  brand: string;
-  supplier: string[];
-  specifications: any;
-  createdAt: string;
-  updatedAt: string;
-  images: {
-    mainImage: string | null;
-    thumbnail1: string | null;
-    thumbnail2: string | null;
-    thumbnail3: string | null;
-    thumbnail4: string | null;
-    thumbnail5: string | null;
-  };
-  tags?: string[];
-}
 
 export interface ProductState {
   products: Product[];
@@ -44,6 +19,7 @@ export interface ProductState {
     filter: Record<string, any>
   ) => Promise<void>;
   fetchProductById: (product_id: string) => Promise<Product | null>; // Return Product | null
+  deleteProductState: (product_id: string) => void;
 }
 
 export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
@@ -78,8 +54,8 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
     }
   },
 
-  fetchProductById: async (productId) => {
-    const cacheKey = `product_${productId}`;
+  fetchProductById: async (product_id) => {
+    const cacheKey = `product_${product_id}`;
     const cachedProduct = getCachedData<Product>(cacheKey);
 
     if (cachedProduct) {
@@ -90,7 +66,7 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const product = await fetchProductByIdFromDb(productId);
+      const product = await fetchProductByIdFromDb(product_id);
 
       if (product) {
         setCachedData(cacheKey, product, { ttl: 6 * 60 });
@@ -111,6 +87,62 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
         loading: false,
       });
       return null; // Return null in case of error
+    }
+  },
+
+  deleteProductState: async (
+    product_id: string,
+    currentPage = 1,
+    filter = {}
+  ) => {
+    const originalProducts = get().products;
+
+    // Optimistically update the state to remove the product
+    const updatedProducts = originalProducts.filter(
+      (product) => product.product_id !== product_id
+    );
+    set({ products: updatedProducts, loading: true });
+
+    try {
+      const productCacheKey = `product_${product_id}`;
+      const cacheKey = `products_${currentPage}_${JSON.stringify(filter)}`;
+
+      // Call the server action to delete the product
+      await handleDeleteAction(Number(product_id));
+
+      // Clear the cached data
+      clearCachedData(cacheKey);
+      clearCachedData(productCacheKey);
+      // Check if cached data for the current page exists
+      const cachedProducts: Product[] | null = getCachedData(cacheKey);
+
+      if (cachedProducts) {
+        // Update the cached products list locally
+        const updatedCache = cachedProducts.filter(
+          (product) => product.product_id !== product_id
+        );
+        setCachedData(cacheKey, updatedCache, { ttl: 2 * 60 });
+      } else {
+        // If no cache is available, refetch data for the current page
+        const { products: freshData }: { products: Product[] } =
+          await fetchProducts(currentPage, filter);
+
+        // Update the cache and state with the fresh data
+        setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+        set({ products: freshData });
+      }
+
+      set({ loading: false, error: null });
+      return { success: true };
+    } catch (err) {
+      // Revert the optimistic update if an error occurs
+      set({
+        products: originalProducts,
+        error: err instanceof Error ? err.message : "Error deleting product",
+        loading: false,
+      });
+
+      return { success: false };
     }
   },
 });
