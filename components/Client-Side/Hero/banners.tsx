@@ -40,7 +40,7 @@ export default function BannerComponent({
     if (!banners || banners.length === 0) {
       fetchBanners();
     }
-  }, []);
+  }, [banners, fetchBanners]);
 
   // Filter banners using memoization
   const filteredBanners = useMemo(() => {

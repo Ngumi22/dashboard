@@ -169,7 +169,7 @@ export default function CategoriesPage() {
     let result = searchData(categories, searchTerm, "category_name");
     result = filterData(result, filters, activeFilters);
     return result;
-  }, [categories, searchTerm, activeFilters, sortKey, filters]);
+  }, [categories, searchTerm, activeFilters, filters]);
 
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * rowsPerPage,

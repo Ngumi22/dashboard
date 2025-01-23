@@ -109,7 +109,7 @@ export default function CategoriesPage() {
         ],
       },
     ],
-    []
+    [categoryOptions]
   );
 
   const handleDeleteCategory = async (category_id: string | null) => {

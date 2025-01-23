@@ -101,7 +101,7 @@ export default function Home() {
     let result = searchData(suppliers, searchTerm, "supplier_name");
     result = filterData(result, filters, activeFilters);
     return result;
-  }, [suppliers, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [suppliers, searchTerm, activeFilters, filters]);
 
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * rowsPerPage,

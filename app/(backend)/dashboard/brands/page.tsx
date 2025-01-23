@@ -66,7 +66,7 @@ export default function BrandPage() {
     }));
   }, [brands]);
 
-  const filters: Filter<any>[] = useMemo(() => [], [brandOptions]);
+  const filters: Filter<any>[] = useMemo(() => [], []);
 
   const rowActions: RowAction<any>[] = [
     {
@@ -95,7 +95,7 @@ export default function BrandPage() {
     let result = searchData(brands, searchTerm, "brand_name");
     result = filterData(result, filters, activeFilters);
     return result;
-  }, [brands, searchTerm, activeFilters, sortKey, sortDirection, filters]);
+  }, [brands, searchTerm, activeFilters, filters]);
 
   const paginatedData = filteredAndSortedData.slice(
     (currentPage - 1) * rowsPerPage,

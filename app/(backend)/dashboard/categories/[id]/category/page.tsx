@@ -18,7 +18,7 @@ export default function CategoryDetails({
 
   useEffect(() => {
     fetchCategory(params.id);
-  }, [fetchCategory]);
+  }, [fetchCategory, params.id]);
 
   if (loading) {
     return <p>Loading category details...</p>;

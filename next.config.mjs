@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     experimental: {
-        allowedOrigins: ['http://localhost:3000'],
-        bodySizeLimit: '5mb',
+        allowedOrigins: ['http://localhost:3000' || 'https://dashboard-theta-gilt.vercel.app/'],
     },
     async headers() {
         return [

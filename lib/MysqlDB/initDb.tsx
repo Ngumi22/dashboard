@@ -53,6 +53,7 @@ export async function initDbConnection(): Promise<mysql.Pool> {
       waitForConnections: true,
       connectionLimit: 100,
       queueLimit: 0,
+      connectTimeout: 15000,
     });
 
     console.log("Database pool initialized successfully.");

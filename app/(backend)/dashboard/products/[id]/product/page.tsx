@@ -14,7 +14,7 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     fetchProduct(params.id);
-  }, [fetchProduct]);
+  }, [fetchProduct, params.id]);
 
   if (loading) {
     return <p>Loading product details...</p>;
