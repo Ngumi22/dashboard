@@ -3,7 +3,7 @@ import { query } from "./initDb";
 export async function dbsetupTables() {
   try {
     // Create the database if it doesn't exist
-    await query(`CREATE DATABASE IF NOT EXISTS bernzzz`);
+    await query(`CREATE DATABASE IF NOT EXISTS bernzz`);
 
     // Create the tables
     await query(`
@@ -390,7 +390,6 @@ export async function dbsetupTables() {
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL,
         INDEX idx_title (title),
-        INDEX idx_usage_context (usage_context),
         INDEX idx_related_id (related_id)
     ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Banners for various sections of the site';
     `);

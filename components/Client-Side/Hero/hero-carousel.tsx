@@ -56,19 +56,11 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
   const [editingCarousel, setEditingCarousel] = useState<Carousel | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch carousels only once when the component mounts
   useEffect(() => {
-    if (carousels.length === 0) {
+    if (!carousels || carousels.length === 0) {
       fetchCarousels();
     }
-  }, [fetchCarousels, carousels.length]);
-
-  // Fetch carousels only once when the component mounts
-  useEffect(() => {
-    if (carousels.length === 0) {
-      fetchCarousels();
-    }
-  }, [fetchCarousels, carousels.length]);
+  }, [carousels, fetchCarousels]);
 
   const handleDelete = useCallback(
     async (carousel_id: number) => {
@@ -96,9 +88,11 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
   // Filtered carousel data
   const filteredCarousel = useMemo(() => {
     if (isAdmin) {
-      return carousels;
+      return carousels || [];
     }
-    return carousels.filter((banner) => banner.status === "active").slice(0, 4);
+    return (carousels || [])
+      .filter((carousel) => carousel.status === "active")
+      .slice(0, 4);
   }, [carousels, isAdmin]);
 
   // Memoize carousel autoplay plugin
@@ -145,7 +139,7 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
             loop: true,
           }}>
           <CarouselContent className="rounded-lg">
-            {filteredCarousel.map((carousel) => (
+            {(filteredCarousel || []).map((carousel) => (
               <CarouselItem
                 key={carousel.carousel_id}
                 style={{

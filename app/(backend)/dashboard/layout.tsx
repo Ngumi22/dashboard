@@ -7,7 +7,6 @@ import SideBar from "@/components/admin-panel/sideBar-nav";
 import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/admin-panel/Navbar";
 import { ThemeProvider } from "next-themes";
-import { Roboto } from "next/font/google";
 import "@/app/globals.css";
 
 export default function AdminPanelLayout({

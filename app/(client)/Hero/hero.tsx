@@ -10,7 +10,7 @@ export default function HeroSection() {
         <HeroCarousels isAdmin={false} />
       </div>
       <div className="col-span-2 flex flex-col h-full">
-        <BannerComponent isAdmin={false} usageContext="hero" />
+        <BannerComponent isAdmin={false} usageContext="Hero" />
       </div>
     </section>
   );

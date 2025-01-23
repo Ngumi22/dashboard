@@ -51,11 +51,21 @@ export const createBannerSlice: StateCreator<BannerState> = (set) => ({
     const cachedData = getCachedData<{ banners: Banner[] }>(cacheKey);
 
     if (cachedData) {
-      set({ banners: cachedData.banners, loading: false, error: null });
+      // Avoid updating if state is already correct
+      set((state) => {
+        if (
+          state.banners === cachedData.banners &&
+          state.loading === false &&
+          state.error === null
+        ) {
+          return state; // No update needed
+        }
+        return { banners: cachedData.banners, loading: false, error: null };
+      });
       return;
     }
 
-    set({ loading: true, error: null });
+    set((state) => ({ ...state, loading: true, error: null }));
 
     try {
       const banners = (await getUniqueBanners()) as Banner[];
@@ -63,12 +73,13 @@ export const createBannerSlice: StateCreator<BannerState> = (set) => ({
       // Cache the fetched data with a TTL of 2 minutes
       setCachedData(cacheKey, { banners }, { ttl: 2 * 60 });
 
-      set({ banners, loading: false, error: null });
+      set((state) => ({ ...state, banners, loading: false, error: null }));
     } catch (err) {
-      set({
+      set((state) => ({
+        ...state,
         error: err instanceof Error ? err.message : "Error fetching banners",
         loading: false,
-      });
+      }));
     }
   },
 

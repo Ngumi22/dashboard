@@ -11,25 +11,25 @@ let totalConnectionsCreated = 0;
  * Ensures the database exists. If it doesn't, creates it.
  */
 async function ensureDatabaseExists(): Promise<void> {
-  const { DTB_HOST, DTB_USER, DTB_PASSWORD, DTB_NAME } = process.env;
+  const { AWS_HOST, AWS_USER, AWS_PASSWORD, AWS_NAME } = process.env;
 
-  if (!DTB_NAME) {
+  if (!AWS_NAME) {
     throw new Error(
-      "Database name (DTB_NAME) is not set in environment variables."
+      "Database name (AWS_NAME) is not set in environment variables."
     );
   }
 
   // Create a temporary connection without specifying a database
   const connection = await mysql.createConnection({
-    host: DTB_HOST!,
-    user: DTB_USER!,
-    password: DTB_PASSWORD!,
+    host: AWS_HOST!,
+    user: AWS_USER!,
+    password: AWS_PASSWORD!,
   });
 
   try {
     // Ensure the database exists
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DTB_NAME}\`;`);
-    console.log(`Database '${DTB_NAME}' ensured to exist.`);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${AWS_NAME}\`;`);
+    console.log(`Database '${AWS_NAME}' ensured to exist.`);
   } catch (error) {
     console.error("Error ensuring database existence:", error);
     throw error;
@@ -46,10 +46,10 @@ export async function initDbConnection(): Promise<mysql.Pool> {
     await ensureDatabaseExists(); // Ensure the database exists before initializing the pool
 
     pool = mysql.createPool({
-      host: process.env.DTB_HOST!,
-      user: process.env.DTB_USER!,
-      password: process.env.DTB_PASSWORD!,
-      database: process.env.DTB_NAME!,
+      host: process.env.AWS_HOST!,
+      user: process.env.AWS_USER!,
+      password: process.env.AWS_PASSWORD!,
+      database: process.env.AWS_NAME!,
       waitForConnections: true,
       connectionLimit: 100,
       queueLimit: 0,
