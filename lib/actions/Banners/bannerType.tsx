@@ -3,7 +3,7 @@ export interface Banner {
   title: string;
   description?: string;
   link?: string;
-  image?: string | File;
+  image?: string | File | null;
   text_color: string;
   background_color: string;
   usage_context_id: string;
@@ -11,4 +11,9 @@ export interface Banner {
   context_type: "new" | "existing";
   status: "active" | "inactive";
   new_context_name: string;
+}
+
+export interface UsageContext {
+  context_id: number | string;
+  name: string;
 }

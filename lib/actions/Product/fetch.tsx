@@ -1,6 +1,6 @@
 "use server";
 
-import { CacheUtil } from "@/lib/cache";
+import { cache, CacheUtil } from "@/lib/cache";
 import { DBQUERYLIMITS } from "@/lib/Constants";
 import {
   mapProductRow,
@@ -15,9 +15,15 @@ export async function fetchProducts(
   filter: SearchParams
 ): Promise<{ products: Product[]; errorMessage?: string }> {
   const cacheKey = `products_${currentPage}_${JSON.stringify(filter)}`;
-  const cachedData = CacheUtil.get<{ products: Product[] }>(cacheKey);
 
-  if (cachedData) return cachedData;
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value; // Ensure data is returned as an array
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
 
   const limit =
     DBQUERYLIMITS[filter.type as keyof typeof DBQUERYLIMITS] ||

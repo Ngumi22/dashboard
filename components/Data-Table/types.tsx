@@ -101,7 +101,7 @@ export interface Category {
   category_name: string;
   category_image: string;
   category_description: string;
-  category_status: "active" | "inactive";
+  category_status: "Active" | "Inactive";
 }
 
 // Define the User type

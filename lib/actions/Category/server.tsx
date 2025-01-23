@@ -2,7 +2,6 @@
 
 import { CategorySchema } from "@/lib/ZodSchemas/categorySchema";
 import { fileToBuffer, getErrorMessage } from "@/lib/utils";
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export type FormState = {
@@ -16,6 +15,7 @@ export async function CategorySubmitAction(
   data: FormData
 ): Promise<FormState> {
   try {
+    console.log(data);
     // Validate form data using Zod schema
     const parsed = CategorySchema.safeParse({
       category_name: data.get("category_name"),
@@ -24,7 +24,10 @@ export async function CategorySubmitAction(
       category_image: data.get("category_image"),
     });
 
+    console.log("Parsed data:", parsed);
+
     if (!parsed.success) {
+      console.error("Validation failed:", parsed.error.format()); // Log the exact validation error
       const fields: Record<string, string> = {};
       data.forEach((value, key) => {
         fields[key] = value.toString();
@@ -38,7 +41,7 @@ export async function CategorySubmitAction(
 
     // Check if the category already exists in the database
     const result = await dbOperation(async (connection) => {
-      const [existingCategory]: any[] = await connection.query(
+      const [existingCategory] = await connection.query(
         "SELECT category_id FROM categories WHERE category_name = ? LIMIT 1",
         [parsed.data.category_name]
       );
@@ -56,7 +59,7 @@ export async function CategorySubmitAction(
         : null;
 
       // Insert new category
-      const [insertResult]: any = await connection.query(
+      const [insertResult] = await connection.query(
         "INSERT INTO categories (category_name, category_image, category_description, category_status) VALUES (?, ?, ?, ?)",
         [
           parsed.data.category_name,

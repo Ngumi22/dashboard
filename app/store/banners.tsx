@@ -1,110 +1,107 @@
 import {
   deleteBanner,
+  fetchBannerById,
   fetchUsageContexts,
   getUniqueBanners,
 } from "@/lib/actions/Banners/fetch";
-import {
-  CacheUtil,
-  clearCachedData,
-  getCachedData,
-  setCachedData,
-} from "@/lib/cache";
+import { clearCachedData, getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
-interface Banner {
-  banner_id?: number;
-  title: string;
-  description?: string;
-  link?: string;
-  image?: string | File;
-  text_color: string;
-  background_color: string;
-  usage_context_id: string;
-  context_type: "new" | "existing";
-  status: "active" | "inactive";
-  new_context_name: string;
-  usage_context_name: string;
-}
-
-interface Context {
-  context: string;
-}
+import { Banner, UsageContext } from "@/lib/actions/Banners/bannerType";
 
 export interface BannerState {
-  banners: Banner[];
-  contexts: any; // Explicitly typed as an array
+  banners: Banner[]; // Array of Banner objects
+  contexts: UsageContext[]; // Array of UsageContext objects
   loading: boolean;
   error: string | null;
+  selectedBanner: Banner | null;
   fetchBanners: () => Promise<void>;
   fetchUsageContexts: () => Promise<void>;
   deleteBannerState: (banner_id: number) => Promise<{ success: boolean }>;
+  fetchBannerById: (banner_id: number) => Promise<void>;
 }
 
-export const createBannerSlice: StateCreator<BannerState> = (set) => ({
-  banners: [], // Initialize as an empty array
-  contexts: [], // Initialize as an empty array
+export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
+  banners: [], // Default to an empty array
+  contexts: [], // Default to an empty array
   loading: false,
+  selectedBanner: null,
   error: null,
 
   fetchBanners: async () => {
     const cacheKey = "banners";
-    const cachedData = getCachedData<{ banners: Banner[] }>(cacheKey);
 
+    // Check if data is cached
+    const cachedData = getCachedData<Banner[]>(cacheKey);
     if (cachedData) {
-      // Avoid updating if state is already correct
-      set((state) => {
-        if (
-          state.banners === cachedData.banners &&
-          state.loading === false &&
-          state.error === null
-        ) {
-          return state; // No update needed
-        }
-        return { banners: cachedData.banners, loading: false, error: null };
-      });
+      // Prevent unnecessary state updates if the cached data is already present
+      const { banners } = get();
+      if (JSON.stringify(banners) !== JSON.stringify(cachedData)) {
+        set({ banners: cachedData, loading: false, error: null });
+      }
       return;
     }
 
-    set((state) => ({ ...state, loading: true, error: null }));
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
+
+    set({ loading: true, error: null });
 
     try {
-      const banners = (await getUniqueBanners()) as Banner[];
-
-      // Cache the fetched data with a TTL of 2 minutes
-      setCachedData(cacheKey, { banners }, { ttl: 2 * 60 });
-
-      set((state) => ({ ...state, banners, loading: false, error: null }));
+      const banners = await getUniqueBanners(); // Fetch banners
+      setCachedData(cacheKey, banners, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      set({ banners, loading: false, error: null });
     } catch (err) {
-      set((state) => ({
-        ...state,
-        error: err instanceof Error ? err.message : "Error fetching banners",
+      set({
         loading: false,
-      }));
+        error: err instanceof Error ? err.message : "Failed to fetch banners",
+      });
+    }
+  },
+
+  fetchBannerById: async (banner_id: number) => {
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
+
+    set({ loading: true, error: null });
+    try {
+      const banner = await fetchBannerById(banner_id);
+      set({ selectedBanner: banner, loading: false });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Failed to fetch banner",
+        loading: false,
+      });
     }
   },
 
   fetchUsageContexts: async () => {
     const cacheKey = "contexts";
-    const cachedData = getCachedData<Context[]>(cacheKey);
 
+    // Check if contexts are cached
+    const cachedData = getCachedData<UsageContext[]>(cacheKey);
     if (cachedData) {
       set({ contexts: cachedData, loading: false, error: null });
       return;
     }
 
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
+
     set({ loading: true, error: null });
 
     try {
-      const contexts = await fetchUsageContexts();
-
-      // Cache the fetched data
-      setCachedData(cacheKey, contexts, { ttl: 2 * 60 });
-
+      const contexts = await fetchUsageContexts(); // Fetch usage contexts
+      setCachedData(cacheKey, contexts, { ttl: 2 * 60 }); // Cache the data for 2 minutes
       set({ contexts, loading: false, error: null });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Error fetching contexts",
         loading: false,
+        error:
+          err instanceof Error ? err.message : "Failed to fetch usage contexts",
       });
     }
   },
@@ -114,26 +111,19 @@ export const createBannerSlice: StateCreator<BannerState> = (set) => ({
 
     try {
       const cacheKey = "banners";
-      // Call server action to delete the banner
-      await deleteBanner(banner_id);
+      await deleteBanner(banner_id); // Call delete API
 
-      // Clear the cached data
-      clearCachedData(cacheKey);
-
-      // Refetch banners after deletion
-      const banners = (await getUniqueBanners()) as Banner[];
-
-      // Update the cache with fresh data
-      setCachedData(cacheKey, { banners });
-
-      // Update the state
-      set({ banners, loading: false, error: null });
+      // Immediately clear cache and update state
+      clearCachedData(cacheKey); // Clear banners cache
+      const banners = await getUniqueBanners(); // Refetch banners
+      setCachedData(cacheKey, banners); // Update cache with new banners
+      set({ banners, loading: false, error: null }); // Set state with new banners
 
       return { success: true };
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Error deleting banner",
         loading: false,
+        error: err instanceof Error ? err.message : "Failed to delete banner",
       });
       return { success: false };
     }

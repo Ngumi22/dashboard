@@ -1,3 +1,4 @@
+import { Category } from "@/lib/actions/Category/catType";
 import { deleteCategory } from "@/lib/actions/Category/delete";
 import {
   fetchCategoryById,
@@ -6,25 +7,17 @@ import {
 import { getCachedData, setCachedData, clearCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
-interface Category {
-  category_id: string;
-  category_name: string;
-  category_image: string | null;
-  category_description: string;
-  category_status: "active" | "inactive";
-}
-
 export interface CategoryState {
   categories: Category[];
   loading: boolean;
   error: string | null;
   selectedCategory: Category | null;
   fetchUniqueCategories: () => Promise<void>;
-  deleteCategoryState: (category_id: string) => Promise<{ success: boolean }>;
-  fetchCategoryByIdState: (category_id: string) => Promise<Category | null>;
+  deleteCategoryState: (category_id: number) => Promise<{ success: boolean }>;
+  fetchCategoryByIdState: (category_id: number) => Promise<Category | null>;
 }
 
-export const createCategorySlice: StateCreator<CategoryState> = (set) => ({
+export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
   categories: [],
   loading: false,
   error: null,
@@ -32,31 +25,38 @@ export const createCategorySlice: StateCreator<CategoryState> = (set) => ({
 
   fetchUniqueCategories: async () => {
     const cacheKey = "categories";
-    const cachedData = getCachedData<Category[]>(cacheKey);
 
+    // Check if data is cached
+    const cachedData = getCachedData<Category[]>(cacheKey);
     if (cachedData) {
-      set({ categories: cachedData, loading: false, error: null });
+      // Prevent unnecessary state updates if the cached data is already present
+      const { categories } = get();
+      if (JSON.stringify(categories) !== JSON.stringify(cachedData)) {
+        set({ categories: cachedData, loading: false, error: null });
+      }
       return;
     }
+
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
 
     set({ loading: true, error: null });
 
     try {
-      const freshData = (await getUniqueCategories()) as Category[];
-
-      // Cache the fetched data with a TTL of 2 minutes
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
-
-      set({ categories: freshData, loading: false, error: null });
+      const categories = await getUniqueCategories(); // Fetch categories
+      setCachedData(cacheKey, categories, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      set({ categories, loading: false, error: null });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Error fetching categories",
         loading: false,
+        error:
+          err instanceof Error ? err.message : "Failed to fetch categories",
       });
     }
   },
 
-  fetchCategoryByIdState: async (category_id: string) => {
+  fetchCategoryByIdState: async (category_id: number) => {
     const cacheKey = `category_${category_id}`;
     const cachedCategory = getCachedData<Category>(cacheKey);
 
@@ -96,7 +96,7 @@ export const createCategorySlice: StateCreator<CategoryState> = (set) => ({
     }
   },
 
-  deleteCategoryState: async (category_id: string) => {
+  deleteCategoryState: async (category_id: number) => {
     set({ loading: true });
 
     try {

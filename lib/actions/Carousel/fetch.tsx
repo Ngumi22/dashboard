@@ -5,14 +5,14 @@ import { Carousel } from "./carouselType";
 import { compressAndEncodeBase64 } from "../utils";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
-export async function getUniqueCarousels() {
-  const cacheKey = "carousel-store";
+export async function getUniqueCarousels(): Promise<Carousel[]> {
+  const cacheKey = "carousels";
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value; // Return cached data if it hasn't expired
+      return cachedData.value as Carousel[]; // Ensure data is returned as an array
     }
     cache.delete(cacheKey); // Invalidate expired cache
   }
@@ -27,14 +27,15 @@ export async function getUniqueCarousels() {
          LIMIT 4` // Fetch only the latest entries
       );
 
-      if (carousels.length === 0) {
-        console.log("No carousels in the database");
-        return null; // Return null if no carousel exists
+      // Return an empty array if no carousels found
+      if (!carousels || carousels.length === 0) {
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+        return [];
       }
 
       // Map the result and compress the image for each carousel
       const uniqueCarousels: Carousel[] = await Promise.all(
-        carousels.map(async (carousel: Carousel) => ({
+        carousels.map(async (carousel: any) => ({
           carousel_id: carousel.carousel_id,
           title: carousel.title,
           short_description: carousel.short_description,
@@ -63,13 +64,18 @@ export async function getUniqueCarousels() {
   });
 }
 
-export async function fetchCarouselById(carousel_id: number) {
+export async function fetchCarouselById(
+  carousel_id: number
+): Promise<Carousel | null> {
   const cacheKey = `carousel_${carousel_id}`;
 
-  // Check if the result is already in the cache using CacheUtil
-  const cachedData = CacheUtil.get<Carousel>(cacheKey);
-  if (cachedData) {
-    return cachedData; // Return cached data if it hasn't expired
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Carousel; // Return cached data as Banner
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
   }
 
   return await dbOperation(async (connection) => {
@@ -81,30 +87,32 @@ export async function fetchCarouselById(carousel_id: number) {
         [carousel_id]
       );
 
-      // If no rows are returned, return null
-      if (rows.length === 0) {
-        return null;
+      if (!rows || rows.length === 0) {
+        return null; // Return null if no banner is found
       }
 
       // Map database results to a carousel object
-      const carousel = {
-        carousel_id: rows[0].carousel_id,
-        title: rows[0].title,
-        short_description: rows[0].short_description,
-        description: rows[0].description,
-        link: rows[0].link,
-        image: rows[0].image
-          ? await compressAndEncodeBase64(rows[0].image)
+      const carousel = rows[0];
+      const processedCarousel: any = {
+        carousel_id: carousel.carousel_id,
+        title: carousel.title,
+        short_description: carousel.short_description,
+        description: carousel.description,
+        link: carousel.link,
+        image: carousel.image
+          ? await compressAndEncodeBase64(carousel.image)
           : null, // Compress image if it exists
-        status: rows[0].status,
-        text_color: rows[0].text_color,
-        background_color: rows[0].background_color,
+        status: carousel.status,
+        text_color: carousel.text_color,
+        background_color: carousel.background_color,
       };
 
-      // Cache the result with an expiry time using CacheUtil
-      CacheUtil.set(cacheKey, carousel, 300); // Cache for 5 minutes (300 seconds)
+      cache.set(cacheKey, {
+        value: processedCarousel,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
 
-      return carousel;
+      return processedCarousel;
     } catch (error) {
       console.error("Database query error:", error);
       throw new Error("Failed to fetch carousel");
@@ -116,11 +124,11 @@ export async function deleteCarousel(carousel_id: number): Promise<boolean> {
   const cacheKey = `carousel_${carousel_id}`;
 
   // Check if the carousel exists in the cache using CacheUtil
-  const cachedData = CacheUtil.get<Carousel>(cacheKey);
+  const cachedData = cache.get(cacheKey);
 
   // If the cached data is valid, delete it from the cache
   if (cachedData) {
-    CacheUtil.delete(cacheKey); // Delete expired or valid cached entry
+    cache.delete(cacheKey); // Delete expired or valid cached entry
   }
 
   return await dbOperation(async (connection) => {
@@ -141,10 +149,8 @@ export async function deleteCarousel(carousel_id: number): Promise<boolean> {
         carousel_id,
       ]);
 
-      console.log(`Carousel with ID ${carousel_id} successfully deleted.`);
-
-      // Invalidate cache for all carousels
-      CacheUtil.invalidate("carousels");
+      cache.delete("carousels");
+      cache.delete(cacheKey);
 
       return true; // Deletion successful
     } catch (error) {

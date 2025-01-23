@@ -43,7 +43,7 @@ export async function createBanner(data: FormData) {
           throw new Error("Selected context does not exist");
         }
 
-        contextId = parseInt(usage_context_id, 10);
+        contextId = Number(usage_context_id);
       } else if (context_type === "new" && new_context_name) {
         // Insert the new context
         const [insertedContext]: any = await connection.execute(

@@ -1,8 +1,8 @@
 // Define the Category type
 export type Category = {
-  category_id: string;
+  category_id: number;
   category_name: string;
-  category_image: string | null; // Update type to match the encoded base64 image
+  category_image: string | File | null; // Update type to match the encoded base64 image
   category_description: string;
-  category_status: "active" | "inactive";
+  category_status: "Active" | "Inactive";
 };

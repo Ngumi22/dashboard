@@ -2,11 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
+
 import { useStore } from "@/app/store";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +24,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getUniqueCarousels } from "@/lib/actions/Carousel/fetch";
-
-interface HeroCarouselsProps {
-  isAdmin?: boolean;
-}
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 export interface Carousel {
   carousel_id?: number;
@@ -39,10 +36,14 @@ export interface Carousel {
   short_description?: string;
   description?: string;
   link?: string;
-  image?: File | string | null;
+  image?: string | File | Buffer | null;
   status: "active" | "inactive";
   text_color: string;
   background_color: string;
+}
+
+interface HeroCarouselsProps {
+  isAdmin?: boolean;
 }
 
 export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {

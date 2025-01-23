@@ -41,9 +41,9 @@ const columnRenderers = {
   category_status: (category: { category_status: string }) => (
     <Badge
       variant={
-        category.category_status === "active"
+        category.category_status === "Active"
           ? "default"
-          : category.category_status === "inactive"
+          : category.category_status === "Inactive"
           ? "secondary"
           : "destructive"
       }>
@@ -72,7 +72,6 @@ export default function CategoriesPage() {
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
-  const [viewingCategory, setViewingCategory] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -112,7 +111,7 @@ export default function CategoriesPage() {
     [categoryOptions]
   );
 
-  const handleDeleteCategory = async (category_id: string | null) => {
+  const handleDeleteCategory = async (category_id: number | null) => {
     if (!category_id) {
       alert("No category ID provided.");
       return;
@@ -141,7 +140,7 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleViewCategory = async (category_id: string | null) => {
+  const handleViewCategory = async (category_id: number | null) => {
     if (!category_id) {
       alert("No category ID provided.");
       return;
@@ -320,7 +319,7 @@ export default function CategoriesPage() {
         confirmLabel="Delete"
         cancelLabel="Cancel"
         isOpen={isAlertDialogOpen}
-        onConfirm={() => handleDeleteCategory(deletingCategory)}
+        onConfirm={() => handleDeleteCategory(Number(deletingCategory))}
         onCancel={() => {
           setDeletingCategory(null);
           setIsAlertDialogOpen(false);

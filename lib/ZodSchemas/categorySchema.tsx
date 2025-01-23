@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 export const CategorySchema = z.object({
   category_name: z.string().min(2, {
     message: "category name is required and must be at least 2 characters.",
@@ -10,40 +13,22 @@ export const CategorySchema = z.object({
   }),
   category_status: z.enum(["Active", "Inactive"]),
   category_image: z
-    .custom<FileList>()
-    .transform((val) => {
-      if (val instanceof File) return val;
-      if (val instanceof FileList) return val[0];
-      return null;
-    })
-    .superRefine((file, ctx) => {
-      if (!(file instanceof File)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          fatal: true,
-          message: "Not a file",
-        });
-
-        return z.NEVER;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Max file size allowed is 5MB",
-        });
-      }
-
-      if (
-        !["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(
-          file.type
-        )
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "File must be an image (jpeg, jpg, png, webp)",
-        });
-      }
-    })
-    .pipe(z.custom<File>()),
+    .any()
+    .optional()
+    .refine(
+      (file) => !file || file?.size <= MAX_FILE_SIZE,
+      "Max file size is 100MB."
+    )
+    .refine(
+      (file) => !file || ACCEPTED_IMAGE_TYPES.includes(file?.type),
+      "Only .jpg, .png, and .webp formats are supported."
+    ),
+  text_color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color")
+    .default("#FFFFFF"),
+  background_color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color")
+    .default("#FFFFFF"),
 });

@@ -1,18 +1,21 @@
 "use server";
 
-import { RowDataPacket } from "mysql2/promise";
-import { getConnection } from "@/lib/MysqlDB/initDb";
 import { Category } from "./catType";
 import { compressAndEncodeBase64 } from "../utils";
-import { CacheUtil } from "@/lib/cache";
+import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
-export async function getUniqueCategories() {
+export async function getUniqueCategories(): Promise<Category[]> {
   const cacheKey = "categories";
 
-  const cachedData = CacheUtil.get<{ products: Category[] }>(cacheKey);
-
-  if (cachedData) return cachedData;
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Category[]; // Ensure data is returned as an array
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
 
   return dbOperation(async (connection) => {
     try {
@@ -20,16 +23,19 @@ export async function getUniqueCategories() {
         `SELECT category_id, category_name, category_image, category_description, category_status FROM categories`
       );
 
-      const uniqueCategories = await Promise.all(
-        categories.map(async (cat: Category) => ({
+      // Return an empty array if no categories found
+      if (!categories || categories.length === 0) {
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+        return [];
+      }
+
+      const uniqueCategories: Category[] = await Promise.all(
+        categories.map(async (cat: any) => ({
           category_id: cat.category_id,
           category_name: cat.category_name,
+
           category_image: cat.category_image
-            ? await compressAndEncodeBase64(
-                Buffer.isBuffer(cat.category_image)
-                  ? cat.category_image
-                  : Buffer.from(cat.category_image, "binary")
-              )
+            ? await compressAndEncodeBase64(cat.category_image)
             : null,
 
           category_description: cat.category_description,
@@ -37,7 +43,11 @@ export async function getUniqueCategories() {
         }))
       );
 
-      CacheUtil.set(cacheKey, uniqueCategories); // Use CacheUtil for caching
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: uniqueCategories,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
       return uniqueCategories;
     } catch (error) {
       console.error("Error fetching unique categories:", error);
@@ -89,44 +99,47 @@ export async function getCategorySpecs(category_id: string) {
   });
 }
 
-export async function fetchCategoryById(category_id: string) {
+// Function to fetch a category by ID
+export async function fetchCategoryById(
+  category_id: number
+): Promise<Category | null> {
   const cacheKey = `category_${category_id}`;
 
-  if (!category_id) throw new Error("Invalid category ID");
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Category; // Return cached data as Category
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
 
-  const cachedCategory = CacheUtil.get<Category>(cacheKey);
-  if (cachedCategory) return cachedCategory;
-
-  const connection = await getConnection();
-  try {
-    // Query the database
-    const [rows] = await connection.query<RowDataPacket[]>(
+  return await dbOperation(async (connection) => {
+    const [rows] = await connection.query(
       `SELECT category_id, category_name, category_image, category_description, category_status FROM categories WHERE category_id = ?`,
       [category_id]
     );
 
-    if (rows.length === 0) {
-      console.log(`No category found with ID ${category_id} in the database`);
-      return null;
+    if (!rows || rows.length === 0) {
+      return null; // Return null if no banner is found
     }
 
-    const category: Category = {
-      category_id: rows[0].category_id,
-      category_name: rows[0].category_name,
-      category_image: rows[0].category_image
-        ? await compressAndEncodeBase64(rows[0].category_image)
+    const category = rows[0];
+    const processedCategory: Category = {
+      category_id: category.category_id,
+      category_name: category.category_name,
+      category_image: category.category_image
+        ? await compressAndEncodeBase64(category.category_image)
         : null,
-      category_description: rows[0].category_description,
-      category_status: rows[0].category_status,
+      category_description: category.category_description,
+      category_status: category.category_status,
     };
 
-    CacheUtil.set(cacheKey, category);
+    cache.set(cacheKey, {
+      value: processedCategory,
+      expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+    });
 
-    return category;
-  } catch (error) {
-    console.error("Database query error:", error);
-    throw new Error("Failed to fetch category");
-  } finally {
-    connection.release();
-  }
+    return processedCategory;
+  });
 }

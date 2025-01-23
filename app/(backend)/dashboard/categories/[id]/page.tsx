@@ -3,22 +3,15 @@
 import { useStore } from "@/app/store";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/components/ui/use-toast";
+import { Category } from "@/lib/actions/Category/catType";
 import { fetchCategoryById } from "@/lib/actions/Category/fetch";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-interface Category {
-  category_id: string;
-  category_name: string;
-  category_image: string | null;
-  category_description: string;
-  category_status: "active" | "inactive";
-}
-
 export default function CategoryDetails({
   params,
 }: {
-  params: { id: string };
+  params: { id: number };
 }) {
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +80,7 @@ export default function CategoryDetails({
       <h1 className="text-2xl font-bold">{category.category_name}</h1>
       {category.category_image && (
         <Base64Image
-          src={category.category_image}
+          src={String(category.category_image)}
           alt={category.category_name}
           width={100}
           height={100}
@@ -100,7 +93,7 @@ export default function CategoryDetails({
         <strong>Status:</strong>{" "}
         <span
           className={`px-2 py-1 rounded ${
-            category.category_status === "active"
+            category.category_status === "Active"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}>

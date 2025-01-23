@@ -30,7 +30,7 @@ interface Category {
   category_name: string;
   category_image: string | File | null;
   category_description: string;
-  category_status: "active" | "inactive";
+  category_status: "Active" | "Inactive";
 }
 
 export default function CategoryForm({
@@ -42,7 +42,7 @@ export default function CategoryForm({
     category_name: initialData?.category_name || "",
     category_image: initialData?.category_image || null,
     category_description: initialData?.category_description || "",
-    category_status: initialData?.category_status || "active",
+    category_status: initialData?.category_status || "Active",
   });
 
   const [existingImage, setExistingImage] = useState<string | null>(
@@ -88,7 +88,7 @@ export default function CategoryForm({
   const handleStatusChange = (value: string) => {
     setCategory((prev) => ({
       ...prev,
-      category_status: value as "active" | "inactive",
+      category_status: value as "Active" | "Inactive",
     }));
   };
 
@@ -120,7 +120,10 @@ export default function CategoryForm({
       let result;
       if (!category.category_id) {
         // Create a new category
-        result = await CategorySubmitAction({ message: "" }, formData);
+        result = await CategorySubmitAction(
+          { message: "Created successfully" },
+          formData
+        );
       } else {
         // Update an existing category
         result = await updateCategoryAction(
@@ -238,8 +241,8 @@ export default function CategoryForm({
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="Active">Active</SelectItem>
+            <SelectItem value="Inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>

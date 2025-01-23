@@ -73,9 +73,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         const fetchedCategories = await getUniqueCategories();
         setExistingBrands(fetchedBrands || []);
         setCategories(
-          Array.isArray(fetchedCategories)
-            ? fetchedCategories
-            : fetchedCategories.products || []
+          fetchedCategories.map((category) => ({
+            ...category,
+            category_id: category.category_id.toString(),
+          }))
         );
       } catch (error) {
         console.error("Failed to fetch brands:", error);

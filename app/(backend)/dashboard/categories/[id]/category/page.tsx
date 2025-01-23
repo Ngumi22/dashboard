@@ -8,7 +8,7 @@ import { useEffect } from "react";
 export default function CategoryDetails({
   params,
 }: {
-  params: { id: string };
+  params: { id: number };
 }) {
   const fetchCategory = useStore((state) => state.fetchCategoryByIdState);
   const category = useStore((state) => state.selectedCategory);
@@ -55,7 +55,7 @@ export default function CategoryDetails({
       <h1 className="text-2xl font-bold">{category.category_name}</h1>
       {category.category_image && (
         <Base64Image
-          src={category.category_image}
+          src={String(category.category_image)}
           alt={category.category_name}
           width={100}
           height={100}
@@ -68,7 +68,7 @@ export default function CategoryDetails({
         <strong>Status:</strong>{" "}
         <span
           className={`px-2 py-1 rounded ${
-            category.category_status === "active"
+            category.category_status === "Active"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}>

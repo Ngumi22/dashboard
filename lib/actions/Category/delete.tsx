@@ -4,7 +4,7 @@ import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 
-export async function deleteCategory(category_id: string) {
+export async function deleteCategory(category_id: number) {
   const categoryCacheKey = `category_${category_id}`;
   const uniqueCategoriesCacheKey = "categories";
 

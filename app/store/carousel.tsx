@@ -1,5 +1,6 @@
 import {
   deleteCarousel,
+  fetchCarouselById,
   getUniqueCarousels,
 } from "@/lib/actions/Carousel/fetch";
 import { clearCachedData, getCachedData, setCachedData } from "@/lib/cache";
@@ -11,50 +12,56 @@ export interface Carousel {
   short_description?: string;
   description?: string;
   link?: string;
-  image?: File | string | null; // Adjusted for base64 handling
+  image?: string | File | null | Buffer;
   status: "active" | "inactive";
   text_color: string;
   background_color: string;
 }
 
 export interface CarouselState {
-  carousels: Carousel[];
+  carousels: Carousel[]; // Array of Carousel objects
   loading: boolean;
   error: string | null;
+  selectedCarousel: Carousel | null;
   fetchCarousels: () => Promise<void>;
   deleteCarouselState: (carousel_id: number) => Promise<boolean>;
+  fetchCarouselById: (carousel_id: number) => Promise<void>;
 }
 
-export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
+export const createCarouselSlice: StateCreator<CarouselState> = (set, get) => ({
   carousels: [],
   loading: false,
   error: null,
+  selectedCarousel: null,
 
   fetchCarousels: async () => {
     const cacheKey = "carousels";
-    const cachedData = getCachedData<Carousel[]>(cacheKey);
 
+    // Check if data is cached
+    const cachedData = getCachedData<Carousel[]>(cacheKey);
     if (cachedData) {
-      set({ carousels: cachedData, loading: false, error: null });
+      // Prevent unnecessary state updates if the cached data is already present
+      const { carousels } = get();
+      if (JSON.stringify(carousels) !== JSON.stringify(cachedData)) {
+        set({ carousels: cachedData, loading: false, error: null });
+      }
       return;
     }
+
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
 
     set({ loading: true, error: null });
 
     try {
-      const freshData = (await getUniqueCarousels()) as Carousel[];
-
-      // Cache the fetched data with a TTL of 2 minutes
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
-
-      set({ carousels: freshData, loading: false, error: null });
+      const carousels = await getUniqueCarousels(); // Fetch carousels
+      setCachedData(cacheKey, carousels, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      set({ carousels, loading: false, error: null });
     } catch (err) {
       set({
-        error:
-          err instanceof Error
-            ? err.message
-            : "Unexpected error while fetching carousels.",
         loading: false,
+        error: err instanceof Error ? err.message : "Failed to fetch carousels",
       });
     }
   },
@@ -89,6 +96,23 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set) => ({
         loading: false,
       });
       return false;
+    }
+  },
+
+  fetchCarouselById: async (carousel_id: number) => {
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
+
+    set({ loading: true, error: null });
+    try {
+      const banner = await fetchCarouselById(carousel_id);
+      set({ selectedCarousel: banner, loading: false });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Failed to fetch banner",
+        loading: false,
+      });
     }
   },
 });
