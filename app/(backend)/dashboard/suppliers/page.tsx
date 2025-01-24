@@ -25,7 +25,6 @@ const includedKeys: (keyof Supplier)[] = [
 ];
 
 import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
 
 const columnRenderers = {};
 
@@ -41,10 +40,7 @@ export default function Home() {
     {}
   );
   const [sortKey, setSortKey] = useState<keyof Supplier>("supplier_name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {

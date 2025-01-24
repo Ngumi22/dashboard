@@ -56,7 +56,7 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set, get) => ({
 
     try {
       const carousels = await getUniqueCarousels(); // Fetch carousels
-      setCachedData(cacheKey, carousels, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      setCachedData(cacheKey, carousels, { ttl: 2 * 60 * 60 * 1000 }); // Cache the data for 2 minutes
       set({ carousels, loading: false, error: null });
     } catch (err) {
       set({

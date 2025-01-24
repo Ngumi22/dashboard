@@ -1,12 +1,7 @@
+import { Brand } from "@/lib/actions/Brand/brandType";
 import { fetchBrandById, getUniqueBrands } from "@/lib/actions/Brand/fetch";
 import { getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
-
-export interface Brand {
-  brand_id: number;
-  brand_name: string;
-  brand_image: File | string | null;
-}
 
 export interface BrandState {
   brands: Brand[];
@@ -14,10 +9,10 @@ export interface BrandState {
   error: string | null;
   selectedBrand: Brand | null;
   fetchUniqueBrands: () => Promise<void>;
-  fetchBrandByIdState: (brand_id: string) => Promise<Brand | null>;
+  fetchBrandByIdState: (brand_id: number) => Promise<Brand | null>;
 }
 
-export const createBrandSlice: StateCreator<BrandState> = (set) => ({
+export const createBrandSlice: StateCreator<BrandState> = (set, get) => ({
   brands: [],
   loading: false,
   error: null,
@@ -25,62 +20,49 @@ export const createBrandSlice: StateCreator<BrandState> = (set) => ({
 
   fetchUniqueBrands: async () => {
     const cacheKey = "brands";
-    const cachedData = getCachedData<Brand[]>(cacheKey);
 
+    //Check if data is cached
+    const cachedData = getCachedData<Brand[]>(cacheKey);
     if (cachedData) {
-      set({ brands: cachedData, loading: false, error: null });
+      // Prevent unnecessary state updates if the cached data is already present
+      const { brands } = get();
+      if (JSON.stringify(brands) !== JSON.stringify(cachedData)) {
+        set({ brands: cachedData, loading: false, error: null });
+      }
       return;
     }
+
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
 
     set({ loading: true, error: null });
 
     try {
-      const freshData = (await getUniqueBrands()) as Brand[];
-
-      // Cache the fetched data with a TTL of 2 minutes
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
-
-      set({ brands: freshData, loading: false, error: null });
+      const brands = await getUniqueBrands(); // Fetch brands
+      setCachedData(cacheKey, brands, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      set({ brands, loading: false, error: null });
     } catch (err) {
       set({
-        error: err instanceof Error ? err.message : "Error fetching brands",
         loading: false,
+        error: err instanceof Error ? err.message : "Failed to fetch brands",
       });
     }
   },
 
-  fetchBrandByIdState: async (brand_id: string) => {
-    const cacheKey = `brand_${brand_id}`;
-    const cachedBrand = getCachedData<Brand>(cacheKey);
-
-    if (cachedBrand) {
-      set({ selectedBrand: cachedBrand, loading: false, error: null });
-      return cachedBrand;
-    }
+  fetchBrandByIdState: async (brand_id: number) => {
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return null;
 
     set({ loading: true, error: null });
-
     try {
-      const brand = await fetchBrandById(Number(brand_id));
-
-      if (brand) {
-        // Cache the brand with a TTL of 2 minutes
-        setCachedData(cacheKey, brand, { ttl: 2 * 60 });
-
-        set({ selectedBrand: brand, loading: false, error: null });
-        return brand;
-      } else {
-        set({
-          selectedBrand: null,
-          error: "Brand not found",
-          loading: false,
-        });
-        return null;
-      }
+      const brand = await fetchBrandById(brand_id);
+      set({ selectedBrand: brand, loading: false });
+      return brand;
     } catch (err) {
       set({
-        error:
-          err instanceof Error ? err.message : "Error fetching brand details",
+        error: err instanceof Error ? err.message : "Failed to fetch brand",
         loading: false,
       });
       return null;

@@ -50,7 +50,7 @@ export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
 
     try {
       const banners = await getUniqueBanners(); // Fetch banners
-      setCachedData(cacheKey, banners, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      setCachedData(cacheKey, banners, { ttl: 2 * 60 * 60 * 1000 }); // Cache the data
       set({ banners, loading: false, error: null });
     } catch (err) {
       set({

@@ -33,9 +33,17 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
     const cachedData = getCachedData<{ products: Product[] }>(cacheKey);
 
     if (cachedData) {
-      set({ products: cachedData.products, loading: false, error: null });
+      // Prevent unnecessary state updates if the cached data is already present
+      const { products } = get();
+      if (JSON.stringify(products) !== JSON.stringify(cachedData)) {
+        set({ products: cachedData.products, loading: false, error: null });
+      }
       return;
     }
+
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
 
     set({ loading: true, error: null });
 
@@ -69,7 +77,7 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
       const product = await fetchProductByIdFromDb(product_id);
 
       if (product) {
-        setCachedData(cacheKey, product, { ttl: 6 * 60 });
+        setCachedData(cacheKey, product, { ttl: 6 * 60 * 60 * 1000 });
         set({ selectedProduct: product, loading: false, error: null });
         return product; // Return the fetched product
       } else {

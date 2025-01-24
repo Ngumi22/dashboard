@@ -1,22 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "../globals.css";
 import Loading from "./loading";
 
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
 import { initialize } from "@/lib/MysqlDB/initialize";
 
-initialize();
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: "400",
-});
-
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Bernzz Digital Solutions",
   description: "Dashboard",
 };
 
@@ -25,9 +17,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  initialize();
   return (
     <html lang="en">
-      <body className={inter.className} suppressHydrationWarning={true}>
+      <body suppressHydrationWarning={true}>
         <ClientSideWrapper>
           <Suspense fallback={<Loading />}>{children}</Suspense>
         </ClientSideWrapper>

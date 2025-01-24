@@ -2,7 +2,7 @@ import { StaffSignupForm } from "./form";
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center h-screen">
+    <div className="flex items-center justify-center md:h-screen">
       <StaffSignupForm />
     </div>
   );

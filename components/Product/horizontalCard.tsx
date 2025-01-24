@@ -52,6 +52,7 @@ export default function ProductShowcase() {
                 onClick: () => console.log("Shared"),
               },
             ]}
+            orientation="horizontal"
           />
         ))}
       </div>

@@ -57,15 +57,6 @@ export default function BrandPage() {
     fetchUniqueBrands(); // Fetch initial page
   }, [fetchUniqueBrands, currentPage]);
 
-  // Dynamically generate brand brand_name from the products data
-  const brandOptions = useMemo(() => {
-    const uniqueBrands = new Set(brands.map((brand) => brand.brand_name));
-    return Array.from(uniqueBrands).map((brand) => ({
-      value: brand,
-      label: brand,
-    }));
-  }, [brands]);
-
   const filters: Filter<any>[] = useMemo(() => [], []);
 
   const rowActions: RowAction<any>[] = [

@@ -4,7 +4,7 @@ import { cache, CacheUtil } from "@/lib/cache";
 import { Supplier } from "./supplierTypes";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
-export async function getUniqueSuppliers() {
+export async function getUniqueSuppliers(): Promise<Supplier[]> {
   const cacheKey = "suppliers";
 
   // Check if the result is already in the cache

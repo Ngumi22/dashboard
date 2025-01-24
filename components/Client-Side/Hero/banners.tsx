@@ -44,11 +44,21 @@ export default function BannerComponent({
 
   // Filter banners using memoization
   const filteredBanners = useMemo(() => {
+    if (!Array.isArray(banners)) {
+      console.error("banners is not an array:", banners);
+      return [];
+    }
+
     return banners.filter((banner) => {
-      const matchesStatus = isAdmin || banner.status === "active";
-      const matchesUsageContext =
-        !usageContext || banner.usage_context_name === usageContext;
-      return matchesStatus && matchesUsageContext;
+      try {
+        const matchesStatus = isAdmin || banner?.status === "active";
+        const matchesUsageContext =
+          !usageContext || banner?.usage_context_name === usageContext;
+        return matchesStatus && matchesUsageContext;
+      } catch (error) {
+        console.error("Error filtering banner:", error, banner);
+        return false; // Exclude problematic banners
+      }
     });
   }, [banners, usageContext, isAdmin]);
 

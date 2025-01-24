@@ -54,6 +54,9 @@ export async function initDbConnection(): Promise<mysql.Pool> {
       connectionLimit: 100,
       queueLimit: 0,
       connectTimeout: 15000,
+      // ssl: {
+      //   rejectUnauthorized: true,
+      // },
     });
 
     console.log("Database pool initialized successfully.");
@@ -94,15 +97,7 @@ export async function getConnection(): Promise<mysql.PoolConnection> {
  * Executes a query and logs performance.
  */
 export async function query(sql: string, params: any[] = []): Promise<any> {
-  if (!pool) {
-    await initDbConnection();
-  }
-
-  if (!pool) {
-    throw new Error("Database pool is not initialized");
-  }
-
-  const connection = await pool.getConnection();
+  const connection = await pool!.getConnection();
   try {
     const start = performance.now();
     const [results] = await connection.execute(sql, params);
@@ -119,8 +114,8 @@ export async function query(sql: string, params: any[] = []): Promise<any> {
     return results;
   } catch (error) {
     console.error("Database error:", error);
-    throw error; // Rethrow the error after logging it
+    throw error;
   } finally {
-    connection.release(); // Release the connection back to the pool
+    connection.release();
   }
 }
