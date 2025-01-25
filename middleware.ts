@@ -24,16 +24,21 @@ export default async function middleware(req: NextRequest) {
   const origin = req.headers.get("origin");
   const response = NextResponse.next();
 
-  // Allow requests with no origin (like browser navigation)
+  // Normalize origin by removing trailing slashes
+  const normalizedOrigin = origin?.replace(/\/$/, "");
+
+  // Allow requests with no origin (like browser navigation or same-origin requests)
   if (!origin && process.env.NODE_ENV === "development") {
     console.log("No origin header, allowing localhost for development.");
-  } else if (!origin || !allowedOrigins.includes(origin)) {
-    console.error(`Origin "${origin}" not allowed.`);
+  } else if (!origin) {
+    console.log("No origin header, allowing request.");
+  } else if (normalizedOrigin && !allowedOrigins.includes(normalizedOrigin)) {
+    console.error(`Origin "${normalizedOrigin}" not allowed.`);
     return new NextResponse("Forbidden", { status: 403 });
   }
 
   const corsHeaders = {
-    "Access-Control-Allow-Origin": origin || "http://localhost:3000",
+    "Access-Control-Allow-Origin": normalizedOrigin || "http://localhost:3000",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
