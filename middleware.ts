@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { decrypt } from "./lib/actions/Auth/sessions";
 
 // Allowed origins for CORS
-const allowedOrigins = ["https://bernzz-front.vercel.app"];
+const allowedOrigins = [
+  "https://bernzz-front.vercel.app",
+  "https://dashboard-five-wheat.vercel.app",
+  "https://www.bernzzdigitalsolutions.co.ke",
+  "http://localhost:3000", // Allow localhost explicitly for development
+];
 
 // Route categories
-
 const protectedRoutes = [
   "/dashboard",
   "/dashboard/:path*",
@@ -17,47 +21,32 @@ const unprotectedApiRoutes = ["/api/verify", "/api/initialize"];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    path.startsWith(route)
-  );
-  const isPublicRoute = publicRoutes.includes(path);
-  const isUnprotectedApiRoute = unprotectedApiRoutes.some((route) =>
-    path.startsWith(route)
-  );
-
-  const origin = req.headers.get("origin") || "";
+  const origin = req.headers.get("origin");
   const response = NextResponse.next();
 
-  // CORS Handling
-  if (process.env.NODE_ENV === "development") {
-    response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    response.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-  } else if (allowedOrigins.includes(origin)) {
-    response.headers.set("Access-Control-Allow-Origin", origin);
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    response.headers.set(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-  } else if (origin) {
+  // Allow requests with no origin (like browser navigation)
+  if (!origin && process.env.NODE_ENV === "development") {
+    console.log("No origin header, allowing localhost for development.");
+  } else if (!origin || !allowedOrigins.includes(origin)) {
     console.error(`Origin "${origin}" not allowed.`);
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": origin || "http://localhost:3000",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+  };
+
+  // Apply CORS headers to all responses
+  Object.entries(corsHeaders).forEach(([key, value]) =>
+    response.headers.set(key, value)
+  );
+
+  // OPTIONS request handling
   if (req.method === "OPTIONS") {
-    return new NextResponse(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": origin || "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
+    return new NextResponse(null, { status: 204, headers: corsHeaders });
   }
 
   // Session Handling
@@ -70,7 +59,15 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Route protection
+  // Route Protection Logic
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    path.startsWith(route)
+  );
+  const isPublicRoute = publicRoutes.includes(path);
+  const isUnprotectedApiRoute = unprotectedApiRoutes.some((route) =>
+    path.startsWith(route)
+  );
+
   if (isProtectedRoute && !isUnprotectedApiRoute && !session?.userId) {
     if (path.startsWith("/api")) {
       return new NextResponse(
