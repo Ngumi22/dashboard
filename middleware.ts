@@ -5,8 +5,7 @@ import { decrypt } from "./lib/actions/Auth/sessions";
 const allowedOrigins = [
   "https://bernzz-front.vercel.app",
   "https://dashboard-five-wheat.vercel.app",
-  "https://www.bernzzdigitalsolutions.co.ke",
-  "bernzzdigitalsolutions.co.ke",
+  "https://www.bernzzdigitalsolutions.co.ke", // Ensure this is included
   "http://localhost:3000", // Allow localhost explicitly for development
 ];
 
