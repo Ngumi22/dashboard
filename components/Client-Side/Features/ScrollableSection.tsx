@@ -1,0 +1,93 @@
+"use client";
+
+import type React from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollableSectionProps } from "@/lib/definitions";
+import BannerCarousel from "./BannerCarousel";
+
+const ScrollableSection: React.FC<ScrollableSectionProps> = ({
+  title,
+  items,
+  className = "",
+  itemClassName = "",
+  banner,
+}) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } =
+        scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [items, checkScroll]); // Added checkScroll to dependencies
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = scrollContainerRef.current.clientWidth / 2;
+      scrollContainerRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  return (
+    <div className={`w-full ${className}`}>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">{title}</h2>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => scroll("left")}
+            className={`p-1 rounded-full bg-gray-200 hover:bg-gray-300 transition-opacity duration-300 ${
+              showLeftArrow ? "opacity-100" : "opacity-0 cursor-default"
+            }`}
+            disabled={!showLeftArrow}
+            aria-label="Scroll left">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => scroll("right")}
+            className={`p-1 rounded-full bg-gray-200 hover:bg-gray-300 transition-opacity duration-300 ${
+              showRightArrow ? "opacity-100" : "opacity-0 cursor-default"
+            }`}
+            disabled={!showRightArrow}
+            aria-label="Scroll right">
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+      <div className="flex">
+        {banner && (
+          <div className={`flex-shrink-0 ${itemClassName}`}>
+            <BannerCarousel {...banner} />
+          </div>
+        )}
+        <div
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto scrollbar space-x-4 pb-4 flex-grow scroll-smooth snap-x snap-mandatory"
+          onScroll={checkScroll}>
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className={`flex-shrink-0 ${itemClassName} snap-start`}>
+              {item.content}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ScrollableSection;

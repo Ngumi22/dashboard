@@ -46,11 +46,6 @@ export interface UploadFormProps {
   isEdit: boolean;
 }
 
-export interface CategoryData {
-  id: string;
-  name: string;
-}
-
 export interface BrandWithProducts {
   brand: string;
   products: ProductRow[];
@@ -174,3 +169,72 @@ export type SessionPayload = {
   userId: string | number;
   expiresAt: Date;
 };
+
+import type { ReactNode } from "react";
+
+export interface ScrollableItemProps {
+  id: string | number;
+  content: ReactNode;
+}
+
+export interface ScrollableSectionProps {
+  title: string;
+  items: ScrollableItemProps[];
+  className?: string;
+  itemClassName?: string;
+  banner?: BannerProps;
+}
+
+export interface BannerProps {
+  images: BannerImage[];
+  interval?: number;
+  height?: number | string;
+  width?: number | string;
+  className?: string;
+  imageClassName?: string;
+}
+
+export interface BannerImage {
+  src: string;
+  alt: string;
+  link?: string;
+}
+
+export interface ProductCardProps {
+  id: string | number;
+  title: string;
+  price: string;
+  imageUrl: string;
+}
+
+export interface CategoryData {
+  name: string;
+  bannerImages: BannerImage[];
+  products: ProductCardProps[];
+}
+
+export interface BannerImage {
+  src: string;
+  alt: string;
+  link?: string;
+}
+
+export interface ProductCardProps {
+  id: string | number;
+  title: string;
+  price: string;
+  imageUrl: string;
+}
+
+export interface BannerImage {
+  src: string;
+  alt: string;
+  link?: string;
+}
+
+export interface TabbedScrollableSectionProps {
+  categories: CategoryData[];
+  className?: string;
+  itemClassName?: string;
+  banner?: BannerProps;
+}

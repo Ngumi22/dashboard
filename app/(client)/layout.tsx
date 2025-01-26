@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "../globals.css";
 import Loading from "./loading";
-
 import { Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";

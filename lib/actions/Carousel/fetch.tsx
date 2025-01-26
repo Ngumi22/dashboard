@@ -5,35 +5,51 @@ import { Carousel } from "./carouselType";
 import { compressAndEncodeBase64 } from "../utils";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
-export async function getUniqueCarousels(): Promise<Carousel[]> {
-  const cacheKey = "carousels";
+export async function getUniqueCarousels({
+  limit = 4,
+  status = "active",
+}: {
+  limit?: number;
+  status?: "active" | "inactive" | "all";
+} = {}): Promise<Carousel[]> {
+  const cacheKey = `carousels_${status}_${limit}`; // Unique cache key based on status and limit
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Carousel[]; // Ensure data is returned as an array
+      return cachedData.value as Carousel[]; // Return cached data
     }
     cache.delete(cacheKey); // Invalidate expired cache
   }
 
   return await dbOperation(async (connection) => {
     try {
-      // Fetch the most recently inserted carousels
+      // Construct the SQL query dynamically based on status
+      let query = `
+        SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
+        FROM carousels
+      `;
+
+      if (status !== "all") {
+        query += ` WHERE status = ?`;
+      }
+
+      query += ` ORDER BY carousel_id DESC LIMIT ?`;
+
+      // Execute the query with parameters
       const [carousels] = await connection.query(
-        `SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
-         FROM carousels
-         ORDER BY carousel_id DESC
-         LIMIT 4` // Fetch only the latest entries
+        query,
+        status !== "all" ? [status, limit] : [limit]
       );
 
       // Return an empty array if no carousels found
       if (!carousels || carousels.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 }); // Cache empty result
         return [];
       }
 
-      // Map the result and compress the image for each carousel
+      // Parallelize image compression for all carousels
       const uniqueCarousels: Carousel[] = await Promise.all(
         carousels.map(async (carousel: any) => ({
           carousel_id: carousel.carousel_id,
@@ -59,7 +75,7 @@ export async function getUniqueCarousels(): Promise<Carousel[]> {
       return uniqueCarousels;
     } catch (error) {
       console.error("Error fetching unique carousels:", error);
-      throw error;
+      throw new Error("Failed to fetch carousels");
     }
   });
 }

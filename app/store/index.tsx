@@ -3,7 +3,6 @@ import { createBannerSlice, BannerState } from "./banners";
 import { createCarouselSlice, CarouselState } from "./carousel";
 import { createProductSlice, ProductState } from "./product";
 import { CategoryState, createCategorySlice } from "./category";
-import { useCartStore, CartStoreState } from "./cart";
 import { BrandState, createBrandSlice } from "./brand";
 import { createSupplierSlice, SupplierState } from "./supplier";
 

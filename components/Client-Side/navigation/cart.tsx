@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShoppingCart } from "lucide-react";
+import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/app/store/cart";
 import {
   Popover,
@@ -35,18 +35,27 @@ export default function Cart() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="cursor-pointer flex items-center justify-center space-x-3 rounded-none text-white">
-          <ShoppingCart className="h-8 w-8" />
-          <p>{cartTotalQuantity} ITEMS</p>
+        <div className="cursor-pointer flex items-center justify-center space-x-2 rounded-none text-white">
+          <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
+          <p className="flex gap-x-2 text=xs md:text-md">
+            {cartTotalQuantity}
+            <span className="hidden md:flex text-center items-center text-xs">
+              Items
+            </span>
+          </p>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-96">
         <ScrollArea className="h-96 rounded-md p-4">
           {cartItems?.length === 0 ? (
             <div className="text-center">
-              <p className="font-semibold my-4">Cart is empty</p>
+              <p className="font-semibold my-4">Your Cart is empty</p>
               <Link className="flex justify-center gap-2 items-center" href="/">
-                <p>Start Shopping</p>
+                <p className="flex justify-center gap-2 items-center">
+                  {" "}
+                  <ArrowLeft />
+                  Start Shopping
+                </p>
               </Link>
             </div>
           ) : (

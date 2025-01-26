@@ -12,24 +12,24 @@ export default function TopNav() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   return (
-    <div className="bg-[#151C25] py-2 grid grid-flow-col gap-x-4 place-items-center px-2">
-      <p className="text-white text-center text-xs md:text-xs lg:text-base sm:text-left justify-self-start md:pl-4">
-        Free Delivery Over $1000
+    <div className="bg-[#151C25] grid grid-flow-col gap-x-4 place-items-center px-2">
+      <p className="text-white text-center text-xs md:text-md sm:text-left justify-self-start">
+        Free Delivery Over Ksh 80,000
       </p>
-      <div className="grid grid-flow-col gap-x-4 place-items-center justify-self-end md:pr-4">
+      <div className="grid grid-flow-col gap-x-1 lg:gap-x-4 place-items-center justify-self-end lg:pr-4">
         <a
           href="tel:+1234567890"
           className="text-white hover:text-gray-800 flex items-center px-2 gap-x-2">
           <Phone className="h-4 w-4" fill="blue" />
-          <span className="hidden sm:inline text-xs lg:text-base hover:text-white">
+          <span className="hidden sm:inline text-xs md:text-md hover:text-white">
             +254 720 000-000
           </span>
         </a>
         <a
           href="tel:+1234567890"
           className="text-white hover:text-gray-800 flex items-center px-2 gap-x-2">
-          <MessageCircleHeart className="h-4 w-4 text-white" fill="green" />
-          <span className="hidden sm:inline text-xs lg:text-base text-white">
+          <MessageCircleHeart className="h-4 w-4 text-white" />
+          <span className="hidden sm:inline text-xs md:text-md text-white">
             WhatsApp
           </span>
         </a>
@@ -40,7 +40,7 @@ export default function TopNav() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs lg:text-base px-2 text-white flex items-center rounded-none">
+            className="text-xs md:text-md px-2 text-white flex items-center rounded-none">
             <span>Currency</span>
             <ChevronDown className="ml-1 h-4 w-4 my-auto" />
           </Button>
@@ -90,7 +90,7 @@ export default function TopNav() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs lg:text-base px-2 text-white rounded-none">
+            className="text-xs md:text-md px-2 text-white rounded-none">
             Account
             <ChevronDown className="ml-1 h-4 w-4" />
           </Button>

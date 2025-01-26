@@ -5,7 +5,7 @@ import BannerComponent from "@/components/Client-Side/Hero/banners";
 
 export default function HeroSection() {
   return (
-    <section className="mx-1 grid grid-cols-1 lg:grid-cols-4 gap-4 w-min-screen my-5 h-full">
+    <section className="mx-1 grid grid-cols-1 lg:grid-cols-4 gap-4 w-min-screen my-2 h-full">
       <div className="col-span-2 flex flex-col h-full">
         <HeroCarousels isAdmin={false} />
       </div>
