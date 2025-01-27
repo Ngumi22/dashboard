@@ -16,6 +16,7 @@ import Image from "next/image";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import dynamic from "next/dynamic";
 import { Banner } from "@/lib/actions/Banners/bannerType";
+import Base64Image from "@/components/Data-Table/base64-image";
 
 // Lazy load BannerForm to reduce initial bundle size
 const BannerForm = dynamic(
@@ -192,34 +193,33 @@ const BannerList = React.memo(
     setIsDialogOpen: (open: boolean) => void;
     handleDelete: (banner_id: number) => void;
   }) => (
-    <ul className="scrollbar w-full flex overflow-x-scroll md:overflow-hidden md:grid md:grid-cols-2 md:grid-rows-2 md:gap-4 gap-4">
+    <ul className="flex-1 scrollbar overflow-x-scroll lg:overflow-hidden flex md:grid md:grid-cols-2 gap-2 md:gap-4 h-32 md:h-96">
       {banners.map((banner) => (
         <li
           key={banner.banner_id}
           style={{ backgroundColor: banner.background_color }}
-          className="min-w-[300px] h-36 md:h-48 md:min-w-0 md:w-full flex-shrink-0 grid grid-flow-col content-center pl-4 rounded-md">
-          <div className="grid sm:space-y-2 space-y-4">
+          className="min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md">
+          <div className="grid">
             <h1
               className="text-xl lg:text-2xl font-semibold"
               style={{ color: banner.text_color }}>
               {banner.title}
             </h1>
-            <p style={{ color: banner.text_color }}>{banner.description}</p>
-            <Link href={String(banner.link)}>
-              <Button className="text-center">Buy Now</Button>
-            </Link>
+            <p className="line-clamp-1" style={{ color: banner.text_color }}>
+              {banner.description}
+            </p>
+
+            <Button className="text-xs size-18">
+              <Link href={String(banner.link)}>Buy Now</Link>
+            </Button>
           </div>
           {/* Fixed aspect ratio container for the image */}
-          <div className="aspect-w-16 aspect-h-9">
-            <Image
-              loading="lazy"
-              className="h-full w-auto object-contain"
-              src={`data:image/jpeg;base64,${banner.image}`}
-              alt={banner.title}
-              height={200} // Fixed height
-              width={200} // Fixed width
-            />
-          </div>
+          <Base64Image
+            src={typeof banner.image === "string" ? banner.image : undefined}
+            alt={banner.title}
+            width={80}
+            height={80}
+          />
 
           {isAdmin && (
             <div className="absolute top-4 right-4">

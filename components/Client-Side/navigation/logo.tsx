@@ -13,6 +13,8 @@ export default function Logo() {
       priority // Preload the image
       quality={60} // Adjust quality
       loading="eager" // Load immediately
+      sizes="(max-width: 768px) 100vw, 50vw"
+      unoptimized={true} // Optional: Use if the image is already optimized
     />
   );
 }

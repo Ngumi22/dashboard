@@ -130,8 +130,8 @@ export default function HeroCarousels({ isAdmin = false }: HeroCarouselsProps) {
               style={{
                 backgroundColor: carousel.background_color,
               }}
-              className="relative h-52 md:h-full grid grid-cols-3 gap-4 py-4 md:py-[4.5rem] rounded-md">
-              <div className="col-span-2 grid grid-flow-row md:space-y-8 pl-5 space-y-2">
+              className="relative grid grid-cols-3 rounded-md h-56 md:h-96 content-center justify-items-center">
+              <div className="col-span-2 grid grid-flow-row space-y-4">
                 <h1
                   className="text-xl text-start font-extrabold sm:text-5xl"
                   style={{

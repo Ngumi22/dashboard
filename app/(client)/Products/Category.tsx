@@ -106,21 +106,21 @@ const categories: CategoryData[] = [
 
 export default function CategoryHome() {
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Our Products</h1>
+    <section className="md:container px-2">
+      <h1 className="text-2xl font-semibold my-3">Our Products</h1>
       <TabbedScrollableSection
         categories={categories}
-        className="mb-8"
+        className="mb-4"
         itemClassName="w-[250px]"
         banner={{
           images: bannerImages,
           interval: 5000,
           height: 320,
           width: 240,
-          className: "rounded-lg shadow-md",
-          imageClassName: "rounded-lg",
+          className: "rounded-md shadow-md",
+          imageClassName: "rounded-md",
         }}
       />
-    </main>
+    </section>
   );
 }

@@ -1,88 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, ChevronDown, Phone, MessageCircleHeart } from "lucide-react";
+import { Phone, MessageCircleHeart, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const currencies = ["KSh", "USD", "EUR"];
-const languages = ["English", "Français", "Español"];
 const accountOptions = ["Create Account", "Login", "Logout"];
 
 export default function TopNav() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   return (
-    <div className="bg-[#151C25] grid grid-flow-col gap-x-4 place-items-center px-2">
-      <p className="text-white text-center text-xs md:text-md sm:text-left justify-self-start">
+    <div className="bg-[#151C25] flex items-center justify-between px-2 sm:px-4 py-1">
+      {/* Left Section: Delivery Text */}
+      <p className="text-white text-xs md:text-sm whitespace-nowrap truncate">
         Free Delivery Over Ksh 80,000
       </p>
-      <div className="grid grid-flow-col gap-x-1 lg:gap-x-4 place-items-center justify-self-end lg:pr-4">
+
+      {/* Right Section: Contact Links and Account Dropdown */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Phone Link */}
         <a
-          href="tel:+1234567890"
-          className="text-white hover:text-gray-800 flex items-center px-2 gap-x-2">
-          <Phone className="h-4 w-4" fill="blue" />
-          <span className="hidden sm:inline text-xs md:text-md hover:text-white">
+          href="tel:+254720000000"
+          className="text-white hover:text-gray-300 flex items-center gap-1 sm:gap-2 px-2">
+          <Phone className="h-4 w-4" />
+          <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">
             +254 720 000-000
           </span>
         </a>
+
+        {/* WhatsApp Link */}
         <a
-          href="tel:+1234567890"
-          className="text-white hover:text-gray-800 flex items-center px-2 gap-x-2">
-          <MessageCircleHeart className="h-4 w-4 text-white" />
-          <span className="hidden sm:inline text-xs md:text-md text-white">
+          href="https://wa.me/254720000000"
+          className="text-white hover:text-gray-300 flex items-center gap-1 sm:gap-2 px-2">
+          <MessageCircleHeart className="h-4 w-4" />
+          <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">
             WhatsApp
           </span>
         </a>
-        <div
-          className="relative"
-          onMouseEnter={() => setActiveMenu("currency")}
-          onMouseLeave={() => setActiveMenu(null)}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs md:text-md px-2 text-white flex items-center rounded-none">
-            <span>Currency</span>
-            <ChevronDown className="ml-1 h-4 w-4 my-auto" />
-          </Button>
-          {activeMenu === "currency" && (
-            <div className="absolute right-0  w-24 bg-white border border-gray-200 shadow-lg z-10">
-              {currencies.map((currency) => (
-                <Button
-                  key={currency}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs lg:text-sm rounded-none">
-                  {currency}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div
-          className="relative"
-          onMouseEnter={() => setActiveMenu("language")}
-          onMouseLeave={() => setActiveMenu(null)}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 rounded-none">
-            <Globe className="h-4 w-4 text-white hover:text-black" />
-            <span className="sr-only">Language</span>
-          </Button>
-          {activeMenu === "language" && (
-            <div className="absolute right-0  w-28 bg-white border border-gray-200 shadow-lg z-10">
-              {languages.map((language) => (
-                <Button
-                  key={language}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs lg:text-sm">
-                  {language}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
+
+        {/* Account Dropdown */}
         <div
           className="relative"
           onMouseEnter={() => setActiveMenu("account")}
@@ -90,7 +46,7 @@ export default function TopNav() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs md:text-md px-2 text-white rounded-none">
+            className="text-xs md:text-sm px-2 text-white hover:bg-gray-800 rounded-none">
             Account
             <ChevronDown className="ml-1 h-4 w-4" />
           </Button>
@@ -101,7 +57,7 @@ export default function TopNav() {
                   key={option}
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start text-xs lg:text-sm rounded-none">
+                  className="w-full justify-start text-xs md:text-sm rounded-none hover:bg-gray-100">
                   {option}
                 </Button>
               ))}

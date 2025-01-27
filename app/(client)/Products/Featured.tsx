@@ -38,7 +38,7 @@ export default function FeaturedProducts() {
   ];
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <section className="md:container px-2">
       <ScrollableSection
         title="Featured Products"
         items={featuredProducts}
@@ -49,10 +49,10 @@ export default function FeaturedProducts() {
           interval: 5000,
           height: 320,
           width: 240,
-          className: "rounded-lg shadow-md",
+          className: "rounded-lg shadow-md hidden md:grid",
           imageClassName: "rounded-lg",
         }}
       />
-    </main>
+    </section>
   );
 }

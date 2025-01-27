@@ -44,38 +44,40 @@ const ScrollableSection: React.FC<ScrollableSectionProps> = ({
 
   return (
     <div className={`w-full ${className}`}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{title}</h2>
-        <div className="flex space-x-2">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+        <div className="flex space-x-2 py-2">
           <button
             onClick={() => scroll("left")}
-            className={`p-1 rounded-full bg-gray-200 hover:bg-gray-300 transition-opacity duration-300 ${
-              showLeftArrow ? "opacity-100" : "opacity-0 cursor-default"
+            className={`p-1 rounded-full bg-primary text-white hover:bg-primary/90 transition-opacity duration-300 ${
+              showLeftArrow ? "opacity-100" : "opacity-80 cursor-default"
             }`}
             disabled={!showLeftArrow}
             aria-label="Scroll left">
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => scroll("right")}
-            className={`p-1 rounded-full bg-gray-200 hover:bg-gray-300 transition-opacity duration-300 ${
-              showRightArrow ? "opacity-100" : "opacity-0 cursor-default"
+            className={`p-1 rounded-full bg-primary text-white hover:bg-primary/90 transition-opacity duration-300 ${
+              showRightArrow ? "opacity-100" : "opacity-80 cursor-default"
             }`}
             disabled={!showRightArrow}
             aria-label="Scroll right">
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
       <div className="flex">
-        {banner && (
-          <div className={`flex-shrink-0 ${itemClassName}`}>
-            <BannerCarousel {...banner} />
-          </div>
-        )}
+        <div className="hidden lg:flex">
+          {banner && (
+            <div className={`flex-shrink-0 ${itemClassName}`}>
+              <BannerCarousel {...banner} />
+            </div>
+          )}
+        </div>
         <div
           ref={scrollContainerRef}
-          className="flex overflow-x-auto scrollbar space-x-4 pb-4 flex-grow scroll-smooth snap-x snap-mandatory"
+          className="flex overflow-x-auto scrollbar space-x-4 flex-grow scroll-smooth snap-x snap-mandatory"
           onScroll={checkScroll}>
           {items.map((item) => (
             <div

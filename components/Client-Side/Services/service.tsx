@@ -6,7 +6,7 @@ import {
   PhoneCall,
   ShapesIcon,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 
 const services = [
   {
@@ -42,66 +42,27 @@ const services = [
 ];
 
 export default function Service() {
-  const [showScrollButtons, setShowScrollButtons] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const checkScroll = () => {
-      if (scrollContainerRef.current) {
-        setShowScrollButtons(
-          scrollContainerRef.current.scrollWidth >
-            scrollContainerRef.current.clientWidth
-        );
-      }
-    };
-
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => window.removeEventListener("resize", checkScroll);
-  }, []);
-
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === "left" ? -200 : 200;
-      scrollContainerRef.current.scrollBy({
-        left: scrollAmount,
-        behavior: "smooth",
-      });
-    }
-  };
   return (
-    <div className="container relative max-w-full my-10">
-      {showScrollButtons && (
-        <>
-          <button
-            onClick={() => scroll("left")}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-50 rounded-full p-2 shadow-md z-10"
-            aria-label="Scroll left">
-            ←
-          </button>
-          <button
-            onClick={() => scroll("right")}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-50 rounded-full p-2 shadow-md z-10"
-            aria-label="Scroll right">
-            →
-          </button>
-        </>
-      )}
-      <div
-        ref={scrollContainerRef}
-        className="scrollbar mx-auto max-w-full overflow-x-auto flex gap-8 pb-4 my-8">
-        {services.map((item) => (
-          <div
-            key={item.id}
-            className="flex-none w-64 md:w-auto md:flex-1 flex items-center gap-4 text-left">
-            <item.icon className="h-12 w-12 flex-shrink-0" />
-            <div>
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-              <p className="text-sm text-gray-400">{item.description}</p>
+    <section className="md:container px-2">
+      <ScrollableSection
+        title=""
+        items={services.map((service) => ({
+          id: service.id,
+          content: (
+            <div
+              key={service.id}
+              className="flex-shrink-0 h-28 flex items-center justify-between gap-5 bg-white shadow-md px-4 py-2 rounded-md">
+              <service.icon className="h-10 w-10 flex-shrink-0" />
+              <div>
+                <h3 className="text-md font-semibold">{service.title}</h3>
+                <p className="text-sm text-gray-400">{service.description}</p>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          ),
+        }))}
+        className="mb-8"
+        itemClassName="flex flex-col overflow-x-auto space-x-2 pb-4 snap-x"
+      />
+    </section>
   );
 }
