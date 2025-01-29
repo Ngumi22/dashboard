@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
   CategorySubmitAction,
   updateCategoryAction,
 } from "@/lib/actions/Category/server";
+import { useStore } from "@/app/store";
 
 interface CategoryFormProps {
   initialData?: Category;
@@ -31,6 +32,7 @@ interface Category {
   category_image: string | File | null;
   category_description: string;
   category_status: "Active" | "Inactive";
+  parent_category_id?: number | null; // Optional parent category ID
 }
 
 export default function CategoryForm({
@@ -43,7 +45,15 @@ export default function CategoryForm({
     category_image: initialData?.category_image || null,
     category_description: initialData?.category_description || "",
     category_status: initialData?.category_status || "Active",
+    parent_category_id: initialData?.parent_category_id || null, // Initialize parent_category_id
   });
+
+  const categories = useStore((state) => state.categories);
+  const fetchCategories = useStore((state) => state.fetchUniqueCategories);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const [existingImage, setExistingImage] = useState<string | null>(
     typeof initialData?.category_image === "string"
@@ -92,6 +102,13 @@ export default function CategoryForm({
     }));
   };
 
+  const handleParentCategoryChange = (value: string) => {
+    setCategory((prev) => ({
+      ...prev,
+      parent_category_id: value === "none" ? null : parseInt(value, 10), // Convert "none" to null
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -112,7 +129,7 @@ export default function CategoryForm({
           ); // Pass the existing image
         }
       } else if (value !== null && value !== undefined) {
-        formData.append(key, value as string);
+        formData.append(key, value.toString()); // Convert all values to strings
       }
     });
 
@@ -189,6 +206,30 @@ export default function CategoryForm({
           onChange={handleChange}
           required
         />
+      </div>
+
+      {/* Parent Category */}
+      <div>
+        <Label htmlFor="parent_category_id">Parent Category</Label>
+        <Select
+          onValueChange={handleParentCategoryChange}
+          value={category.parent_category_id?.toString() || "none"} // Use "none" for no parent
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a parent category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None</SelectItem>{" "}
+            {/* Use "none" instead of an empty string */}
+            {categories.map((cat) => (
+              <SelectItem
+                key={cat.category_id}
+                value={cat.category_id.toString()}>
+                {cat.category_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Category Image */}

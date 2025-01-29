@@ -2,6 +2,7 @@ import { Category } from "@/lib/actions/Category/catType";
 import { deleteCategory } from "@/lib/actions/Category/delete";
 import {
   fetchCategoryById,
+  fetchCategoryWithSubCat,
   getUniqueCategories,
 } from "@/lib/actions/Category/fetch";
 import { getCachedData, setCachedData, clearCachedData } from "@/lib/cache";
@@ -13,6 +14,7 @@ export interface CategoryState {
   error: string | null;
   selectedCategory: Category | null;
   fetchUniqueCategories: () => Promise<void>;
+  fetchUniqueCategoriesWithSubs: () => Promise<void>;
   deleteCategoryState: (category_id: number) => Promise<{ success: boolean }>;
   fetchCategoryByIdState: (category_id: number) => Promise<Category | null>;
 }
@@ -45,6 +47,39 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
 
     try {
       const categories = await getUniqueCategories(); // Fetch categories
+      setCachedData(cacheKey, categories, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      set({ categories, loading: false, error: null });
+    } catch (err) {
+      set({
+        loading: false,
+        error:
+          err instanceof Error ? err.message : "Failed to fetch categories",
+      });
+    }
+  },
+
+  fetchUniqueCategoriesWithSubs: async () => {
+    const cacheKey = "categoriesWithSubs";
+
+    // Check if data is cached
+    const cachedData = getCachedData<Category[]>(cacheKey);
+    if (cachedData) {
+      // Prevent unnecessary state updates if the cached data is already present
+      const { categories } = get();
+      if (JSON.stringify(categories) !== JSON.stringify(cachedData)) {
+        set({ categories: cachedData, loading: false, error: null });
+      }
+      return;
+    }
+
+    // Prevent redundant API calls if already loading
+    const { loading } = get();
+    if (loading) return;
+
+    set({ loading: true, error: null });
+
+    try {
+      const categories = await fetchCategoryWithSubCat(); // Fetch categories
       setCachedData(cacheKey, categories, { ttl: 2 * 60 }); // Cache the data for 2 minutes
       set({ categories, loading: false, error: null });
     } catch (err) {

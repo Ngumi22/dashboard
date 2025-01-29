@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Edit, Trash, Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Product, RowAction } from "@/components/Data-Table/types";
+import { Filter, RowAction } from "@/components/Data-Table/types";
 import {
   filterData,
   searchData,
@@ -15,6 +15,7 @@ import { useStore } from "@/app/store";
 import { useRouter } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
+import { Product } from "@/lib/actions/Product/productTypes";
 
 const includedKeys: (keyof Product)[] = [
   "sku",

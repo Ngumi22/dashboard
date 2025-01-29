@@ -4,8 +4,8 @@ import { decrypt } from "./lib/actions/Auth/sessions";
 // Allowed origins for CORS
 const allowedOrigins = [
   "https://bernzz-front.vercel.app",
-  "https://dashboard-five-wheat.vercel.app",
   "https://www.bernzzdigitalsolutions.co.ke", // Ensure this is included
+  "https://dashboard-five-wheat.vercel.app",
   "http://localhost:3000", // Allow localhost explicitly for development
 ];
 

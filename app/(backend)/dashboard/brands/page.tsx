@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Edit, Trash, Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Product, RowAction } from "@/components/Data-Table/types";
+import { Filter, RowAction } from "@/components/Data-Table/types";
 import {
   filterData,
   searchData,

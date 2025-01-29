@@ -46,7 +46,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   images: {
-    mainImage: string | null; // Accept Base64-encoded strings
+    mainImage: string | null;
     thumbnail1: string | null;
     thumbnail2: string | null;
     thumbnail3: string | null;
@@ -171,3 +171,30 @@ export type ParsedProductData = z.infer<typeof NewProductSchemaServer> & {
   created_by?: number | null;
   updated_by?: number | null;
 };
+
+export interface Product {
+  product_id: string;
+  name: string;
+  sku: string;
+  price: number;
+  discount: number;
+  quantity: number;
+  ratings: number;
+  category: string;
+  status: ProductStatus;
+  description: string;
+  brand: string;
+  supplier: string[];
+  specifications: any;
+  createdAt: string;
+  updatedAt: string;
+  images: {
+    mainImage: string | null;
+    thumbnail1: string | null;
+    thumbnail2: string | null;
+    thumbnail3: string | null;
+    thumbnail4: string | null;
+    thumbnail5: string | null;
+  };
+  tags?: string[];
+}

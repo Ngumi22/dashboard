@@ -3,21 +3,22 @@
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Lazy load non-critical components
-const ProductList = dynamic(() => import("./Products/all"), {
+// // Lazy load non-critical components
+// const ProductList = dynamic(() => import("./Products/all"), {
+//   ssr: false,
+//   loading: () => <ProductListSkeleton />,
+// });
+const FeaturedCollection = dynamic(() => import("./main/FeaturedCollection"), {
   ssr: false,
-  loading: () => <ProductListSkeleton />,
-});
-const FeaturedProducts = dynamic(() => import("./Products/Featured"), {
-  ssr: false,
-  loading: () => <FeaturedProductsSkeleton />,
+  loading: () => <FeaturedCollectionSkeleton />,
 });
 
 // Import critical components
 import Service from "@/components/Client-Side/Services/service";
 import HeroSection from "./Hero/hero";
 import CategorySection from "@/components/Client-Side/Category/category";
-import CategoryHome from "./Products/Category";
+import Banners1 from "./main/Banners1";
+// import CategoryHome from "./Products/Category";
 
 // Skeleton Loaders
 function ProductListSkeleton() {
@@ -30,7 +31,7 @@ function ProductListSkeleton() {
   );
 }
 
-function FeaturedProductsSkeleton() {
+function FeaturedCollectionSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, index) => (
@@ -49,8 +50,10 @@ export default function Page() {
       <div className="bg-[#F5F5F7] pt-2">
         <Service />
         <CategorySection />
-        <CategoryHome />
-        <FeaturedProducts />
+        <FeaturedCollection />
+        {/* <Banners1 /> */}
+        {/* <CategoryHome />
+        <FeaturedProducts /> */}
       </div>
     </div>
   );

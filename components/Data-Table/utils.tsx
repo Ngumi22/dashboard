@@ -1,4 +1,4 @@
-import { Filter, Product } from "./types";
+import { Filter } from "./types";
 
 export function searchData<T>(
   data: T[],

@@ -1,27 +1,28 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-toastify"; // Import react-toastify's toast method
+import { Product } from "@/lib/actions/Product/productTypes";
 
-// Define the Product type
-type Product = {
+export type MinimalProduct = {
   product_id: string;
   name: string;
   price: number;
-  images: {
-    main_image: string;
-  };
-  [key: string]: any;
+  ratings: number;
+  discount: number;
+  description: string;
+  quantity: number;
+  images: { mainImage: string | null };
 };
 
 // Define the cart item type
-type CartItem = Product & {
+type CartItem = MinimalProduct & {
   quantity: number;
 };
 
 // Define the store state
 export type CartStoreState = {
   cartItems: CartItem[];
-  addItemToCart: (product: Product) => void;
+  addItemToCart: (product: MinimalProduct) => void;
   removeItemFromCart: (product_id: string) => void;
   clearCart: () => void;
   increaseItemQuantity: (product_id: string) => void;
@@ -36,7 +37,7 @@ export const useCartStore = create<CartStoreState>()(
     (set, get) => ({
       cartItems: [],
 
-      addItemToCart: (product: Product) =>
+      addItemToCart: (product: MinimalProduct) =>
         set((state) => {
           if (!product || !product.product_id) {
             console.error("Invalid product passed to addItemToCart:", product);

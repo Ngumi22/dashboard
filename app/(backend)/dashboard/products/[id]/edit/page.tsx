@@ -97,7 +97,7 @@ export default function UpdateProduct({ params }: { params: { id: string } }) {
         main_image: product.images.mainImage
           ? new File([product.images.mainImage], "main_image")
           : null,
-        suppliers: product?.supplier?.map((supplier) => ({
+        suppliers: product?.supplier?.map((supplier: any) => ({
           supplier_name: supplier,
         })),
       }}

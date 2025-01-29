@@ -4,10 +4,8 @@ import BannerComponent from "@/components/Client-Side/Hero/banners";
 
 export default function Bannerspage() {
   return (
-    <section className="m-4 grid justify-items-stretch space-y-8">
-      <div>
-        <BannerComponent isAdmin />
-      </div>
-    </section>
+    <div className="flex-1 scrollbar overflow-x-scroll lg:overflow-hidden flex md:grid md:grid-cols-2 gap-2 md:gap-4 h-32 md:h-96">
+      <BannerComponent isAdmin />
+    </div>
   );
 }

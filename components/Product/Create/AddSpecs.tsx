@@ -14,10 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  getCategorySpecs,
-  getUniqueCategories,
-} from "@/lib/actions/Category/fetch";
+import { getCategorySpecs } from "@/lib/actions/Category/fetch";
 
 interface Specification {
   specification_name: string;
@@ -65,21 +62,20 @@ export default function AddSpecifications({
   const specValue = watch("specValue");
   const specifications = watch("specifications");
 
-  // Fetch category specifications based on the selected category ID
   useEffect(() => {
     if (selectedCategoryId) {
       const fetchCategorySpecs = async () => {
         try {
           setLoadingSpecs(true);
-          const data = await getCategorySpecs(selectedCategoryId);
+          const data = await getCategorySpecs([Number(selectedCategoryId)]); // Convert to number array
 
-          const categorySpecifications =
-            data?.catSpecs?.map(
-              (spec: { specification_name: string }) => spec.specification_name
-            ) || [];
+          const categorySpecifications = Array.from(
+            data?.get(Number(selectedCategoryId)) || []
+          ).map(
+            (spec: { specification_name: string }) => spec.specification_name
+          );
           setCategorySpecs(categorySpecifications);
 
-          // If there are no specifications, show the message
           if (categorySpecifications.length === 0) {
             setMessage("No specifications found. You can add new ones.");
           }
@@ -141,7 +137,7 @@ export default function AddSpecifications({
         ) : (
           <>
             <div className="space-y-2">
-              <Label htmlFor="existingSpec">Select an Existing Spec</Label>
+              <Label htmlFor="existingSpec">Select a Specification</Label>
               <Controller
                 name="selectedSpec"
                 control={control}
@@ -163,7 +159,7 @@ export default function AddSpecifications({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="newSpec">Or Add a New Specification</Label>
+              <Label htmlFor="newSpec">Add New Specification</Label>
               <Controller
                 name="newSpecName"
                 control={control}
@@ -195,8 +191,8 @@ export default function AddSpecifications({
             </div>
 
             <Button
-              variant="outline"
-              className="bg-gray-200 outline-2"
+              variant="default"
+              className=""
               type="button"
               onClick={handleAddSpec}>
               <Plus className="mr-2 h-4 w-4" /> Add Specification

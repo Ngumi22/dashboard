@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Edit, Trash, Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Category, Filter, RowAction } from "@/components/Data-Table/types";
+import { Filter, RowAction } from "@/components/Data-Table/types";
 import { filterData, searchData } from "@/components/Data-Table/utils";
 import DataTable from "@/components/Data-Table/data-table";
 import { useStore } from "@/app/store";
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import CategoryForm from "@/components/Categories/form";
 import ReusableAlertDialog from "@/components/alert-dialog";
 import { fetchCategoryById } from "@/lib/actions/Category/fetch";
+import { Category } from "@/lib/actions/Category/catType";
 
 const includedKeys: (keyof Category)[] = [
   "category_id",
@@ -27,6 +28,7 @@ const includedKeys: (keyof Category)[] = [
   "category_image",
   "category_description",
   "category_status",
+  "parent_category_id",
 ];
 
 const columnRenderers = {
@@ -54,8 +56,8 @@ const columnRenderers = {
 };
 
 export default function CategoriesPage() {
-  const fetchUniqueCategories = useStore(
-    (state) => state.fetchUniqueCategories
+  const fetchUniqueCategoriesWithSubs = useStore(
+    (state) => state.fetchUniqueCategoriesWithSubs
   );
   const categories = useStore((state) => state.categories);
   const deleteCategory = useStore((state) => state.deleteCategoryState);
@@ -76,8 +78,8 @@ export default function CategoriesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetchUniqueCategories(); // Fetch initial page
-  }, [fetchUniqueCategories, currentPage]);
+    fetchUniqueCategoriesWithSubs(); // Fetch initial page
+  }, [fetchUniqueCategoriesWithSubs, currentPage]);
 
   // Dynamically generate category supplier_name from the products data
   const categoryOptions = useMemo(() => {
@@ -124,7 +126,7 @@ export default function CategoriesPage() {
           title: "Success",
           description: "Category deleted successfully.",
         });
-        fetchUniqueCategories(); // Refresh data
+        fetchUniqueCategoriesWithSubs(); // Refresh data
       } else {
         throw new Error("Failed to delete category.");
       }
@@ -241,7 +243,7 @@ export default function CategoriesPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchUniqueCategories(); // Fetch data for the new page
+    fetchUniqueCategoriesWithSubs(); // Fetch data for the new page
   };
 
   const handleRowsPerPageChange = (rows: number) => {

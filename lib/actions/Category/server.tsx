@@ -22,6 +22,8 @@ export async function CategorySubmitAction(
       category_description: data.get("category_description"),
       category_status: data.get("category_status"),
       category_image: data.get("category_image"),
+      parent_category_id:
+        parseInt(data.get("parent_category_id") as string, 10) || null, // Add parent_category_id
     });
 
     console.log("Parsed data:", parsed);
@@ -58,14 +60,15 @@ export async function CategorySubmitAction(
         ? await fileToBuffer(data.get("category_image") as File)
         : null;
 
-      // Insert new category
+      // Insert new category with parent_category_id
       const [insertResult] = await connection.query(
-        "INSERT INTO categories (category_name, category_image, category_description, category_status) VALUES (?, ?, ?, ?)",
+        "INSERT INTO categories (category_name, category_image, category_description, category_status, parent_category_id) VALUES (?, ?, ?, ?, ?)",
         [
           parsed.data.category_name,
           categoryImageBuffer,
           parsed.data.category_description,
           parsed.data.category_status,
+          parsed.data.parent_category_id || null, // Handle null for top-level categories
         ]
       );
 
@@ -105,6 +108,7 @@ export async function updateCategoryAction(
       const categoryDescription = formData.get("category_description");
       const categoryStatus = formData.get("category_status");
       const newImageFile = formData.get("category_image");
+      const parentCategoryId = formData.get("parent_category_id"); // Add parent_category_id
 
       const updates: string[] = [];
       const values: any[] = [];
@@ -128,6 +132,11 @@ export async function updateCategoryAction(
         const newImageBuffer = await fileToBuffer(newImageFile as File);
         updates.push("category_image = ?");
         values.push(newImageBuffer);
+      }
+
+      if (parentCategoryId) {
+        updates.push("parent_category_id = ?");
+        values.push(parentCategoryId);
       }
 
       // Ensure we have fields to update

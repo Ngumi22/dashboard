@@ -271,7 +271,7 @@ export default function BannerForm({ initialData }: BannerFormProps) {
                 render={({ field }) => (
                   <Select
                     onValueChange={(value) => {
-                      console.log("Selected context_id:", value); // Logs the selected context_id
+                      // console.log("Selected context_id:", value); // Logs the selected context_id
                       field.onChange(value);
 
                       // Ensure value is a number to match against context_id
@@ -280,7 +280,7 @@ export default function BannerForm({ initialData }: BannerFormProps) {
                       );
 
                       // Debugging log to check if the matched context is found
-                      console.log("Matched context:", matchedContext);
+                      // console.log("Matched context:", matchedContext);
 
                       if (matchedContext) {
                         // Update the field with the selected context name

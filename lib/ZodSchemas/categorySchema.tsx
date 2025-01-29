@@ -11,6 +11,7 @@ export const CategorySchema = z.object({
     message:
       "category Description is required and must be at least 2 characters.",
   }),
+  parent_category_id: z.number().optional().nullable(), // Add parent_category_id
   category_status: z.enum(["Active", "Inactive"]),
   category_image: z
     .any()

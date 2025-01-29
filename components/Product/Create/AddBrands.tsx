@@ -63,7 +63,7 @@ export default function BrandSelector() {
   );
 
   return (
-    <div className="space-y-4 w-full max-w-md mx-auto">
+    <div className="space-y-4 w-full mx-auto">
       <Select onValueChange={handleOptionChange}>
         <SelectTrigger>
           <SelectValue placeholder="Select a brand" />
@@ -95,13 +95,13 @@ export default function BrandSelector() {
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+              className=""
             />
           </div>
           {newBrandImage && (
             <div>
               <Label>Image Preview</Label>
-              <div className="mt-2 relative w-32 h-32">
+              <div className="">
                 <Image
                   src={newBrandImage}
                   alt="New brand preview"

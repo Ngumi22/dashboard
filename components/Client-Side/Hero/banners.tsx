@@ -12,7 +12,6 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import Link from "next/link";
-import Image from "next/image";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import dynamic from "next/dynamic";
 import { Banner } from "@/lib/actions/Banners/bannerType";

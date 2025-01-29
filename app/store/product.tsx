@@ -1,10 +1,9 @@
-import { Product } from "@/components/Data-Table/types";
-import { Supplier } from "@/components/Product/Create/types";
 import { handleDeleteAction } from "@/lib/actions/Product/delete";
 import {
   fetchProductByIdFromDb,
   fetchProducts,
 } from "@/lib/actions/Product/fetch";
+import { Product } from "@/lib/actions/Product/productTypes";
 import { clearCachedData } from "@/lib/cache";
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
@@ -51,7 +50,7 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
       const { products } = await fetchProducts(currentPage, filter);
 
       // Cache the fetched data
-      setCachedData(cacheKey, { products }, { ttl: 6 * 60 });
+      setCachedData(cacheKey, { products }, { ttl: 16 * 60 });
 
       set({ products, loading: false, error: null });
     } catch (err) {

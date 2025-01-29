@@ -55,9 +55,11 @@ export async function dbsetupTables() {
           category_image MEDIUMBLOB NOT NULL,
           category_description VARCHAR(255) NOT NULL,
           category_status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+          parent_category_id INT NULL, -- Reference to parent category
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
+          FOREIGN KEY (parent_category_id) REFERENCES categories(category_id) ON DELETE CASCADE ON UPDATE CASCADE,
           INDEX idx_category_name (category_name)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product categories';
     `);
@@ -77,7 +79,7 @@ export async function dbsetupTables() {
     `);
 
     await query(`
-        CREATE TABLE IF NOT EXISTS products (
+       CREATE TABLE IF NOT EXISTS products (
           product_id INT AUTO_INCREMENT PRIMARY KEY,
           product_name VARCHAR(255) NOT NULL,
           product_sku VARCHAR(255) NOT NULL UNIQUE,
@@ -86,17 +88,20 @@ export async function dbsetupTables() {
           product_discount DECIMAL(10, 2) DEFAULT 0.00,
           product_quantity INT DEFAULT 0,
           product_status ENUM('draft', 'pending', 'approved') DEFAULT 'draft',
-          category_id INT,
+          category_id INT NOT NULL, -- Product must belong to a category
+          subcategory_id INT NULL, -- Product can optionally belong to a subcategory
           brand_id INT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
           FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE ON UPDATE CASCADE,
+          FOREIGN KEY (subcategory_id) REFERENCES categories(category_id) ON DELETE SET NULL ON UPDATE CASCADE,
           FOREIGN KEY (brand_id) REFERENCES brands(brand_id) ON DELETE SET NULL ON UPDATE CASCADE,
           INDEX idx_name (product_name),
           INDEX idx_sku (product_sku),
-          INDEX idx_category_id (category_id)
-        ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
+          INDEX idx_category_id (category_id),
+          INDEX idx_subcategory_id (subcategory_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Products data';
     `);
 
     await query(`

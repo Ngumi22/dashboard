@@ -3,21 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Star, ShoppingCart, Heart, Share2, Eye } from "lucide-react";
-import { useCartStore } from "@/app/store/cart";
-import useStore from "@/app/store/useStore";
-import { object } from "zod";
+import { MinimalProduct, useCartStore } from "@/app/store/cart";
+import { Button } from "@/components/ui/button";
 
-interface ProductCardProps {
-  product_id: string;
-  name: string;
-  description: string;
-  price: number;
-  images: {
-    main_image: string;
-  };
-  rating: number;
+interface ProductCardProps extends MinimalProduct {
   orientation?: "vertical" | "horizontal";
-  discountPercentage?: number;
 }
 
 export default function ProductCard({
@@ -26,9 +16,10 @@ export default function ProductCard({
   description,
   price,
   images,
-  rating,
+  ratings,
   orientation = "vertical",
-  discountPercentage,
+  discount,
+  quantity,
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -43,10 +34,12 @@ export default function ProductCard({
       name,
       price,
       images: {
-        main_image: images.main_image,
+        mainImage: images.mainImage,
       },
-      rating,
-      discountPercentage,
+      ratings,
+      discount,
+      description,
+      quantity,
     };
     addItemToCart(product);
   };
@@ -86,78 +79,93 @@ export default function ProductCard({
     },
   ];
 
-  const isOnSale = discountPercentage && discountPercentage > 0;
+  const isOnSale = discount && discount > 0;
 
   return (
     <div
-      className={`relative overflow-hidden shadow-lg transition-all duration-300 ${
-        orientation === "horizontal" ? "sm:flex" : "flex flex-col"
+      className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl bg-white transition-shadow duration-300 hover:shadow-lg ${
+        orientation === "horizontal" ? "md:flex-row" : ""
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}>
+      {/* Image Container */}
       <div
-        className={`relative ${
-          orientation === "horizontal" ? "sm:w-3/4" : "h-3/4"
+        className={`relative aspect-square ${
+          orientation === "horizontal" ? "md:w-1/3" : ""
         }`}>
         <Image
-          src={`data:image/jpeg;base64,${images.main_image}`}
+          src={`data:image/jpeg;base64,${images.mainImage}`}
           alt={name}
-          layout="responsive"
-          width={400}
-          height={400}
-          className="transition-transform duration-300 hover:scale-105 mt-16 object-contain"
+          fill
+          className="object-contain transition-opacity duration-300 group-hover:opacity-90"
+          sizes="(max-width: 568px) 40vw, 10vw"
         />
+
+        {/* Sale Badge */}
         {isOnSale && (
-          <>
-            <div className="absolute left-2 top-6 font-bold text-[#e16d00]">
-              SALE
+          <div className="absolute left-3 top-3 space-y-1">
+            <div className="rounded-md bg-rose-600 px-2 py-1 text-xs font-medium text-white">
+              {discount}% OFF
             </div>
-            <div className="absolute right-2 top-6 font-bold text-black">
-              -{discountPercentage}%
-            </div>
-          </>
+          </div>
         )}
-        <div className="absolute bottom-1 left-2 flex items-center space-x-1 rounded bg-white px-2 py-1">
-          <Star className="h-4 w-4 text-yellow-400" />
-          <span className="text-sm font-semibold">
-            {Number(rating).toFixed(1)}
+
+        {/* Rating */}
+        <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-lg bg-white/95 px-2.5 py-1 shadow-sm">
+          <Star className="h-3.5 w-3.5 text-amber-400" />
+          <span className="text-sm font-medium text-gray-900">
+            {Number(ratings).toFixed(1)}
           </span>
         </div>
       </div>
+
+      {/* Content Container */}
       <div
-        className={`flex flex-col justify-between p-4 ${
-          orientation === "horizontal" ? "sm:w-1/4" : "h-1/4"
+        className={`flex flex-1 flex-col p-4 ${
+          orientation === "horizontal" ? "md:w-2/3" : ""
         }`}>
-        <div>
-          <h2 className="mb-1 text-xl font-semibold">{name}</h2>
-          <p className="mb-1 text-sm text-gray-600">{description}</p>
+        <div className="mb-3">
+          <h3 className="line-clamp-2 text-lg font-semibold text-gray-900">
+            {name}
+          </h3>
+          <p className="mt-1 line-clamp-2 text-sm text-gray-600">
+            {description}
+          </p>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="text-xl font-bold">
-            {isOnSale && (
-              <span className="mr-2 text-sm text-gray-500 line-through">
-                ${Number(price).toFixed(2)}
+
+        <div className="mt-auto">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-gray-900">
+                ${Number(price * (1 - (discount || 0) / 100)).toFixed(2)}
               </span>
-            )}
-            ${Number(price * (1 - (discountPercentage || 0) / 100)).toFixed(2)}
-          </div>
-          {isHovered && (
-            <div className="absolute right-2 top-2 flex flex-col space-y-2">
+              {isOnSale && (
+                <span className="text-sm text-gray-500 line-through">
+                  ${Number(price).toFixed(2)}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
               {actionButtons.map((button, index) => (
-                <div
+                <button
                   key={index}
-                  className="group relative"
-                  onClick={button.onClick}>
-                  <button className="bg-[#e16d00] p-2 text-gray-800 transition-all duration-300 hover:bg-black">
-                    <button.icon size={20} />
-                  </button>
-                  <span className="absolute right-12 top-0 min-w-max rounded bg-black px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100 text-center">
-                    {button.label}
-                  </span>
-                </div>
+                  onClick={button.onClick}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm transition-all hover:bg-gray-100"
+                  aria-label={button.label}>
+                  <button.icon className="h-4 w-4 text-gray-700" />
+                </button>
               ))}
             </div>
-          )}
+          </div>
+
+          <Button
+            variant="secondary"
+            className="mt-4 w-full translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+            onClick={handleAddToCart}>
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Add to Cart
+          </Button>
         </div>
       </div>
     </div>

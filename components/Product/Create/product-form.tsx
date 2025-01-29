@@ -385,20 +385,15 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                {isLoading || error ? (
-                  <p>Loading or</p>
-                ) : (
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.category_id}
-                        value={category.category_id.toString()} // Ensure category_id is a string
-                      >
-                        {category.category_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                )}
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem
+                      key={category.category_id}
+                      value={category.category_id.toString()}>
+                      {category.category_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
 
@@ -431,7 +426,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
 
             {/* Brand */}
 
-            <div className="space-y-4 w-full max-w-md mx-auto">
+            <div className="space-y-4 w-full mx-auto">
               <Select
                 onValueChange={handleOptionChange}
                 defaultValue={product.brand_id?.toString() || ""}>
@@ -456,7 +451,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                     <Label htmlFor="brand_name">Brand Name</Label>
                     <Input
                       name="brand_name"
-                      placeholder="brand_name"
+                      placeholder="Brand name"
                       value={product.brand_name}
                       onChange={handleChange}
                       required
@@ -469,7 +464,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                       type="file"
                       onChange={(e) => handleImageChange(e, "brand_image")}
                       accept="image/*"
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+                      className=""
                     />
                   </div>
                   <div>

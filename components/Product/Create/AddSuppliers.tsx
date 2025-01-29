@@ -198,9 +198,9 @@ export default function Component({
 
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           onClick={handleAddSupplier}
-          className="bg-gray-200 outline-2">
+          className="">
           <Plus className="mr-2 h-4 w-4" />
           Add Supplier
         </Button>
