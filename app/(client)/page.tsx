@@ -47,7 +47,7 @@ export default function Page() {
       <HeroSection />
 
       {/* Main Content */}
-      <div className="bg-[#F5F5F7] pt-2">
+      <div className="bg-[#F5F5F7] pt-2 md:container p-1">
         <Service />
         <CategorySection />
         <FeaturedCollection />
