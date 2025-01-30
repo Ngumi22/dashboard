@@ -6,6 +6,7 @@ import MegaMenu from "./MegaMenu";
 import MobileMenu from "./MobileMenu";
 import TopNav from "./TopNav";
 import { Separator } from "@/components/ui/separator";
+import { navigation } from "./navigation";
 
 export default function NewNavbar() {
   const [showFullNav, setShowFullNav] = useState(true);
@@ -47,7 +48,7 @@ export default function NewNavbar() {
         className={`transition-all duration-300 ease-in-out ${
           showFullNav ? "max-h-screen" : "max-h-0 overflow-hidden"
         }`}>
-        <MegaMenu />
+        <MegaMenu navigation={navigation} />
       </div>
       <MobileMenu isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
     </nav>

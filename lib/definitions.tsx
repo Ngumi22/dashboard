@@ -238,3 +238,25 @@ export interface TabbedScrollableSectionProps {
   itemClassName?: string;
   banner?: BannerProps;
 }
+
+export interface SubMenuItem {
+  title: string;
+  href: string;
+  description?: string;
+}
+
+export interface MenuItem {
+  title: string;
+  href: string;
+  featured?: SubMenuItem[];
+  categories?: {
+    title: string;
+    items: SubMenuItem[];
+  }[];
+}
+
+export interface NavigationItem {
+  title: string;
+  href: string;
+  items?: MenuItem[];
+}

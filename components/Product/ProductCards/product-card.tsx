@@ -126,7 +126,7 @@ export default function ProductCard({
 
       {/* Content Container */}
       <div
-        className={`flex flex-1 flex-col gap-y-2 ${
+        className={`flex flex-1 flex-col gap-y-2 py-2 ${
           orientation === "horizontal" ? "md:w-2/3" : ""
         }`}>
         <div className="space-y-2">

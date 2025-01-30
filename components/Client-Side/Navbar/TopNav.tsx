@@ -20,17 +20,17 @@ export default function TopNav() {
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Phone Link */}
         <a
-          href="tel:+254720000000"
+          href="tel:+254 112 725 364"
           className="text-white hover:text-gray-300 flex items-center gap-1 sm:gap-2 px-2">
           <Phone className="h-4 w-4" />
           <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">
-            +254 720 000-000
+            +254 (0) 112 725 364
           </span>
         </a>
 
         {/* WhatsApp Link */}
         <a
-          href="https://wa.me/254720000000"
+          href="https://wa.me/+254 112 725 364"
           className="text-white hover:text-gray-300 flex items-center gap-1 sm:gap-2 px-2">
           <MessageCircleHeart className="h-4 w-4" />
           <span className="hidden sm:inline text-xs md:text-sm whitespace-nowrap">

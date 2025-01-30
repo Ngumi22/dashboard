@@ -15,12 +15,18 @@ export default function ClientSideWrapper({
   // Access store methods to fetch data
   const fetchBanners = useStore((state) => state.fetchBanners);
   const fetchCarousels = useStore((state) => state.fetchCarousels);
-
+  const fetchCategories = useStore((state) => state.fetchUniqueCategories);
+  const fetchProducts = useStore((state) => state.fetchProducts);
   // Fetch all data on initial render
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        await Promise.all([fetchBanners(), fetchCarousels()]);
+        await Promise.all([
+          fetchBanners(),
+          fetchCarousels(),
+          fetchCategories,
+          fetchProducts,
+        ]);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -29,7 +35,7 @@ export default function ClientSideWrapper({
     };
 
     fetchAllData();
-  }, [fetchBanners, fetchCarousels]);
+  }, [fetchBanners, fetchCarousels, fetchCategories, fetchProducts]);
 
   if (isLoading) {
     return <Loading />; // Show loading spinner or skeleton UI
