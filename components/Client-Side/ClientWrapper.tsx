@@ -24,8 +24,8 @@ export default function ClientSideWrapper({
         await Promise.all([
           fetchBanners(),
           fetchCarousels(),
-          fetchCategories,
-          fetchProducts,
+          fetchCategories(),
+          fetchProducts(1, {}), // Pass the required arguments, e.g., currentPage and pageSize
         ]);
       } catch (error) {
         console.error("Error fetching data:", error);

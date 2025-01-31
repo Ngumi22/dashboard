@@ -18,6 +18,9 @@ import Service from "@/components/Client-Side/Services/service";
 import HeroSection from "./Hero/hero";
 import CategorySection from "@/components/Client-Side/Category/category";
 import Banners1 from "./main/Banners1";
+import SpecialOffers from "./main/SpecialOffers";
+import NewestProducts from "./main/NewestProducts";
+import PopularProducts from "./main/Popular";
 // import CategoryHome from "./Products/Category";
 
 // Skeleton Loaders
@@ -43,14 +46,17 @@ function FeaturedCollectionSkeleton() {
 
 export default function Page() {
   return (
-    <div className="mt-[9.5rem] lg:mt-[11.5rem]">
+    <div className="mt-[10rem] lg:mt-[12rem]">
       <HeroSection />
 
       {/* Main Content */}
-      <div className="bg-[#F5F5F7] pt-2 md:container p-1">
+      <div className="bg-[#F5F5F7] pt-2 md:container p-1 space-y-6">
         <Service />
         <CategorySection />
         <FeaturedCollection />
+        <PopularProducts />
+        <SpecialOffers />
+        <NewestProducts />
         {/* <Banners1 /> */}
         {/* <CategoryHome />
         <FeaturedProducts /> */}

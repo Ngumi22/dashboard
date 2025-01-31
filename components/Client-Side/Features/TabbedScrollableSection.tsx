@@ -4,13 +4,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCards from "./ProductCard";
 import { TabbedScrollableSectionProps } from "@/lib/definitions";
-import BannerCarousel from "./BannerCarousel";
 
 const TabbedScrollableSection: React.FC<TabbedScrollableSectionProps> = ({
   categories,
   className = "",
   itemClassName = "",
-  banner,
 }) => {
   const [activeTab, setActiveTab] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -109,13 +107,6 @@ const TabbedScrollableSection: React.FC<TabbedScrollableSectionProps> = ({
                 <ProductCards {...product} />
               </div>
             ))}
-          </div>
-          <div className="hidden md:grid">
-            {banner && (
-              <div className={`flex-shrink-0 ${itemClassName}`}>
-                <BannerCarousel {...banner} />
-              </div>
-            )}
           </div>
         </div>
       </div>

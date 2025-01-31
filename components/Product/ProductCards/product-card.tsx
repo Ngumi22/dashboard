@@ -78,7 +78,7 @@ export default function ProductCard({
 
   return (
     <div
-      className={`group/item relative flex w-[40vw] md:w-[33.33vw] lg:w-[25vw] xl:w-[20vw] flex-col overflow-hidden bg-white transition-shadow duration-300 hover:shadow-lg ${
+      className={`group/item relative flex w-[50vw] md:w-[33.33vw] lg:w-[25vw] xl:w-[20vw] flex-col overflow-hidden bg-white transition-shadow duration-300 hover:shadow-lg ${
         orientation === "horizontal" ? "md:flex-row" : ""
       }`}
       onMouseEnter={() => setIsHovered(true)}
@@ -130,7 +130,7 @@ export default function ProductCard({
           orientation === "horizontal" ? "md:w-2/3" : ""
         }`}>
         <div className="space-y-2">
-          <h3 className="line-clamp-2 text-md md:text-md font-medium text-gray-900">
+          <h3 className="line-clamp-1 text-xs md:text-md lg:text-lg font-medium text-gray-900">
             {name}
           </h3>
 
@@ -144,7 +144,9 @@ export default function ProductCard({
                     className="h-3.5 w-3.5 text-gray-400" // Empty stars
                   />
                 ))}
-                <span className="text-sm text-gray-400">Not yet rated</span>
+                <span className="text-xs md:text-md font-medium text-gray-400">
+                  Not yet rated
+                </span>
               </>
             ) : (
               <>
@@ -187,11 +189,11 @@ export default function ProductCard({
         <div className="mt-auto">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-sm md:text-md font-medium">
+              <span className="text-xs md:text-md font-medium">
                 Ksh {Number(price * (1 - (discount || 0) / 100)).toFixed(2)}
               </span>
               {isOnSale && (
-                <span className="text-sm font-medium text-gray-400 line-through">
+                <span className="text-xs md:text-md font-medium text-gray-400 line-through">
                   Ksh {Number(price).toFixed(2)}
                 </span>
               )}

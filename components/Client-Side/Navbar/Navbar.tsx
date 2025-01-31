@@ -32,7 +32,7 @@ export default function NewNavbar() {
   }, [lastScrollY]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md transition-all duration-300 ease-in-out">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div
         className={`transition-all duration-300 ease-in-out ${
           showFullNav ? "max-h-screen" : "max-h-0 overflow-hidden"
@@ -45,7 +45,7 @@ export default function NewNavbar() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
       <div
-        className={`transition-all duration-300 ease-in-out ${
+        className={`transition-all duration-300 ease-in-out w-full ${
           showFullNav ? "max-h-screen" : "max-h-0 overflow-hidden"
         }`}>
         <MegaMenu navigation={navigation} />

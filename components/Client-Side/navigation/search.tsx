@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 
 export default function SearchComponent() {
   return (
-    <div className="flex w-full max-w-xl mx-auto relative h-10 min-w-[300px]">
+    <div className="flex w-full max-w-xl mx-auto relative h-10 min-w-[300px] md:min-w-[400px]">
       {/* Input Field */}
       <Input
         type="search"

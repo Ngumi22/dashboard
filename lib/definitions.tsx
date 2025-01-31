@@ -209,7 +209,6 @@ export interface ProductCardProps {
 
 export interface CategoryData {
   name: string;
-  bannerImages: BannerImage[];
   products: ProductCardProps[];
 }
 
@@ -226,37 +225,20 @@ export interface ProductCardProps {
   imageUrl: string;
 }
 
-export interface BannerImage {
-  src: string;
-  alt: string;
-  link?: string;
-}
-
 export interface TabbedScrollableSectionProps {
   categories: CategoryData[];
   className?: string;
   itemClassName?: string;
-  banner?: BannerProps;
 }
 
 export interface SubMenuItem {
   title: string;
   href: string;
-  description?: string;
-}
-
-export interface MenuItem {
-  title: string;
-  href: string;
-  featured?: SubMenuItem[];
-  categories?: {
-    title: string;
-    items: SubMenuItem[];
-  }[];
+  imageUrl?: string;
 }
 
 export interface NavigationItem {
   title: string;
   href: string;
-  items?: MenuItem[];
+  items?: SubMenuItem[];
 }

@@ -1,20 +1,16 @@
-"use client";
-
 import Image from "next/image";
 
 export default function Logo() {
   return (
     <Image
-      src="/logo.webp" // Use WebP format
+      src="/logo.png"
       alt="Bernzz Logo"
-      width={230}
-      height={230}
-      className="object-contain m-auto h-auto w-auto"
-      priority // Preload the image
-      quality={60} // Adjust quality
-      loading="eager" // Load immediately
-      sizes="(max-width: 768px) 100vw, 50vw"
-      unoptimized={true} // Optional: Use if the image is already optimized
+      width={144} // Match w-36 (Tailwind's width)
+      height={144}
+      className="w-32 md:w-36 lg:w-48" // Ensure responsive sizing
+      priority // Ensures preloading for LCP improvement
+      quality={75} // Higher quality but optimized
+      sizes="(max-width: 768px) 128px, (max-width: 1024px) 144px, 192px"
     />
   );
 }

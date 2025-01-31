@@ -3,30 +3,33 @@
 import { Heart, BarChart2, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
-import dynamic from "next/dynamic";
 import Logo from "../navigation/logo";
 import SearchComponent from "../navigation/search";
+import Cart from "../navigation/cart";
 
-const Cart = dynamic(() => import("../navigation/cart"), { ssr: false });
+interface MainNavProps {
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (open: boolean) => void;
+}
 
-export default React.memo(function MainNav({
+export default function MainNav({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
-}: any) {
+}: MainNavProps) {
   return (
-    <nav className="bg-[#151C25] p-2 lg:p-4 space-y-2">
+    <nav className="bg-[#151C25] py-2 lg:p-4 space-y-2">
       {/* Top Row: Logo, Menu Button, and Icons */}
-      <div className="mx-auto w-full flex items-center justify-between gap-2 sm:gap-4 lg:px-4">
+      <div className="container flex items-center justify-between gap-4 lg:px-4">
         {/* Left Section: Menu Button and Logo */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-4">
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2"
+            className="md:hidden"
             aria-label="Toggle menu">
-            <Menu className="h-5 w-5 text-white hover:text-black" />
+            <Menu className="h-5 w-5 text-white hover:text-neutral-900" />
           </Button>
 
           {/* Logo */}
@@ -36,28 +39,20 @@ export default React.memo(function MainNav({
         </div>
 
         {/* Middle Section: Search Bar (Hidden on Mobile) */}
-        <div className="hidden md:flex flex-1 max-w-[30rem] mx-2 lg:mx-4">
+        <div className="hidden md:flex flex-1 mx-2">
           <SearchComponent />
         </div>
 
         {/* Right Section: Icons and Cart */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-4">
           {/* Compare Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2"
-            aria-label="Compare">
-            <BarChart2 className="h-5 w-5 text-white hover:text-black" />
+          <Button variant="ghost" size="sm" aria-label="Compare">
+            <BarChart2 className="h-5 w-5 text-white hover:text-neutral-900" />
           </Button>
 
           {/* Favorites Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2"
-            aria-label="Favorites">
-            <Heart className="h-5 w-5 text-white hover:text-black" />
+          <Button variant="ghost" size="sm" aria-label="Favorites">
+            <Heart className="h-5 w-5 text-white hover:text-neutral-900" />
           </Button>
 
           {/* Cart */}
@@ -66,9 +61,9 @@ export default React.memo(function MainNav({
       </div>
 
       {/* Bottom Row: Search Bar (Visible on Mobile) */}
-      <div className="md:hidden flex w-full max-w-[90vw] mx-auto relative">
+      <div className="md:hidden flex flex-1 mx-2">
         <SearchComponent />
       </div>
     </nav>
   );
-});
+}
