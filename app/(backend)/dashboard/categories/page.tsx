@@ -28,7 +28,6 @@ const includedKeys: (keyof Category)[] = [
   "category_image",
   "category_description",
   "category_status",
-  "parent_category_id",
 ];
 
 const columnRenderers = {
@@ -43,9 +42,9 @@ const columnRenderers = {
   category_status: (category: { category_status: string }) => (
     <Badge
       variant={
-        category.category_status === "Active"
+        category.category_status === "active"
           ? "default"
-          : category.category_status === "Inactive"
+          : category.category_status === "inactive"
           ? "secondary"
           : "destructive"
       }>
@@ -184,7 +183,8 @@ export default function CategoriesPage() {
   ];
 
   const filteredAndSortedData = useMemo(() => {
-    let result = searchData(categories, searchTerm, "category_name");
+    let result = categories.filter((category) => !category.parent_category_id); // Exclude subcategories
+    result = searchData(result, searchTerm, "category_name");
     result = filterData(result, filters, activeFilters);
     return result;
   }, [categories, searchTerm, activeFilters, filters]);

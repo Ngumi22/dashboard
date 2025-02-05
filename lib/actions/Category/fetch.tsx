@@ -151,6 +151,106 @@ export async function fetchCategoryWithSubCat(): Promise<Category[]> {
   });
 }
 
+export async function fetchCategoryWithSubCatById(
+  category_id: number
+): Promise<Category | null> {
+  const cacheKey = `category_${category_id}`;
+
+  // Check cache first
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Category;
+    }
+    cache.delete(cacheKey);
+  }
+
+  return dbOperation(async (connection) => {
+    try {
+      // Fetch base category information
+      const [categories] = await connection.query(
+        `
+        SELECT
+          category_id,
+          category_name,
+          category_image,
+          category_description,
+          category_status,
+          parent_category_id
+        FROM categories
+        WHERE category_id = ?`,
+        [category_id]
+      );
+
+      if (!categories || categories.length === 0) {
+        return null;
+      }
+
+      const category = categories[0];
+
+      // Fetch subcategories
+      const [subcategories] = await connection.query(
+        `
+        SELECT
+          category_id,
+          category_name,
+          category_image,
+          category_description,
+          category_status,
+          parent_category_id
+        FROM categories
+        WHERE parent_category_id = ?`,
+        [category_id]
+      );
+
+      // Fetch specifications
+      const [specResults] = await connection.query(
+        `
+        SELECT
+          s.specification_id,
+          s.specification_name
+        FROM category_specifications cs
+        JOIN specifications s ON cs.specification_id = s.specification_id
+        WHERE cs.category_id = ?`,
+        [category_id]
+      );
+
+      // Process image and construct response
+      const processedCategory: Category = {
+        ...category,
+        category_image: category.category_image
+          ? await compressAndEncodeBase64(category.category_image)
+          : null,
+        subcategories: subcategories.map(async (subcat: any) => ({
+          category_id: subcat.category_id,
+          category_name: subcat.category_name,
+          category_image: subcat.category_image
+            ? await compressAndEncodeBase64(subcat.category_image)
+            : null,
+          category_description: subcat.category_description,
+          category_status: subcat.category_status,
+          parent_category_id: subcat.parent_category_id,
+        })),
+        specifications: specResults.map((spec: any) => ({
+          specification_id: spec.specification_id,
+          specification_name: spec.specification_name,
+        })),
+      };
+
+      // Cache the enriched category data
+      cache.set(cacheKey, {
+        value: processedCategory,
+        expiry: Date.now() + 3600 * 10, // 10 hours
+      });
+
+      return processedCategory;
+    } catch (error) {
+      console.error(`Error fetching category ${category_id}:`, error);
+      throw error;
+    }
+  });
+}
+
 // Function to fetch a category by ID
 export async function fetchCategoryById(
   category_id: number

@@ -23,13 +23,15 @@ export async function CategorySubmitAction(
       category_status: data.get("category_status"),
       category_image: data.get("category_image"),
       parent_category_id:
-        parseInt(data.get("parent_category_id") as string, 10) || null, // Add parent_category_id
+        data.get("parent_category_id") !== null
+          ? parseInt(data.get("parent_category_id") as string, 10)
+          : null, // Ensure parent_category_id is a number or null
     });
 
     console.log("Parsed data:", parsed);
 
     if (!parsed.success) {
-      console.error("Validation failed:", parsed.error.format()); // Log the exact validation error
+      console.error("Validation failed:", parsed.error.format());
       const fields: Record<string, string> = {};
       data.forEach((value, key) => {
         fields[key] = value.toString();
@@ -41,9 +43,9 @@ export async function CategorySubmitAction(
       };
     }
 
-    // Check if the category already exists in the database
+    // Check if the category already exists
     const result = await dbOperation(async (connection) => {
-      const [existingCategory] = await connection.query(
+      const [existingCategory]: any = await connection.query(
         "SELECT category_id FROM categories WHERE category_name = ? LIMIT 1",
         [parsed.data.category_name]
       );
@@ -51,24 +53,24 @@ export async function CategorySubmitAction(
       if (existingCategory.length > 0) {
         return {
           success: false,
-          message: `Category already exists`,
+          message: "Category already exists",
         };
       }
 
       // Convert the image to buffer
-      const categoryImageBuffer = data.get("category_image")
-        ? await fileToBuffer(data.get("category_image") as File)
+      const categoryImageBuffer = parsed.data.category_image
+        ? await fileToBuffer(parsed.data.category_image as File)
         : null;
 
       // Insert new category with parent_category_id
-      const [insertResult] = await connection.query(
+      const [insertResult]: any = await connection.query(
         "INSERT INTO categories (category_name, category_image, category_description, category_status, parent_category_id) VALUES (?, ?, ?, ?, ?)",
         [
           parsed.data.category_name,
           categoryImageBuffer,
           parsed.data.category_description,
           parsed.data.category_status,
-          parsed.data.parent_category_id || null, // Handle null for top-level categories
+          parsed.data.parent_category_id || null, // Ensuring top-level categories are `null`
         ]
       );
 
@@ -108,7 +110,10 @@ export async function updateCategoryAction(
       const categoryDescription = formData.get("category_description");
       const categoryStatus = formData.get("category_status");
       const newImageFile = formData.get("category_image");
-      const parentCategoryId = formData.get("parent_category_id"); // Add parent_category_id
+      const parentCategoryId =
+        formData.get("parent_category_id") !== null
+          ? parseInt(formData.get("parent_category_id") as string, 10)
+          : null; // Ensure it's a number or null
 
       const updates: string[] = [];
       const values: any[] = [];
@@ -134,7 +139,7 @@ export async function updateCategoryAction(
         values.push(newImageBuffer);
       }
 
-      if (parentCategoryId) {
+      if (parentCategoryId !== null) {
         updates.push("parent_category_id = ?");
         values.push(parentCategoryId);
       }
@@ -145,12 +150,11 @@ export async function updateCategoryAction(
       }
 
       updates.push("updated_at = NOW()");
-      const query = `
-      UPDATE categories
-      SET ${updates.join(", ")}
-      WHERE category_id = ?;
-    `;
       values.push(category_id);
+
+      const query = `UPDATE categories SET ${updates.join(
+        ", "
+      )} WHERE category_id = ?`;
 
       const [result]: [any, any] = await connection.execute(query, values);
 

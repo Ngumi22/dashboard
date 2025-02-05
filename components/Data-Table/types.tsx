@@ -43,6 +43,7 @@ export interface RowAction<T> {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   onClick: (item: T) => void;
+  disabled?: (item: T) => void;
 }
 
 export interface DataTableProps<T> {

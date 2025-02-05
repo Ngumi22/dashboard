@@ -8,7 +8,7 @@ export interface Category {
   category_name: string;
   category_image: string | null;
   category_description: string;
-  category_status: "Active" | "Inactive";
+  category_status: "active" | "inactive";
   parent_category_id?: number | null;
   path?: string;
   level?: number;

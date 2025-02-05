@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function ProductDetails({ params }: { params: { id: string } }) {
-  const fetchProduct = useStore((state) => state.fetchProductById);
+  const fetchProduct = useStore((state) => state.fetchProductByIdState);
   const product = useStore((state) => state.selectedProduct);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);

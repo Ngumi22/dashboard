@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function ProductDetails({ params }: { params: { id: string } }) {
-  const fetchProduct = useStore((state) => state.fetchProductById);
+  const fetchProduct = useStore((state) => state.fetchProductByIdState);
   const product = useStore((state) => state.selectedProduct);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
@@ -25,9 +25,9 @@ export default function ProductDetails({ params }: { params: { id: string } }) {
       <div>
         <p>{error}</p>
         <button
-          onClick={() => router.push("/dashboard/categories")}
+          onClick={() => router.push("/dashboard/products")}
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
-          Back to Categories
+          Back to Products
         </button>
       </div>
     );

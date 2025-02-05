@@ -3,6 +3,7 @@ import { deleteCategory } from "@/lib/actions/Category/delete";
 import {
   fetchCategoryById,
   fetchCategoryWithSubCat,
+  fetchCategoryWithSubCatById,
   getUniqueCategories,
 } from "@/lib/actions/Category/fetch";
 import { getCachedData, setCachedData, clearCachedData } from "@/lib/cache";
@@ -16,7 +17,9 @@ export interface CategoryState {
   fetchUniqueCategories: () => Promise<void>;
   fetchUniqueCategoriesWithSubs: () => Promise<void>;
   deleteCategoryState: (category_id: number) => Promise<{ success: boolean }>;
-  fetchCategoryByIdState: (category_id: number) => Promise<Category | null>;
+  fetchCategoryWithSubByIdState: (
+    category_id: number
+  ) => Promise<Category | null>;
 }
 
 export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
@@ -91,7 +94,7 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
     }
   },
 
-  fetchCategoryByIdState: async (category_id: number) => {
+  fetchCategoryWithSubByIdState: async (category_id: number) => {
     const cacheKey = `category_${category_id}`;
     const cachedCategory = getCachedData<Category>(cacheKey);
 
@@ -103,7 +106,7 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const category = await fetchCategoryById(category_id);
+      const category = await fetchCategoryWithSubCatById(category_id);
 
       if (category) {
         // Cache the category with a TTL of 2 minutes

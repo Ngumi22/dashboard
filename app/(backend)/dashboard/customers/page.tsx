@@ -92,7 +92,7 @@ export default function CategoryDetails({
         <strong>Status:</strong>{" "}
         <span
           className={`px-2 py-1 rounded ${
-            category.category_status === "Active"
+            category.category_status === "active"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
           }`}>

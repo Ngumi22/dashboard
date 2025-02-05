@@ -1,5 +1,23 @@
 import * as z from "zod";
 
+export const variantTypeSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1, "Variant type name is required"),
+  description: z.string().optional(),
+});
+
+export const variantSchema = z.object({
+  id: z.number().optional(),
+  variant_type_id: z.number().int().positive(),
+  value: z.string().min(1, "Variant value is required"),
+  price: z.number().min(0, "Price must be non-negative"),
+  quantity: z.number().int().min(0, "Quantity must be non-negative"),
+  status: z.enum(["active", "inactive"]),
+  variant_image: z.instanceof(File).optional(),
+  variant_thumbnail1: z.instanceof(File).optional(),
+  variant_thumbnail2: z.instanceof(File).optional(),
+});
+
 export const NewProductSchema = z.object({
   product_id: z.number().optional(),
   product_name: z
@@ -102,7 +120,6 @@ export const NewProductSchema = z.object({
     })
     .pipe(z.custom<File>()),
 
-  //thumbnails: z.array(z.custom<File>()).min(5, "Minimum 5 thumbnails required"),
   brand_image: z
     .custom<FileList>()
     .transform((val) => {
@@ -156,9 +173,6 @@ export const NewProductSchema = z.object({
       specification_value: z.string().min(1, "Specification value is required"),
     })
   ),
-
-  // variantTypes: z.array(variantTypeSchema),
-  // variants: z.array(variantSchema),
 });
 
 export const NewProductSchemaServer = z.object({

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
@@ -11,14 +13,14 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { getUniqueSuppliers } from "@/lib/actions/Supplier/fetch";
-import { Supplier } from "@/lib/actions/Supplier/supplierTypes";
+import type { Supplier } from "@/lib/actions/Supplier/supplierTypes";
 
 interface AddSuppliersProps {
   onSuppliersChange: (suppliers: Supplier[]) => void;
   initialSuppliers?: Supplier[];
 }
 
-export default function Component({
+export default function AddSuppliers({
   onSuppliersChange,
   initialSuppliers = [],
 }: AddSuppliersProps) {
@@ -56,10 +58,10 @@ export default function Component({
     const fetchSuppliers = async () => {
       try {
         const suppliers = await getUniqueSuppliers();
-        setExistingSuppliers(suppliers || []); // Ensure it defaults to an empty array
+        setExistingSuppliers(suppliers || []);
       } catch (error) {
         console.error("Failed to fetch suppliers:", error);
-        setExistingSuppliers([]); // Fallback to empty array on error
+        setExistingSuppliers([]);
       }
     };
 
@@ -68,7 +70,6 @@ export default function Component({
 
   const handleAddSupplier = handleSubmit(() => {
     if (isNewSupplier && newSupplier.supplier_name) {
-      // Add new supplier
       append({
         ...newSupplier,
         isNew: true,
@@ -80,7 +81,6 @@ export default function Component({
         supplier_location: "",
       });
     } else if (!isNewSupplier && selectedSupplier) {
-      // Add existing supplier
       const existingSupplier = existingSuppliers.find(
         (s) => s.supplier_id?.toString() === selectedSupplier
       );
@@ -130,11 +130,7 @@ export default function Component({
                   {existingSuppliers.map((supplier) => (
                     <SelectItem
                       key={supplier.supplier_id ?? "no-id"}
-                      value={
-                        supplier.supplier_id
-                          ? supplier.supplier_id.toString()
-                          : ""
-                      }>
+                      value={supplier.supplier_id?.toString() ?? ""}>
                       {supplier.supplier_name}
                     </SelectItem>
                   ))}
@@ -156,7 +152,6 @@ export default function Component({
                 />
               )}
             />
-
             <Controller
               name="newSupplier.supplier_email"
               control={control}
@@ -169,7 +164,6 @@ export default function Component({
                 />
               )}
             />
-
             <Controller
               name="newSupplier.supplier_phone_number"
               control={control}
@@ -181,7 +175,6 @@ export default function Component({
                 />
               )}
             />
-
             <Controller
               name="newSupplier.supplier_location"
               control={control}

@@ -1,6 +1,6 @@
 "use server";
 
-import { cache, CacheUtil } from "@/lib/cache";
+import { cache } from "@/lib/cache";
 import { DBQUERYLIMITS } from "@/lib/Constants";
 import {
   mapProductRow,
@@ -75,7 +75,12 @@ export async function fetchProducts(
       const products = await Promise.all(rows.map(mapProductRow));
 
       const result = { products };
-      CacheUtil.set(cacheKey, result); // Use CacheUtil for caching
+
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: result,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
       return result;
     } catch (error) {
       console.error("Error fetching filtered products:", error);
@@ -132,13 +137,19 @@ function buildFilterConditions(filter: SearchParams) {
   return { whereClause: conditions.join(" AND "), queryParams: params };
 }
 
-export async function fetchProductByIdFromDb(product_id: string) {
+export async function fetchProductByIdFromDb(
+  product_id: string
+): Promise<Product | null> {
   const cacheKey = `product_${product_id}`;
 
-  if (!product_id) throw new Error("Invalid product ID");
-
-  const cachedProduct = CacheUtil.get<Product>(cacheKey);
-  if (cachedProduct) return cachedProduct;
+  // Check cache first
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Product;
+    }
+    cache.delete(cacheKey);
+  }
 
   return dbOperation(async (connection) => {
     try {
@@ -182,7 +193,12 @@ export async function fetchProductByIdFromDb(product_id: string) {
       if (rows.length === 0) return null;
 
       const product = mapProductRow(rows[0] as ProductRow);
-      CacheUtil.set(cacheKey, product); // Use CacheUtil for caching
+
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: product,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
       return product;
     } catch (error) {
       console.error("Error fetching product by ID:", error);

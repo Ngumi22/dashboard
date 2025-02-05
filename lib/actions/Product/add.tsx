@@ -16,213 +16,216 @@ export type FormState = {
   issues?: string[];
 };
 
-async function createProduct(parsedData: ParsedProductData, data: FormData) {
-  // Start by using parsedData.brand_id directly
-  let brand_id = parsedData.brand_id;
+/**
+ * Inserts a new product into the database.
+ */
+async function createProduct(parsedData: ParsedProductData) {
+  return dbOperation(async (connection) => {
+    // Check if the product already exists
+    const [existingProduct] = await connection.query(
+      "SELECT product_id FROM products WHERE product_sku = ?",
+      [parsedData.product_sku]
+    );
 
-  if (!brand_id) {
-    const brandData = await addBrand(data);
-    parsedData.brand_id = brandData.brandId;
-    console.log("Brand ID obtained from addBrand:", brand_id);
-  }
+    if (existingProduct.length > 0) {
+      throw new Error("A product with the same SKU already exists.");
+    }
 
-  const productData = {
-    product_name: data.get("product_name") as string,
-    product_sku: data.get("product_sku") as string,
-    product_description: data.get("product_description") as string,
-    product_status: data.get("product_status"),
-    product_price: parseInt(data.get("product_price") as string),
-    product_discount: parseInt(data.get("product_discount") as string),
-    product_quantity: parseInt(data.get("product_quantity") as string),
-    category_id: data.get("category_id") as string,
-  };
+    // Insert the new product
+    const [result] = await connection.query(
+      `INSERT INTO products (
+        product_name, product_sku, product_description, product_price,
+        product_quantity, product_discount, product_status, category_id, brand_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        parsedData.product_name,
+        parsedData.product_sku,
+        parsedData.product_description,
+        parsedData.product_price,
+        parsedData.product_quantity,
+        parsedData.product_discount,
+        parsedData.product_status,
+        parsedData.category_id,
+        parsedData.brand_id,
+      ]
+    );
 
+    const productId = (result as any).insertId;
+    console.log("Product inserted successfully with ID:", productId);
+    return productId;
+  });
+}
+
+/**
+ * Maps suppliers to a product in the database.
+ */
+async function mapSuppliersToProduct(productId: number, supplierIds: number[]) {
+  return dbOperation(async (connection) => {
+    const supplierInsertQueries = supplierIds.map((supplierId) =>
+      connection.execute(
+        `INSERT INTO product_suppliers (product_id, supplier_id)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE supplier_id = VALUES(supplier_id)`,
+        [productId, supplierId]
+      )
+    );
+    await Promise.all(supplierInsertQueries);
+  });
+}
+
+/**
+ * Handles form submission for adding a new product.
+ */
+export async function onSubmitAction(
+  prevState: FormState,
+  data: FormData
+): Promise<FormState> {
   try {
-    // Validate the input data (including category_id)
-    const validatedData = NewProductSchemaServer.pick({
-      product_name: true,
-      product_description: true,
-      product_status: true,
-      product_sku: true,
-      product_price: true,
-      product_discount: true,
-      product_quantity: true,
-      category_id: true,
-    }).parse(productData);
+    // Parse and validate form data
+    const formData: Record<string, any> = Object.fromEntries(data.entries());
 
-    return dbOperation(async (connection) => {
-      // Check if the category already exists
-      const [existingProduct] = await connection.query(
-        "SELECT product_id FROM products WHERE product_sku = ?",
-        [validatedData.product_sku]
-      );
+    // Parse numeric fields
+    formData.product_id = parseInt(data.get("product_id") as string);
+    formData.product_price = parseFloat(data.get("product_price") as string);
+    formData.product_discount = parseFloat(
+      data.get("product_discount") as string
+    );
+    formData.product_quantity = parseInt(
+      data.get("product_quantity") as string
+    );
 
-      if (existingProduct.length > 0) {
-        return {
-          success: true,
-          message: "Product already exists",
-          productId: existingProduct[0].product_id,
-        };
-      }
+    // Validate category_id
+    const categoryId = parseInt(data.get("category_id") as string);
+    if (!categoryId) {
+      return {
+        message: "Category ID is required",
+        issues: ["Category ID is missing in the form data."],
+      };
+    }
 
-      const [result] = await connection.query(
-        `INSERT INTO products (product_name, product_sku, product_description, product_price, product_quantity, product_discount, product_status, category_id, brand_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          validatedData.product_name,
-          validatedData.product_sku,
-          validatedData.product_description,
-          validatedData.product_price,
-          validatedData.product_quantity,
-          validatedData.product_discount,
-          validatedData.product_status,
-          validatedData.category_id, // Use validatedData instead of parsedData
-          parsedData.brand_id,
-        ]
-      );
+    // Parse tags, thumbnails, suppliers, and specifications
+    formData.tags = parseJSONField(data, "tags");
+    formData.thumbnails = parseFileField(data, "thumbnails");
+    formData.suppliers = parseSuppliers(data);
+    formData.specifications = parseSpecifications(data);
 
-      const productId = (result as any).insertId;
-      console.log("Product inserted successfully with ID:", productId);
+    // Validate the parsed data
+    const parsed = NewProductSchemaServer.safeParse(formData);
+    if (!parsed.success) {
+      console.error("Validation errors:", parsed.error.issues);
+      return {
+        message: "Invalid form data",
+        fields: Object.keys(formData).reduce(
+          (acc, key) => ({ ...acc, [key]: formData[key].toString() }),
+          {}
+        ),
+        issues: parsed.error.issues.map((issue) => issue.message),
+      };
+    }
 
-      return productId;
-    });
-    // console.log("Starting product insertion...");
+    // Set up database tables
+    await dbsetupTables();
+
+    // Add brand and retrieve brand ID
+    const brandData = await addBrand(data);
+    if (!brandData.brandId) {
+      throw new Error("Failed to add brand.");
+    }
+
+    // Prepare product data
+    const parsedData: ParsedProductData = {
+      ...parsed.data,
+      category_id: categoryId,
+      brand_id: brandData.brandId,
+    };
+
+    // Insert product and retrieve product ID
+    const productId = await createProduct(parsedData);
+
+    // Add suppliers and map them to the product
+    const supplierResponse = await createSupplier(data, productId);
+    const supplierData = await supplierResponse.json();
+    const supplierIds = supplierData.supplierIds;
+    if (!supplierIds || supplierIds.length === 0) {
+      throw new Error("No suppliers were added or mapped.");
+    }
+    await mapSuppliersToProduct(productId, supplierIds);
+
+    // Add images, tags, and specifications
+    await Promise.all([
+      createProductImages(data, productId),
+      createProductTags(data, productId),
+      createProductSpecifications(data, productId, categoryId),
+    ]);
+
+    return { message: "Product submitted successfully" };
   } catch (error) {
-    console.error("Error inserting product:", error);
-    throw error;
+    console.error("Error submitting product:", error);
+    return {
+      message:
+        error instanceof Error ? error.message : "Failed to submit product",
+      issues: [
+        error instanceof Error ? error.message : "An unknown error occurred",
+      ],
+    };
+  }
+}
+/**
+ * Helper function to parse JSON fields from form data.
+ */
+function parseJSONField(data: FormData, fieldName: string) {
+  const rawValue = data.get(fieldName);
+  try {
+    return rawValue ? JSON.parse(rawValue.toString()) : [];
+  } catch (e) {
+    console.error(`Error parsing ${fieldName}:`, e);
+    return [];
   }
 }
 
-export async function onSubmitAction(prevState: FormState, data: FormData) {
-  const formData: Record<string, any> = Object.fromEntries(data.entries());
+/**
+ * Helper function to parse file fields from form data.
+ */
+function parseFileField(data: FormData, fieldName: string) {
+  const files = data.getAll(fieldName);
+  return Array.isArray(files) ? files : [files];
+}
 
-  const productData = {
-    product_id: parseInt(data.get("product_id") as string),
-    product_price: parseInt(data.get("product_price") as string),
-    product_discount: parseInt(data.get("product_discount") as string),
-    product_quantity: parseInt(data.get("product_quantity") as string),
-    product_name: data.get("product_name") as string,
-    product_sku: data.get("product_sku") as string,
-    product_description: data.get("product_description") as string,
-    product_status: data.get("product_status"),
-    brand_id: data.get("brand_id") as string,
-    brand_name: data.get("brand_name") as string,
-    brand_image: data.get("brand_image") as File,
-    main_image: data.get("main_image") as File,
-  };
-
-  // Directly access `category_id`
-  const categoryId = parseInt(data.get("category_id") as string);
-  if (!categoryId) {
-    return {
-      message: "Category ID is required",
-      issues: ["Category ID is missing in the form data."],
-    };
-  }
-
-  formData["tags"] = (() => {
-    const rawTags = data.get("tags");
-    try {
-      return rawTags ? JSON.parse(rawTags.toString()) : [];
-    } catch (e) {
-      console.error("Error parsing tags:", e);
-      return [];
-    }
-  })();
-
-  formData["thumbnails"] = Array.isArray(data.getAll("thumbnails"))
-    ? data.getAll("thumbnails")
-    : [data.get("thumbnails")];
-
-  formData["suppliers"] = Array.from(data.entries())
+/**
+ * Helper function to parse suppliers from form data.
+ */
+function parseSuppliers(data: FormData) {
+  return Array.from(data.entries())
     .filter(([key]) => key.startsWith("suppliers["))
     .map(([_, value]) => {
       try {
         return JSON.parse(value.toString());
       } catch (e) {
-        console.error(`Error parsing supplier:`, e);
+        console.error("Error parsing supplier:", e);
         return null;
       }
     })
     .filter((supplier) => supplier !== null);
+}
 
-  formData["specifications"] = Array.from(data.entries())
+/**
+ * Helper function to parse specifications from form data.
+ */
+function parseSpecifications(data: FormData) {
+  return Array.from(data.entries())
     .filter(([key]) => key.startsWith("specifications["))
     .map(([_, value]) => {
       try {
         const spec = JSON.parse(value.toString());
-        if (spec && spec.specification_name && spec.specification_value) {
+        if (spec?.specification_name && spec?.specification_value) {
           return spec;
         }
-        console.error(`Invalid specification format:`, spec);
+        console.error("Invalid specification format:", spec);
         return null;
       } catch (e) {
-        console.error(`Error parsing specification:`, e);
+        console.error("Error parsing specification:", e);
         return null;
       }
     })
     .filter((spec) => spec !== null);
-  const parsed = NewProductSchemaServer.safeParse({
-    ...formData,
-    ...productData,
-  });
-
-  // console.log(parsed);
-
-  if (!parsed.success) {
-    console.error("Validation errors:", parsed.error.issues);
-    return {
-      message: "Invalid form data",
-      fields: Object.keys(formData).reduce(
-        (acc, key) => ({ ...acc, [key]: formData[key].toString() }),
-        {}
-      ),
-      issues: parsed.error.issues.map((issue) => issue.message),
-    };
-  }
-
-  return dbOperation(async (connection) => {
-    await dbsetupTables();
-
-    const parsedData: ParsedProductData = parsed.data;
-
-    // Assign category ID to the parsed data
-    parsedData.category_id = categoryId;
-
-    // Add brand and retrieve the brand ID
-    const brandData = await addBrand(data);
-    parsedData.brand_id = brandData.brandId;
-
-    // Insert product and retrieve product ID
-    const productId = await createProduct(parsedData, data);
-
-    // Add suppliers and retrieve supplier IDs
-    const supplierResponse = await createSupplier(data, productId);
-    const supplierData = await supplierResponse.json();
-    const supplierIds = supplierData.supplierIds;
-
-    if (!supplierIds || supplierIds.length === 0) {
-      throw new Error("No suppliers were added or mapped.");
-    }
-
-    // Map suppliers to the product
-    const supplierInsertQueries = supplierIds.map((supplierId: any) =>
-      connection.execute(
-        `
-        INSERT INTO product_suppliers (product_id, supplier_id)
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE supplier_id = VALUES(supplier_id)
-      `,
-        [productId, supplierId]
-      )
-    );
-    await Promise.all(supplierInsertQueries);
-
-    // Handle images, tags, and specifications
-    await createProductImages(data, productId);
-    await createProductTags(data, productId);
-    await createProductSpecifications(data, productId, categoryId);
-
-    return { message: "Product submitted successfully" };
-  });
 }

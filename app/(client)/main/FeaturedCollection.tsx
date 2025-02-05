@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 export default function FeaturedCollection() {
   const products = useStore((state) => state.products);
-  const fetchProducts = useStore((state) => state.fetchProducts);
+  const fetchProducts = useStore((state) => state.fetchProductsState);
 
   useEffect(() => {
     if (!products || products.length === 0) {

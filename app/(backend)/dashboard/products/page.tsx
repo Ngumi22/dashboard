@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/lib/actions/Product/productTypes";
+import { handleDeleteAction } from "@/lib/actions/Product/delete";
 
 const includedKeys: (keyof Product)[] = [
   "sku",
@@ -58,15 +59,9 @@ const columnRenderers = {
 };
 
 export default function ProductsPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
-  const [viewingProduct, setViewingProduct] = useState<string | null>(null);
-
-  const fetchProducts = useStore((state) => state.fetchProducts);
-  const fetchProductById = useStore((state) => state.fetchProductById);
-  const deleteProduct = useStore((state) => state.deleteProductState);
+  const fetchProducts = useStore((state) => state.fetchProductsState);
+  const fetchProductById = useStore((state) => state.fetchProductByIdState);
   const products = useStore((state) => state.products);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
@@ -135,33 +130,6 @@ export default function ProductsPage() {
     ],
     [categoryOptions]
   );
-  const handleDeleteProduct = async (product: Product) => {
-    if (!product.product_id) {
-      alert("No category ID provided.");
-      return;
-    }
-
-    try {
-      const result = deleteProduct(product.product_id);
-      if (result == result) {
-        toast({
-          title: "Success",
-          description: `${product.name} deleted successfully.`,
-        });
-        fetchProducts(currentPage, {}); // Refresh data
-      } else {
-        throw new Error(`Failed to delete ${product.name}.`);
-      }
-    } catch (error) {
-      console.error(`Error deleting ${product.name}:`, error);
-      toast({
-        title: "Error",
-        description: `An error occurred while deleting ${product.name}.`,
-      });
-    } finally {
-      setDeletingProduct(null);
-    }
-  };
 
   const handleViewProduct = async (product_id: string | null) => {
     if (!product_id) {
@@ -191,6 +159,36 @@ export default function ProductsPage() {
     }
   };
 
+  const handleDeleteProduct = async (product_id: string) => {
+    if (!product_id) {
+      alert("No product ID provided.");
+      return;
+    }
+
+    setDeletingProduct(product_id); // Track the product being deleted
+
+    try {
+      const result = await handleDeleteAction(Number(product_id)); // Ensure this is an async call
+      if (result) {
+        toast({
+          title: "Success",
+          description: "Product deleted successfully.",
+        });
+        fetchProducts(currentPage, {}); // Refresh data
+      } else {
+        throw new Error("Failed to delete product.");
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the product.",
+      });
+    } finally {
+      setDeletingProduct(null); // Reset the deleting state
+    }
+  };
+
   const rowActions: RowAction<any>[] = [
     {
       label: "Edit",
@@ -210,8 +208,10 @@ export default function ProductsPage() {
       label: "Delete",
       icon: Trash,
       onClick: (product) => {
-        handleDeleteProduct(product.product_id); // Extract and set only the `product_id`
+        handleDeleteProduct(product.product_id); // Pass only the `product_id`
       },
+      disabled: (product: { product_id: string | null }) =>
+        deletingProduct === product.product_id, // Disable while deleting
     },
 
     {
