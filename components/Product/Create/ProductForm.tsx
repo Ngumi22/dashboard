@@ -153,14 +153,12 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     }
   };
   // Handle thumbnail changes
+
   const handleThumbnailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setProduct((prev: any) => ({
       ...prev,
-      thumbnails: [
-        ...prev.thumbnails,
-        ...files.slice(0, 6 - prev.thumbnails.length),
-      ], // Limit to 5 thumbnails
+      thumbnails: files.slice(0, 5) as File[], // Limit to a maximum of 5 thumbnails
     }));
   };
 
@@ -485,12 +483,16 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                     />
                   </div>
                   <div>
-                    {newBrandImage && (
+                    {product.brand_image && (
                       <div>
                         <Label>Image Preview</Label>
                         <div className="">
                           <Image
-                            src={`data:image/webp;base64,${product.brand_image}`}
+                            src={
+                              typeof product.brand_image === "string"
+                                ? `data:image/webp;base64,${product.brand_image}`
+                                : URL.createObjectURL(product.brand_image)
+                            }
                             alt="Brand Preview"
                             width={100}
                             height={100}
@@ -502,7 +504,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                   </div>
                 </div>
               )}
-
               {selectedOption && selectedOption !== "new" && (
                 <div>
                   <Label>Selected Brand</Label>
@@ -542,7 +543,6 @@ export default function ProductForm({ initialData }: ProductFormProps) {
               )}
             </div>
 
-            {/* Thumbnails */}
             <div>
               <Label>Thumbnails</Label>
               <Input
@@ -552,34 +552,32 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 onChange={handleThumbnailsChange}
               />
               <div className="mt-2 flex gap-2">
-                {product.thumbnails
-                  .flatMap((thumbnailObj) => Object.values(thumbnailObj))
-                  .map((thumbnail, index) => {
-                    const thumb = thumbnail as unknown; // Explicitly cast to unknown
-                    return (
-                      <div key={index} className="relative">
-                        <Image
-                          src={
-                            thumb instanceof File
-                              ? URL.createObjectURL(thumb)
-                              : `data:image/webp;base64,${String(thumb)}`
-                          }
-                          alt={`Thumbnail ${index + 1}`}
-                          width={100}
-                          height={100}
-                          className="h-20 w-20 object-cover"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-0 right-0 p-1"
-                          onClick={() => removeThumbnail(index)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
+                {product.thumbnails.map((thumbnail, index) => {
+                  const thumbnailSrc =
+                    thumbnail instanceof File
+                      ? URL.createObjectURL(thumbnail)
+                      : `data:image/webp;base64,${thumbnail}`;
+
+                  return (
+                    <div key={index} className="relative">
+                      <Image
+                        src={thumbnailSrc}
+                        alt={`Thumbnail ${index + 1}`}
+                        width={100}
+                        height={100}
+                        className="h-20 w-20 object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-0 right-0 p-1"
+                        onClick={() => removeThumbnail(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

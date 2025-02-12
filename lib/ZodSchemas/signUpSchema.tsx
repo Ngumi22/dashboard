@@ -1,6 +1,14 @@
 import { z } from "zod";
 
 const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+// Define password validation criteria
+const passwordCriteria = [
+  { regex: /.{8,}/, message: "At least 8 characters" },
+  { regex: /[A-Z]/, message: "At least one uppercase letter" },
+  { regex: /[a-z]/, message: "At least one lowercase letter" },
+  { regex: /[0-9]/, message: "At least one number" },
+  { regex: /[^A-Za-z0-9]/, message: "At least one special character" },
+];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];

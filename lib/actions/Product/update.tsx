@@ -6,32 +6,6 @@ import { fileToBuffer } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 
-// In productTypes.tsx
-async function compressAndEncodeBase64(
-  imageData: Buffer | string
-): Promise<string> {
-  let buffer: Buffer;
-
-  if (typeof imageData === "string") {
-    // Decode base64 string to Buffer
-    buffer = Buffer.from(imageData, "base64");
-  } else {
-    buffer = imageData;
-  }
-
-  try {
-    const compressedBuffer = await sharp(buffer)
-      .resize(800, 800, { fit: "inside" }) // Adjust resize options as needed
-      .webp({ quality: 80 }) // Convert to WebP format with quality setting
-      .toBuffer();
-
-    return compressedBuffer.toString("base64");
-  } catch (error) {
-    console.error("Image compression error:", error);
-    throw error;
-  }
-}
-
 export interface ProductUpdateData {
   product_id: number;
   product_name: string;
@@ -126,34 +100,62 @@ export const updateProductAction = async (
         }
       });
 
-      // Handle main image
-      const mainImage = formData.get("main_image");
-      const mainImageBuffer = await toBuffer(mainImage as File | string);
-
-      // Handle thumbnails
-      const thumbnailFiles = formData.getAll("thumbnails") as (File | string)[];
-      const thumbnailBuffers = await Promise.all(
-        thumbnailFiles.map((file) => toBuffer(file))
+      // Fetch existing images
+      const [existingImages]: any = await connection.query(
+        "SELECT main_image, thumbnail_image1, thumbnail_image2, thumbnail_image3, thumbnail_image4, thumbnail_image5 FROM product_images WHERE product_id = ?",
+        [productId]
       );
 
-      // Update database with new or existing images
+      if (!existingImages.length) throw new Error("Product images not found");
+
+      const currentImages = existingImages[0];
+
+      // Convert image inputs
+      const convertToBuffer = async (image: File | string | null) => {
+        if (!image) return null;
+        if (typeof image === "string") return Buffer.from(image, "base64");
+        if (image instanceof File)
+          return Buffer.from(await image.arrayBuffer());
+        return null;
+      };
+
+      // Process main image
+      const mainImageInput = formData.get("main_image");
+      const mainImageBuffer =
+        (await convertToBuffer(mainImageInput as File | string)) ??
+        currentImages.main_image;
+
+      // Process thumbnails
+      const thumbnails = formData.getAll("thumbnails") as (File | string)[];
+      const thumbnailBuffers = await Promise.all(
+        thumbnails.map((img) => convertToBuffer(img))
+      );
+
+      // Retain existing thumbnails if new ones are missing
+      const finalThumbnails = [
+        thumbnailBuffers[0] ?? currentImages.thumbnail_image1,
+        thumbnailBuffers[1] ?? currentImages.thumbnail_image2,
+        thumbnailBuffers[2] ?? currentImages.thumbnail_image3,
+        thumbnailBuffers[3] ?? currentImages.thumbnail_image4,
+        thumbnailBuffers[4] ?? currentImages.thumbnail_image5,
+      ];
+
+      // Ensure no null images exist
+      if (!mainImageBuffer || finalThumbnails.includes(null)) {
+        throw new Error("Main image and all five thumbnails must be present");
+      }
+
+      // Update query
       await connection.query(
-        `INSERT INTO product_images (product_id, main_image, thumbnail_image1, thumbnail_image2, thumbnail_image3, thumbnail_image4, thumbnail_image5)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           main_image = COALESCE(?, main_image),
-           thumbnail_image1 = COALESCE(?, thumbnail_image1),
-           thumbnail_image2 = COALESCE(?, thumbnail_image2),
-           thumbnail_image3 = COALESCE(?, thumbnail_image3),
-           thumbnail_image4 = COALESCE(?, thumbnail_image4),
-           thumbnail_image5 = COALESCE(?, thumbnail_image5)`,
-        [
-          productId,
-          mainImageBuffer,
-          ...thumbnailBuffers, // Spread the 5 thumbnail values
-          mainImageBuffer,
-          ...thumbnailBuffers, // Spread the 5 thumbnail values again
-        ]
+        `UPDATE product_images SET
+          main_image = ?,
+          thumbnail_image1 = ?,
+          thumbnail_image2 = ?,
+          thumbnail_image3 = ?,
+          thumbnail_image4 = ?,
+          thumbnail_image5 = ?
+        WHERE product_id = ?`,
+        [mainImageBuffer, ...finalThumbnails, productId]
       );
 
       // Update product details if necessary

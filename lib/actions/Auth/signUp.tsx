@@ -4,89 +4,143 @@ import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { serverSignupFormSchema } from "@/lib/ZodSchemas/signUpSchema";
 import bcrypt from "bcryptjs";
 import { fileToBuffer } from "@/lib/utils";
-
-import { getIpAddress, rateLimiter } from "@/lib/rateLimiter"; // Rate limiter utility
+import { getIpAddress, rateLimiter } from "@/lib/rateLimiter";
+import validator from "validator";
 
 export type FormState = {
   message: string;
-  fields?: Record<string, string>;
+  fields?: Record<string, string | File>;
   issues?: string[];
 };
 
+// // Validate CSRF token (mock implementation)
+// async function validateCsrfToken(token: string | null): Promise<boolean> {
+//   return token === "valid-csrf-token"; // Replace with actual CSRF validation logic
+// }
 export async function onSubmitAction(
   prevState: FormState,
   data: FormData
 ): Promise<FormState> {
-  // Get the client's IP address
-  const ip = getIpAddress(); // Function to get IP
-  const limit = 5; // Max 5 requests
-  const windowMs = 15 * 60 * 1000; // 15 minutes
+  // const csrfToken = data.get("csrfToken");
+  // const validCsrfToken = await validateCsrfToken(csrfToken as string);
+  // if (!validCsrfToken) {
+  //   return {
+  //     message: "Invalid CSRF token.",
+  //     fields: Object.fromEntries(
+  //       [...data.entries()].map(([key, value]) => [
+  //         key,
+  //         value instanceof File ? "[Uploaded File]" : value,
+  //       ])
+  //     ),
+  //     issues: [],
+  //   };
+  // }
 
-  // Apply rate limiting
-  const rateLimitResponse = rateLimiter(ip, limit, windowMs);
-  if (rateLimitResponse) {
+  const ip = getIpAddress();
+  if (rateLimiter(ip, 5, 15 * 60 * 1000)) {
     return {
       message: "Too many requests. Please try again later.",
       fields: Object.fromEntries(
-        Array.from(data.entries()).map(([key, value]) => [
+        [...data.entries()].map(([key, value]) => [
           key,
-          value.toString(),
+          value instanceof File ? "[Uploaded File]" : value,
         ])
       ),
       issues: [],
     };
   }
 
-  // Parse and validate form data
-  const formData = Object.fromEntries(data);
+  const formData = Object.fromEntries(data.entries());
   const parsed = serverSignupFormSchema.safeParse(formData);
-
   if (!parsed.success) {
-    const fields: Record<string, string> = {};
-    for (const key of Object.keys(formData)) {
-      fields[key] = formData[key].toString();
-    }
     return {
       message: "Invalid form data",
-      fields,
+      fields: Object.fromEntries(
+        [...data.entries()].map(([key, value]) => [
+          key,
+          value instanceof File ? "[Uploaded File]" : value,
+        ])
+      ),
       issues: parsed.error.issues.map((issue) => issue.message),
     };
   }
 
   const { first_name, last_name, role, email, phone_number, password } =
     parsed.data;
-
   const image = data.get("image") as File | null;
+
+  const sanitizedFirstName = validator.escape(first_name);
+  const sanitizedLastName = validator.escape(last_name);
+  const sanitizedEmail = validator.normalizeEmail(email) || "";
+  const sanitizedPhoneNumber = validator.escape(phone_number || "");
 
   let imagePath = null;
   if (image) {
-    imagePath = await fileToBuffer(image);
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif"];
+    const maxFileSize = 5 * 1024 * 1024;
+
+    if (!allowedMimeTypes.includes(image.type)) {
+      return {
+        message: "Invalid image type. Only JPEG, PNG, and GIF are allowed.",
+        fields: Object.fromEntries(
+          [...data.entries()].map(([key, value]) => [
+            key,
+            value instanceof File ? "[Uploaded File]" : value,
+          ])
+        ),
+        issues: [],
+      };
+    }
+
+    if (image.size > maxFileSize) {
+      return {
+        message: "Image size must be less than 5MB.",
+        fields: Object.fromEntries(
+          [...data.entries()].map(([key, value]) => [
+            key,
+            value instanceof File ? "[Uploaded File]" : value,
+          ])
+        ),
+        issues: [],
+      };
+    }
+
+    imagePath = (await fileToBuffer(image)).toString("base64"); // Ensure it's serializable
   }
 
-  return dbOperation(async (connection) => {
-    try {
-      // Check for existing user
+  try {
+    return await dbOperation(async (connection) => {
       const [existingUser] = await connection.query(
         "SELECT * FROM staff_accounts WHERE email = ?",
-        [email]
+        [sanitizedEmail]
       );
+
+      const existingUserData = existingUser.map((user: any) => ({ ...user })); // Convert to plain objects
+
       if (existingUser.length > 0) {
-        throw new Error("Email is already in use.");
+        return {
+          message: "Email is already in use.",
+          fields: Object.fromEntries(
+            [...data.entries()].map(([key, value]) => [
+              key,
+              value instanceof File ? "[Uploaded File]" : value,
+            ])
+          ),
+          issues: [],
+        };
       }
 
-      // Hash password and process image
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Insert new user into database
-      const [userResult] = await connection.query(
+      await connection.query(
         "INSERT INTO staff_accounts (first_name, last_name, role, image, email, phone_number, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
-          first_name,
-          last_name,
+          sanitizedFirstName,
+          sanitizedLastName,
           role,
           imagePath,
-          email,
-          phone_number,
+          sanitizedEmail,
+          sanitizedPhoneNumber,
           hashedPassword,
         ]
       );
@@ -94,17 +148,22 @@ export async function onSubmitAction(
       await connection.commit();
 
       return {
-        userId: userResult.insertId,
-        message: "Account created successfully",
-      };
-    } catch (error: any) {
-      return {
-        message: "An error occurred during account creation",
+        message: "Signup successful",
         fields: {},
         issues: [],
       };
-    } finally {
-      connection.release();
-    }
-  });
+    });
+  } catch (error: any) {
+    console.error("Error during account creation", { error: error.message });
+    return {
+      message: "An error occurred during account creation",
+      fields: Object.fromEntries(
+        [...data.entries()].map(([key, value]) => [
+          key,
+          value instanceof File ? "[Uploaded File]" : value,
+        ])
+      ),
+      issues: [error.message || "Unexpected error occurred"],
+    };
+  }
 }

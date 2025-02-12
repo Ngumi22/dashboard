@@ -14,10 +14,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
-
 import { useToast } from "@/components/ui/use-toast";
-import { ToastAction } from "@/components/ui/toast";
+import { Progress } from "@/components/ui/progress";
+import { Check, Loader, ShieldClose } from "lucide-react";
 
 // Define password validation criteria
 const passwordCriteria = [
@@ -48,14 +49,16 @@ export default function SignupForm() {
       toast({
         title: "Error",
         description: state.errors.email.join(", "),
+        variant: "destructive",
       });
     } else if (state?.errors?.server) {
       toast({
         title: "Error",
         description: state.errors.server.join(", "),
+        variant: "destructive",
       });
     }
-  }, [state, router, toast]);
+  }, [state, toast]);
 
   useEffect(() => {
     const errors = passwordCriteria
@@ -72,102 +75,120 @@ export default function SignupForm() {
     }
   }, [password, password1]);
 
+  const passwordStrength =
+    ((passwordCriteria.length - passwordErrors.length) /
+      passwordCriteria.length) *
+    100;
+
   return (
-    <form action={action}>
-      <Card className="mx-auto max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Sign Up</CardTitle>
-          <CardDescription>
-            Enter your information to create an account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="first_name">First Name</Label>
-                <Input id="first_name" name="first_name" placeholder="John" />
-              </div>
+    <Card className="w-full max-w-md mx-auto shadow-lg">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">
+          Create an account
+        </CardTitle>
+        <CardDescription className="text-center">
+          Enter your details below to create your account and get started
+        </CardDescription>
+      </CardHeader>
+      <form action={action}>
+        <CardContent className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name</Label>
+              <Input id="first_name" name="first_name" placeholder="John" />
               {state?.errors?.first_name && (
                 <p className="text-sm text-red-500">
                   {state.errors.first_name}
                 </p>
               )}
-              <div>
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input id="last_name" name="last_name" placeholder="Doe" />
-              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input id="last_name" name="last_name" placeholder="Doe" />
               {state?.errors?.last_name && (
                 <p className="text-sm text-red-500">{state.errors.last_name}</p>
               )}
             </div>
-            <div>
-              <Label htmlFor="role">Role</Label>
-              <Input id="role" name="role" placeholder="User" />
-            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <Input id="role" name="role" placeholder="User" />
             {state?.errors?.role && (
               <p className="text-sm text-red-500">{state.errors.role}</p>
             )}
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" placeholder="john@example.com" />
-            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="john@example.com"
+            />
             {state?.errors?.email && (
               <p className="text-sm text-red-500">{state.errors.email}</p>
             )}
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="password1">Confirm Password</Label>
-              <Input
-                id="password1"
-                name="password1"
-                type="password"
-                onChange={(e) => setPassword1(e.target.value)}
-              />
-            </div>
-            {passwordErrors.length > 0 && (
-              <div className="text-sm">
-                <p>Password must:</p>
-                <ul>
-                  {passwordCriteria.map((criteria) => (
-                    <li
-                      key={criteria.message}
-                      className={
-                        passwordErrors.includes(criteria.message)
-                          ? "text-red-500"
-                          : "text-green-500"
-                      }>
-                      {criteria.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {passwordMatchError && (
-              <p className="text-sm text-red-500">{passwordMatchError}</p>
-            )}
-            {state?.errors?.server && (
-              <p className="text-sm text-red-500">{state.errors.server}</p>
-            )}
-            <SignupButton />
           </div>
-          <div className="mt-4 text-center text-sm">
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Progress value={passwordStrength} className="w-full h-2" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password1">Confirm Password</Label>
+            <Input
+              id="password1"
+              name="password1"
+              type="password"
+              onChange={(e) => setPassword1(e.target.value)}
+            />
+          </div>
+          {passwordErrors.length > 0 && (
+            <div className="text-sm">
+              <p className="font-semibold">Password must have:</p>
+              <ul className="list-none pl-0 mt-1 space-y-1">
+                {passwordCriteria.map((criteria) => (
+                  <li
+                    key={criteria.message}
+                    className={`flex items-center ${
+                      passwordErrors.includes(criteria.message)
+                        ? "text-red-500"
+                        : "text-green-500"
+                    }`}>
+                    {passwordErrors.includes(criteria.message) ? (
+                      <ShieldClose className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Check className="w-4 h-4 mr-2" />
+                    )}
+                    {criteria.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {passwordMatchError && (
+            <p className="text-sm text-red-500">{passwordMatchError}</p>
+          )}
+          {state?.errors?.server && (
+            <p className="text-sm text-red-500">{state.errors.server}</p>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <SignupButton />
+          <p className="text-sm text-center text-gray-500">
             Already have an account?{" "}
-            <Link href="/login" className="underline">
+            <Link href="/login" className="text-primary hover:underline">
               Sign in
             </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </form>
+          </p>
+        </CardFooter>
+      </form>
+    </Card>
   );
 }
 
@@ -175,8 +196,15 @@ function SignupButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button aria-disabled={pending} type="submit" className="mt-2 w-full">
-      {pending ? "Loading..." : "Sign Up"}
+    <Button disabled={pending} type="submit" className="w-full">
+      {pending ? (
+        <>
+          <Loader className="mr-2 h-4 w-4 animate-spin" />
+          Signing Up...
+        </>
+      ) : (
+        "Sign Up"
+      )}
     </Button>
   );
 }
