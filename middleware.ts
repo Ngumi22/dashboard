@@ -7,6 +7,8 @@ const allowedOrigins = [
   "https://www.bernzzdigitalsolutions.co.ke", // Ensure this is included
   "https://dashboard-five-wheat.vercel.app",
   "http://localhost:3000", // Allow localhost explicitly for development
+  "www.bernzzdigitalsolutions.co.ke",
+  "bernzzdigitalsolutions.co.ke",
 ];
 
 // Route categories
