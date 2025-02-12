@@ -9,6 +9,7 @@ const allowedOrigins = [
   "http://localhost:3000", // Allow localhost explicitly for development
   "www.bernzzdigitalsolutions.co.ke",
   "bernzzdigitalsolutions.co.ke",
+  "https://dashboard-bztqantz7-ngumi22s-projects.vercel.app",
 ];
 
 // Route categories
