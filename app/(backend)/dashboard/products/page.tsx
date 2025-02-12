@@ -17,6 +17,7 @@ import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/lib/actions/Product/productTypes";
 import { handleDeleteAction } from "@/lib/actions/Product/delete";
+import { fetchProductById } from "@/lib/actions/Product/fetchById";
 
 const includedKeys: (keyof Product)[] = [
   "sku",
@@ -61,7 +62,7 @@ const columnRenderers = {
 export default function ProductsPage() {
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
   const fetchProducts = useStore((state) => state.fetchProductsState);
-  const fetchProductById = useStore((state) => state.fetchProductByIdState);
+
   const products = useStore((state) => state.products);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
@@ -131,7 +132,7 @@ export default function ProductsPage() {
     [categoryOptions]
   );
 
-  const handleViewProduct = async (product_id: string | null) => {
+  const handleViewProduct = async (product_id: number) => {
     if (!product_id) {
       alert("No product ID provided.");
       return;
@@ -145,7 +146,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleEditProduct = async (product_id: string | null) => {
+  const handleEditProduct = async (product_id: number) => {
     if (!product_id) {
       alert("No product ID provided.");
       return;
@@ -191,6 +192,13 @@ export default function ProductsPage() {
 
   const rowActions: RowAction<any>[] = [
     {
+      label: "View",
+      icon: Eye,
+      onClick: (product) => {
+        handleViewProduct(product.product_id); // Extract and set only the `product_id`
+      },
+    },
+    {
       label: "Edit",
       icon: Edit,
       onClick: (product) => {
@@ -198,8 +206,9 @@ export default function ProductsPage() {
       },
     },
     {
-      label: "Add Variant",
+      label: "Variant",
       icon: Plus,
+
       onClick: (product) => {
         router.push(`/dashboard/products/${product.product_id}/addVariants`);
       },
@@ -213,28 +222,25 @@ export default function ProductsPage() {
       disabled: (product: { product_id: string | null }) =>
         deletingProduct === product.product_id, // Disable while deleting
     },
-
-    {
-      label: "View",
-      icon: Eye,
-      onClick: (product) => {
-        handleViewProduct(product.product_id); // Extract and set only the `product_id`
-      },
-    },
   ];
 
   const filteredAndSortedData = useMemo(() => {
     let result = searchData(products, searchTerm, "name");
+
     result = filterData(result, filters, activeFilters);
 
-    // Handle range sorting
-    if (activeFilters.price && activeFilters.price.length > 0) {
-      const direction = activeFilters.price[0] === "lowest" ? "desc" : "asc";
-      result = sortData(result, "price", direction);
-    } else if (activeFilters.discount && activeFilters.discount.length > 0) {
-      const direction = activeFilters.discount[0] === "lowest" ? "desc" : "asc";
-      result = sortData(result, "discount", direction);
-    } else {
+    // Handle range sorting for price, quantity, and discount dynamically
+    const numericFilters: (keyof Product)[] = ["price", "quantity", "discount"];
+
+    for (const key of numericFilters) {
+      if (activeFilters[key] && activeFilters[key].length > 0) {
+        const direction = activeFilters[key][0] === "lowest" ? "asc" : "desc";
+        result = sortData(result, key, direction);
+      }
+    }
+
+    // Fallback to normal sorting if no numeric filter is active
+    if (!numericFilters.some((key) => activeFilters[key]?.length > 0)) {
       result = sortData(result, sortKey, sortDirection);
     }
 

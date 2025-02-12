@@ -73,7 +73,7 @@ export async function fetchBrandById(brand_id: number): Promise<Brand | null> {
 
       // Map database results to a brand object
       const brand = rows[0];
-      const processedBrand: Brand = {
+      const processedBrand: any = {
         brand_id: brand.brand_id,
         brand_name: brand.brand_name,
         brand_image: brand.brand_image

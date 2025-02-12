@@ -10,23 +10,35 @@ export interface Product {
   product_discount: number;
   product_status: "draft" | "pending" | "approved";
   tags: string[];
-  product_images: {
-    main: string;
-    thumbnails: string[];
-  };
+  main_image: string;
+  thumbnails: {
+    thumbnail1: string;
+    thumbnail2: string;
+    thumbnail3: string;
+    thumbnail4: string;
+    thumbnail5: string;
+  }[];
   category_id: string;
   brand: {
-    brand_id: number;
+    brand_id: string;
     brand_name: string;
-    brand_image: File | string | null | undefined;
+    brand_image: string;
   };
   specifications: {
     specification_name: string;
     specification_value: string;
     category_id: string;
   }[];
-  suppliers: Supplier[];
+  suppliers: {
+    supplier_id?: number;
+    supplier_name?: string;
+    supplier_email?: string;
+    supplier_phone_number?: string;
+    supplier_location?: string;
+    isNew?: boolean;
+  }[];
 }
+
 export interface Supplier {
   supplier_id?: number;
   supplier_name?: string;
@@ -47,15 +59,12 @@ export interface Brand {
 }
 
 export interface ProductFormProps {
-  initialData?: Product | null;
+  initialData?: Product;
 }
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // Zod schema with enhanced validation
 export const formSchema = z.object({
-  product_id: z.number().optional().nullable(),
+  product_id: z.number().optional(),
   category_id: z.string(),
   product_name: z
     .string()
@@ -84,29 +93,35 @@ export const formSchema = z.object({
     .min(1, "At least one tag is required")
     .max(5, "Maximum of 5 tags allowed"),
 
-  brand: z.object({
-    brand_id: z.number().optional().nullable(),
-    brand_name: z.string().optional(),
-    brand_image: z
-      .instanceof(File)
-      .refine((file) => file?.size <= MAX_FILE_SIZE, "Max image size is 5MB")
-      .refine(
-        (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-        "Only .jpg, .png, and .webp formats are supported"
-      )
-      .optional(),
-  }),
+  brand: z
+    .object({
+      brand_id: z.string(),
+      brand_name: z.string().min(1, "Brand name is required").optional(),
+      brand_image: z.union([z.instanceof(File), z.string().url()]).optional(),
+    })
+    .refine(
+      (data) =>
+        data.brand_id !== null ||
+        (data.brand_name && data.brand_name.length > 0),
+      {
+        message: "Either select an existing brand or enter a new brand name",
+        path: ["brand_name"],
+      }
+    ),
 
   main_image: z
-    .instanceof(File)
-    .refine((file) => file?.size <= MAX_FILE_SIZE, "Max image size is 5MB")
-    .refine(
-      (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
-      "Only .jpg, .png, and .webp formats are supported"
-    )
+    .union([
+      z.instanceof(File),
+      z.string().url({ message: "Invalid image URL" }),
+    ])
     .optional(),
-  thumbnail_images: z
-    .array(z.instanceof(File))
+  thumbnails: z
+    .array(
+      z.union([
+        z.instanceof(File),
+        z.string().url({ message: "Invalid image URL" }),
+      ])
+    )
     .max(5, "Maximum 5 thumbnails allowed")
     .optional(),
   specifications: z.array(
@@ -127,5 +142,4 @@ export const formSchema = z.object({
     })
   ),
 });
-
 export type ProductFormValues = z.infer<typeof formSchema>;

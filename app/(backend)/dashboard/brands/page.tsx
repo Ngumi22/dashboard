@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Edit, Trash, Eye, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Filter, RowAction } from "@/components/Data-Table/types";
 import {
   filterData,
@@ -61,6 +60,13 @@ export default function BrandPage() {
 
   const rowActions: RowAction<any>[] = [
     {
+      label: "View",
+      icon: Eye,
+      onClick: (brand) => {
+        router.push(`/dashboard/brands/${brand.brand_id}/brand`);
+      },
+    },
+    {
       label: "Edit",
       icon: Edit,
       onClick: (brand) => {
@@ -72,13 +78,6 @@ export default function BrandPage() {
       label: "Delete",
       icon: Trash,
       onClick: async (brand) => {},
-    },
-    {
-      label: "View",
-      icon: Eye,
-      onClick: (brand) => {
-        router.push(`/dashboard/brands/${brand.brand_id}/brand`);
-      },
     },
   ];
 

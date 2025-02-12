@@ -157,6 +157,13 @@ export default function CategoriesPage() {
 
   const rowActions: RowAction<any>[] = [
     {
+      label: "View",
+      icon: Eye,
+      onClick: (category) => {
+        handleViewCategory(category.category_id); // Extract and set only the `category_id`
+      },
+    },
+    {
       label: "Edit",
       icon: Edit,
       onClick: (category) => {
@@ -170,14 +177,6 @@ export default function CategoriesPage() {
       onClick: (category) => {
         setDeletingCategory(category.category_id); // Extract and set only the `category_id`
         setIsAlertDialogOpen(true);
-      },
-    },
-
-    {
-      label: "View",
-      icon: Eye,
-      onClick: (category) => {
-        handleViewCategory(category.category_id); // Extract and set only the `category_id`
       },
     },
   ];

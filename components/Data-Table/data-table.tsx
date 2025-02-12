@@ -33,7 +33,6 @@ export default function DataTable<T extends { id: string | number }>({
   columnRenderers,
   noDataMessage,
 }: DataTableProps<T>) {
-  const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -45,63 +44,30 @@ export default function DataTable<T extends { id: string | number }>({
     onSort(key, newDirection);
   };
 
-  const handleRowSelect = (item: T) => {
-    const newSelectedRows = selectedRows.includes(item)
-      ? selectedRows.filter((row) => row !== item)
-      : [...selectedRows, item];
-    setSelectedRows(newSelectedRows);
-    onRowSelect(newSelectedRows);
-  };
-
-  const handleSelectAll = () => {
-    const newSelectedRows =
-      selectedRows.length === data.length ? [] : [...data];
-    setSelectedRows(newSelectedRows);
-    onRowSelect(newSelectedRows);
-  };
-
   return (
-    <div className="space-y-4">
-      <TableHeader onSearch={onSearch} onAddNew={onAddNew} />
+    <div className="py-4 space-y-4">
+      <TableHeader onSearch={onSearch} />
       <TableFilters
         filters={filters}
         activeFilters={activeFilters}
         onFilter={onFilter}
         onResetFilters={onResetFilters}
+        onAddNew={onAddNew}
       />
       <ActiveFilters
         activeFilters={activeFilters}
         onClearFilter={onClearFilter}
       />
-      <div className="rounded-md border">
+      <div className="border p-2">
         <Table>
-          <thead>
+          <thead className="border-b ">
             <tr>
-              <th className="w-[40px]">
-                <Checkbox
-                  checked={selectedRows.length === data.length}
-                  onCheckedChange={handleSelectAll}
-                />
-              </th>
               {includedKeys.map((key) => (
                 <th
                   key={key as string}
-                  className="cursor-pointer"
+                  className="capitalize"
                   onClick={() => handleSort(key)}>
-                  <div className="flex items-center">
-                    {String(key)}
-                    <Button variant="ghost" size="sm" className="ml-2">
-                      {sortColumn === key ? (
-                        sortDirection === "asc" ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )
-                      ) : (
-                        <ChevronUp className="h-4 w-4 opacity-0" />
-                      )}
-                    </Button>
-                  </div>
+                  <div className="flex items-center">{String(key)}</div>
                 </th>
               ))}
               <th>Actions</th>
@@ -110,12 +76,6 @@ export default function DataTable<T extends { id: string | number }>({
           <tbody>
             {data.map((item) => (
               <tr key={item.id}>
-                <td>
-                  <Checkbox
-                    checked={selectedRows.includes(item)}
-                    onCheckedChange={() => handleRowSelect(item)}
-                  />
-                </td>
                 {includedKeys.map((key) => (
                   <td key={key as string}>
                     {columnRenderers && columnRenderers[key]

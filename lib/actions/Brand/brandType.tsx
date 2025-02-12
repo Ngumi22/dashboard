@@ -1,5 +1,5 @@
 export interface Brand {
   brand_id: number;
   brand_name: string;
-  brand_image: string | null;
+  brand_image: string;
 }

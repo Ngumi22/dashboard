@@ -72,6 +72,13 @@ export default function Home() {
 
   const rowActions: RowAction<any>[] = [
     {
+      label: "View",
+      icon: Eye,
+      onClick: (category) => {
+        router.push(`/dashboard/suppliers/${category.supplier_id}/category`);
+      },
+    },
+    {
       label: "Edit",
       icon: Edit,
       onClick: (category) => {
@@ -83,13 +90,6 @@ export default function Home() {
       label: "Delete",
       icon: Trash,
       onClick: async (category) => {},
-    },
-    {
-      label: "View",
-      icon: Eye,
-      onClick: (category) => {
-        router.push(`/dashboard/suppliers/${category.supplier_id}/category`);
-      },
     },
   ];
 

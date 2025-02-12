@@ -1,130 +1,101 @@
 "use client";
 
-import { useStore } from "@/app/store";
-import ProductForm from "@/components/Product/Create/product-form";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import ProductForm from "@/components/Product/Create/ProductForm";
+import { fetchProductById, Product } from "@/lib/actions/Product/fetchById";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 
-export interface Supplier {
-  supplier_id?: number;
-  supplier_name?: string;
-  supplier_email?: string;
-  supplier_phone_number?: string;
-  supplier_location?: string;
-  isNew?: boolean;
-}
+export default function UpdateProductPage() {
+  const [product, setProduct] = useState<Product | null>(null);
 
-export interface Product {
-  product_id: number;
-  product_name: string;
-  product_sku: string;
-  product_description: string;
-  product_price: number;
-  product_quantity: number;
-  product_discount: number;
-  product_status: "draft" | "pending" | "approved";
-  tags: string[];
-  main_image: File | null;
-  thumbnails: File[];
-  brand_id: string;
-  brand_name: string;
-  brand_image: File | null;
-  category_id: string;
-  category_name: string;
-  suppliers: Supplier[];
-  specifications: {
-    specification_name: string;
-    specification_value: string;
-    category_id: string;
-  }[];
-}
-
-export default function UpdateProduct({ params }: { params: { id: string } }) {
-  const fetchProduct = useStore((state) => state.fetchProductByIdState);
-  const product = useStore((state) => state.selectedProduct);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
+  const { id } = useParams();
+  const { toast } = useToast();
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProduct(params.id);
-  }, [fetchProduct, params.id]);
+    if (id) {
+      const fetchProduct = async () => {
+        try {
+          const productId = Array.isArray(id) ? Number(id[0]) : Number(id);
+          const res = await fetchProductById(productId);
+          setProduct(res);
+        } catch (error) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to fetch product",
+          });
+        }
+      };
+
+      fetchProduct();
+      setLoading(false);
+    }
+  }, [id, toast]);
+
+  const processedData = useMemo(() => {
+    if (!product) return null;
+
+    return {
+      product_id: product.product_id,
+      product_name: product.product_name || "",
+      product_sku: product.product_sku || "",
+      product_description: product.product_description || "",
+      product_price: Number(product.product_price) || 0,
+      product_quantity: Number(product.product_quantity) || 0,
+      product_discount: Number(product.product_discount) || 0,
+      product_status: product.product_status || "draft",
+      category_id: String(product.category_id || ""),
+      tags: product.tags || [],
+      suppliers:
+        product.suppliers?.map((supplier) => ({
+          supplier_id: supplier.supplier_id,
+          supplier_name: supplier.supplier_name,
+          supplier_email: supplier.supplier_email,
+          supplier_phone_number: supplier.supplier_phone_number,
+          supplier_location: supplier.supplier_location,
+        })) || [],
+      specifications: Array.isArray(product.specifications)
+        ? product.specifications.map((spec) => ({
+            specification_id: spec.specification_id || "",
+            specification_name: spec.specification_name || "",
+            specification_value: spec.specification_value || "",
+            category_id: spec.category_id || "",
+          }))
+        : [],
+
+      brand_id: product.brand?.brand_id ?? 0,
+      brand_name: product.brand?.brand_name || "",
+      brand_image: product.brand?.brand_image || "",
+      main_image: product.main_image || "",
+      thumbnails: Array.isArray(product.thumbnails) ? product.thumbnails : [],
+    };
+  }, [product]);
 
   if (loading) {
-    return <p>Loading product details...</p>;
-  }
-
-  if (error) {
     return (
-      <div>
-        <p>{error}</p>
-        <button
-          onClick={() => router.push("/dashboard/categories")}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
-          Back to Products
-        </button>
+      <div className="w-full m-auto">
+        <p>Loading... Please Wait</p>
       </div>
     );
   }
 
-  if (!product) {
+  if (!processedData || error) {
     return (
       <div>
         <p>Product not found.</p>
-        <button
-          onClick={() => router.push("/dashboard/categories")}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+        <Button
+          onClick={() => router.push("/dashboard/products")}
+          variant="default">
           Back to Products
-        </button>
+        </Button>
       </div>
     );
   }
 
-  // Map the fetched product data to the initialData object
-  const initialData = {
-    product_id: Number(product.product_id),
-    product_name: product.name,
-    product_sku: product.sku,
-    product_description: product.description,
-    product_price: product.price,
-    product_discount: product.discount,
-    product_quantity: product.quantity,
-    product_status: product.status,
-
-    tags: product.tags || [],
-    main_image: product.images?.mainImage
-      ? new File([product.images.mainImage], "main_image")
-      : null,
-    thumbnails: [
-      product.images?.thumbnail1
-        ? new File([product.images.thumbnail1], "thumbnail1")
-        : null,
-      product.images?.thumbnail2
-        ? new File([product.images.thumbnail2], "thumbnail2")
-        : null,
-      product.images?.thumbnail3
-        ? new File([product.images.thumbnail3], "thumbnail3")
-        : null,
-      product.images?.thumbnail4
-        ? new File([product.images.thumbnail4], "thumbnail4")
-        : null,
-      product.images?.thumbnail5
-        ? new File([product.images.thumbnail5], "thumbnail5")
-        : null,
-    ].filter(Boolean) as File[], // Filter out null values and cast to File[]
-    suppliers: product.supplier?.map((supplier: any) => ({
-      supplier_id: supplier.supplier_id,
-      supplier_name: supplier.supplier_name,
-      supplier_email: supplier.supplier_email,
-      supplier_phone_number: supplier.supplier_phone_number,
-      supplier_location: supplier.supplier_location,
-    })),
-    specifications: product.specifications?.map((spec: any) => ({
-      specification_name: spec.specification_name,
-      specification_value: spec.value,
-      category_id: spec.category_id,
-    })),
-  };
-
-  return <ProductForm initialData={initialData} />;
+  return <ProductForm initialData={processedData} />;
 }

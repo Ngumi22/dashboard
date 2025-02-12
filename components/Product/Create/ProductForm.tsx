@@ -137,24 +137,40 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     }));
   };
 
-  const handleImageChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    field: "main_image" | "brand_image"
-  ) => {
+  // Handle main image change
+  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setProduct((prev) => ({ ...prev, [field]: file }));
+      setProduct((prev: any) => ({ ...prev, main_image: file }));
     }
   };
 
+  // Handle brand image change
+  const handleBrandImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProduct((prev: any) => ({ ...prev, brand_image: file }));
+    }
+  };
+  // Handle thumbnail changes
   const handleThumbnailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setProduct((prev: any) => ({
       ...prev,
-      thumbnails: files.slice(0, 5) as File[], // Limit to a maximum of 5 thumbnails
+      thumbnails: [
+        ...prev.thumbnails,
+        ...files.slice(0, 6 - prev.thumbnails.length),
+      ], // Limit to 5 thumbnails
     }));
   };
 
+  // Remove a thumbnail
+  const removeThumbnail = (index: number) => {
+    setProduct((prev) => ({
+      ...prev,
+      thumbnails: prev.thumbnails.filter((_, i) => i !== index),
+    }));
+  };
   const handleStatusChange = (value: string) => {
     setProduct((prev) => ({
       ...prev,
@@ -463,7 +479,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                     <Input
                       name="brand_image"
                       type="file"
-                      onChange={(e) => handleImageChange(e, "brand_image")}
+                      onChange={handleBrandImageChange}
                       accept="image/*"
                       className=""
                     />
@@ -502,25 +518,34 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             </div>
 
             {/* Product Images */}
-            <div className="border rounded-md p-2 space-y-2">
-              <Label className="font-semibold text-xl">Images</Label>
+            <div>
+              <Label>Main Image</Label>
               <Input
-                name="main_image"
                 type="file"
-                onChange={(e) => handleImageChange(e, "main_image")}
                 accept="image/*"
+                onChange={handleMainImageChange}
               />
               {product.main_image && (
-                <Image
-                  src={`data:image/webp;base64,${product.main_image}`}
-                  alt="Main Image Preview"
-                  width={100}
-                  height={100}
-                  className="mt-2 h-20 w-20 object-cover"
-                />
+                <div className="mt-2">
+                  <Image
+                    src={
+                      typeof product.main_image === "string"
+                        ? `data:image/webp;base64,${product.main_image}`
+                        : URL.createObjectURL(product.main_image)
+                    }
+                    alt="Main Image Preview"
+                    width={200}
+                    height={200}
+                    className="h-20 w-20 object-cover"
+                  />
+                </div>
               )}
+            </div>
+
+            {/* Thumbnails */}
+            <div>
+              <Label>Thumbnails</Label>
               <Input
-                name="thumbnails"
                 type="file"
                 accept="image/*"
                 multiple
@@ -529,16 +554,32 @@ export default function ProductForm({ initialData }: ProductFormProps) {
               <div className="mt-2 flex gap-2">
                 {product.thumbnails
                   .flatMap((thumbnailObj) => Object.values(thumbnailObj))
-                  .map((thumbnail, index) => (
-                    <Image
-                      key={index}
-                      src={`data:image/webp;base64,${thumbnail}`}
-                      alt={`Thumbnail ${index + 1}`}
-                      width={50}
-                      height={50}
-                      className="h-12 w-12 object-cover"
-                    />
-                  ))}
+                  .map((thumbnail, index) => {
+                    const thumb = thumbnail as unknown; // Explicitly cast to unknown
+                    return (
+                      <div key={index} className="relative">
+                        <Image
+                          src={
+                            thumb instanceof File
+                              ? URL.createObjectURL(thumb)
+                              : `data:image/webp;base64,${String(thumb)}`
+                          }
+                          alt={`Thumbnail ${index + 1}`}
+                          width={100}
+                          height={100}
+                          className="h-20 w-20 object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-0 right-0 p-1"
+                          onClick={() => removeThumbnail(index)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 

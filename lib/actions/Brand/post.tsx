@@ -2,8 +2,7 @@
 
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { NewProductSchema } from "@/lib/ProductSchema";
-import { fileToBuffer, parseNumberField } from "@/lib/utils";
-import { NextResponse } from "next/server";
+import { fileToBuffer } from "@/lib/utils";
 import { z } from "zod";
 
 // Custom error class for better error handling

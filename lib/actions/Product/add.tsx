@@ -9,6 +9,7 @@ import { createProductImages } from "../Images/post";
 import { createProductTags } from "../Tags/post";
 import { createProductSpecifications } from "../Specifications/post";
 import { dbsetupTables } from "@/lib/MysqlDB/tables";
+import { revalidatePath } from "next/cache";
 
 export type FormState = {
   message: string;
@@ -84,7 +85,6 @@ export async function onSubmitAction(
     // Parse and validate form data
     const formData: Record<string, any> = Object.fromEntries(data.entries());
 
-    // Parse numeric fields
     formData.product_id = parseInt(data.get("product_id") as string);
     formData.product_price = parseFloat(data.get("product_price") as string);
     formData.product_discount = parseFloat(
@@ -157,7 +157,7 @@ export async function onSubmitAction(
       createProductTags(data, productId),
       createProductSpecifications(data, productId, categoryId),
     ]);
-
+    revalidatePath("/dashboard/products");
     return { message: "Product submitted successfully" };
   } catch (error) {
     console.error("Error submitting product:", error);

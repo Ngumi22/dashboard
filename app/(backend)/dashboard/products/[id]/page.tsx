@@ -1,28 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-import { ProductData } from "@/lib/definitions";
 import Image from "next/image";
+import { fetchProductById } from "@/lib/actions/Product/fetchById";
+
+export interface Product {
+  product_id: number;
+  product_name: string;
+  product_sku: string;
+  product_description: string;
+  product_price: number;
+  product_quantity: number;
+  product_discount: number;
+  product_status: "draft" | "pending" | "approved";
+  tags: string[];
+  main_image: string;
+  thumbnails: {
+    thumbnail1: string;
+    thumbnail2: string;
+    thumbnail3: string;
+    thumbnail4: string;
+    thumbnail5: string;
+  }[];
+  category_id: string;
+  brand: {
+    brand_id: string;
+    brand_name: string;
+    brand_image: string;
+  };
+  specifications: {
+    specification_name: string;
+    specification_value: string;
+    category_id: string;
+  }[];
+  suppliers: {
+    supplier_id?: number;
+    supplier_name?: string;
+    supplier_email?: string;
+    supplier_phone_number?: string;
+    supplier_location?: string;
+    isNew?: boolean;
+  }[];
+}
 
 export default function ProductPage() {
-  const [product, setProduct] = useState<ProductData | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
-  const { id } = params;
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     if (id) {
       const fetchProduct = async () => {
         try {
-          const res = await fetch(`/api/products/${id}`);
-          if (!res.ok) {
-            throw new Error("Failed to fetch product");
-          }
-          const data = await res.json();
-          setProduct(data);
+          const res = await fetchProductById(Number(id));
+
+          setProduct(res);
         } catch (error) {
           toast({
             variant: "destructive",
@@ -37,21 +74,39 @@ export default function ProductPage() {
   }, [id, toast]);
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div>
+        <p>{error}</p>
+        <button
+          onClick={() => router.push("/dashboard/products")}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+          Back to Products
+        </button>
+      </div>
+    );
   }
 
   if (!product) {
-    return <div>Loading...</div>;
+    return (
+      <div>
+        <p>Product not found.</p>
+        <button
+          onClick={() => router.push("/dashboard/categories")}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+          Back to Categories
+        </button>
+      </div>
+    );
   }
 
   return (
     <section>
       <section className="container flex-grow mx-auto max-w-[1200px] border-b py-5 lg:grid lg:grid-cols-2 lg:py-10">
         <div className="container mx-auto px-4">
-          {product.images.main && (
+          {product.main_image && (
             <Image
               className="w-full"
-              src={`data:image/jpeg;base64,${product.images.main}`}
+              src={`data:image/jpeg;base64,${product.main_image}`}
               alt="Main Image"
               height={100}
               width={100}
@@ -59,21 +114,25 @@ export default function ProductPage() {
           )}
 
           <div className="mt-3 grid grid-cols-5 gap-4">
-            {product.images.thumbnails.map((thumbnail, index) => (
-              <Image
-                className="cursor-pointer"
-                key={index}
-                src={`data:image/jpeg;base64,${thumbnail}`}
-                alt={`Thumbnail ${index + 1}`}
-                height={100}
-                width={100}
-              />
-            ))}
+            {product.thumbnails
+              .flatMap((thumbnailObj) => Object.values(thumbnailObj))
+              .map((thumbnail, index) => (
+                <Image
+                  key={index}
+                  src={`data:image/webp;base64,${thumbnail}`}
+                  alt={`Thumbnail ${index + 1}`}
+                  width={50}
+                  height={50}
+                  className="h-12 w-12 object-cover"
+                />
+              ))}
           </div>
         </div>
 
         <div className="mx-auto px-5 lg:px-5">
-          <h2 className="pt-3 text-2xl font-bold lg:pt-0">{product.name}</h2>
+          <h2 className="pt-3 text-2xl font-bold lg:pt-0">
+            {product.product_name}
+          </h2>
           <div className="mt-1">
             <div className="flex items-center">
               <svg
@@ -143,26 +202,27 @@ export default function ProductPage() {
           <p className="mt-5 font-bold">
             Availability:
             <span className="text-green-600 ml-2">
-              {product.quantity > 0 ? "In Stock" : "Out of Stock"}
+              {product.product_quantity > 0 ? "In Stock" : "Out of Stock"}
             </span>
           </p>
           <p className="font-bold">
-            Brand: <span className="font-normal">{product.brand}</span>
+            Brand:{" "}
+            <span className="font-normal">{product.brand.brand_name}</span>
           </p>
           <p className="font-bold">
-            Category: <span className="font-normal">{product.category}</span>
+            Category: <span className="font-normal">{product.category_id}</span>
           </p>
           <p className="font-bold">
-            SKU: <span className="font-normal">{product.sku}</span>
+            SKU: <span className="font-normal">{product.product_sku}</span>
           </p>
 
           <p className="mt-4 text-4xl font-bold text-violet-900">
-            {product.price}
+            {product.product_price}
             <span className="text-xs text-gray-400 line-through">$550</span>
           </p>
 
           <p className="pt-5 text-sm leading-5 text-gray-500">
-            {product.description}
+            {product.product_description}
           </p>
 
           <div className="mt-6">
@@ -297,7 +357,7 @@ export default function ProductPage() {
           </div>
           <Image
             className=""
-            src="./assets/images/product-chair.png"
+            src="/placeholder.jpg"
             alt="sofa image"
             height={100}
             width={100}
@@ -386,7 +446,7 @@ export default function ProductPage() {
         <div className="flex flex-col">
           <Image
             className=""
-            src="./assets/images/product-sofa.png"
+            src="/placeholder.jpg"
             alt="sofa image"
             height={100}
             width={100}
@@ -475,7 +535,7 @@ export default function ProductPage() {
         <div className="flex flex-col">
           <Image
             className=""
-            src="./assets/images/kitchen.png"
+            src="/placeholder.jpg"
             alt="sofa image"
             height={100}
             width={100}
@@ -564,7 +624,7 @@ export default function ProductPage() {
         <div className="flex flex-col">
           <Image
             className=""
-            src="./assets/images/living-room.png"
+            src="/placeholder.jpg"
             alt="sofa image"
             height={100}
             width={100}
