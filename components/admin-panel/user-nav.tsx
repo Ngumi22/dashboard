@@ -22,8 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-import { logout } from "@/lib/actions"; // Ensure this path is correct
+import { logout } from "@/lib/actions/Auth/login";
 
 export function UserNav() {
   const router = useRouter();
