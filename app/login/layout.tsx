@@ -1,7 +1,6 @@
-"use client";
 import "@/app/globals.css";
 
-export default function RootLayout({
+export default function LoginLayout({
   children,
 }: {
   children: React.ReactNode;

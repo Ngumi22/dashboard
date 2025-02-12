@@ -122,7 +122,7 @@ export function StaffSignupForm() {
 
   return (
     <section className="w-full lg:grid lg:grid-cols-2 gap-2 h-screen">
-      <div className="flex-1 p-6 lg:p-8">
+      <div className="flex-1 p-3 lg:p-4">
         <div className="max-w-md mx-auto">
           <h1 className="text-xl font-bold mb-2 text-center text-purple-400">
             Create Your Account
@@ -340,17 +340,9 @@ export function StaffSignupForm() {
 
 function SignupButton() {
   const { pending } = useFormStatus();
-
   return (
-    <Button disabled={pending} type="submit" className="w-full">
-      {pending ? (
-        <>
-          <Loader className="mr-2 h-4 w-4 animate-spin" />
-          Signing Up...
-        </>
-      ) : (
-        "Sign Up"
-      )}
+    <Button aria-disabled={pending} type="submit" className="w-full">
+      {pending ? "Signing you up..." : "Sign Up"}
     </Button>
   );
 }

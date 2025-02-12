@@ -1,23 +1,14 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "@/app/globals.css";
 import type React from "react"; // Import React
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "Staff Signup",
-  description: "Join our team and make a difference!",
-};
-
-export default function RootLayout({
+export default function SignUpLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

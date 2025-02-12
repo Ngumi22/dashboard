@@ -13,15 +13,16 @@ export type FormState = {
   issues?: string[];
 };
 
-// // Validate CSRF token (mock implementation)
+// Validate CSRF token (mock implementation)
 // async function validateCsrfToken(token: string | null): Promise<boolean> {
 //   return token === "valid-csrf-token"; // Replace with actual CSRF validation logic
 // }
+
 export async function onSubmitAction(
   prevState: FormState,
   data: FormData
 ): Promise<FormState> {
-  // const csrfToken = data.get("csrfToken");
+  const csrfToken = data.get("csrfToken");
   // const validCsrfToken = await validateCsrfToken(csrfToken as string);
   // if (!validCsrfToken) {
   //   return {
@@ -105,7 +106,7 @@ export async function onSubmitAction(
       };
     }
 
-    imagePath = (await fileToBuffer(image)).toString("base64"); // Ensure it's serializable
+    imagePath = (await fileToBuffer(image)).toString("base64"); //Ensure it's serializable
   }
 
   try {
@@ -117,7 +118,7 @@ export async function onSubmitAction(
 
       const existingUserData = existingUser.map((user: any) => ({ ...user })); // Convert to plain objects
 
-      if (existingUser.length > 0) {
+      if (existingUserData.length > 0) {
         return {
           message: "Email is already in use.",
           fields: Object.fromEntries(

@@ -1,10 +1,10 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { createSession, deleteSession } from "./sessions";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import bcrypt from "bcryptjs";
+import { redirect } from "next/navigation";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }).trim(),
@@ -34,7 +34,8 @@ export async function login(prevState: any, formData: FormData) {
 
     const user = rows[0];
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      // ✅ Prevent email enumeration attacks (generic error)
       return {
         errors: {
           email: ["Invalid email or password"],
@@ -63,10 +64,9 @@ export async function login(prevState: any, formData: FormData) {
     return dbResult;
   }
 
-  // Redirect after successful login
-  redirect("/dashboard");
+  // Return success status
+  return { success: true };
 }
-
 export async function logout() {
   await deleteSession();
   redirect("/login");
