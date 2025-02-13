@@ -149,14 +149,14 @@ export async function onSubmitAction(
     if (!supplierIds || supplierIds.length === 0) {
       throw new Error("No suppliers were added or mapped.");
     }
-    await mapSuppliersToProduct(productId, supplierIds);
 
-    // Add images, tags, and specifications
     await Promise.all([
+      mapSuppliersToProduct(productId, supplierIds),
       createProductImages(data, productId),
       createProductTags(data, productId),
       createProductSpecifications(data, productId, categoryId),
     ]);
+
     revalidatePath("/dashboard/products");
     return { message: "Product submitted successfully" };
   } catch (error) {

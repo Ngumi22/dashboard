@@ -46,14 +46,16 @@ export async function initDbConnection(): Promise<mysql.Pool> {
     await ensureDatabaseExists(); // Ensure the database exists before initializing the pool
 
     pool = mysql.createPool({
-      host: process.env.AWS_HOST!,
-      user: process.env.AWS_USER!,
-      password: process.env.AWS_PASSWORD!,
-      database: process.env.AWS_NAME!,
+      host: process.env.AWS_HOST,
+      user: process.env.AWS_USER,
+      password: process.env.AWS_PASSWORD,
+      database: process.env.AWS_NAME,
       waitForConnections: true,
-      connectionLimit: 100,
+      connectionLimit: 10, // Reduced for serverless environments
       queueLimit: 0,
-      connectTimeout: 15000,
+      connectTimeout: 5000,
+      idleTimeout: 30000,
+      enableKeepAlive: true,
       // ssl: {
       //   rejectUnauthorized: true,
       // },
@@ -62,8 +64,9 @@ export async function initDbConnection(): Promise<mysql.Pool> {
     console.log("Database pool initialized successfully.");
 
     // Track total connections created
-    pool.on("connection", () => {
+    pool.on("connection", (conn) => {
       totalConnectionsCreated++;
+      conn.query(`SET time_zone = '+00:00'`); // UTC time
     });
 
     // Track active connections
@@ -90,7 +93,7 @@ export async function getConnection(): Promise<mysql.PoolConnection> {
     throw new Error("Database pool is not initialized");
   }
 
-  return pool.getConnection();
+  return pool!.getConnection();
 }
 
 /**
@@ -104,7 +107,7 @@ export async function query(sql: string, params: any[] = []): Promise<any> {
     const duration = performance.now() - start;
 
     // Log query performance
-    console.log(`Query executed in ${duration.toFixed(2)} ms`);
+    // console.log(`Query executed in ${duration.toFixed(2)} ms`);
     if (duration > slowQueryThreshold) {
       console.warn(
         `Slow query detected: ${sql}, duration: ${duration.toFixed(2)} ms`

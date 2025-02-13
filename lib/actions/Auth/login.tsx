@@ -28,7 +28,7 @@ export async function login(prevState: any, formData: FormData) {
   // Perform database operation
   const dbResult = await dbOperation(async (connection) => {
     const [rows] = await connection.execute(
-      `SELECT staff_id, email, password_hash, is_verified FROM staff_accounts WHERE email = ?`,
+      `SELECT staff_id, email, password_hash FROM staff_accounts WHERE email = ?`,
       [email]
     );
 

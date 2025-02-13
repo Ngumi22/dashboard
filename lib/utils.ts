@@ -58,14 +58,14 @@ export async function fileToBuffer(file: File): Promise<Buffer> {
       throw new Error("Invalid file input.");
     }
 
-    console.log(
-      "Processing file:",
-      file.name,
-      "Size:",
-      file.size,
-      "Type:",
-      file.type
-    );
+    // console.log(
+    //   "Processing file:",
+    //   file.name,
+    //   "Size:",
+    //   file.size,
+    //   "Type:",
+    //   file.type
+    // );
 
     // Convert the file to an ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();

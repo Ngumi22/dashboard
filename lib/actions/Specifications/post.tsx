@@ -1,8 +1,9 @@
 "use server";
 
-import { FieldPacket, RowDataPacket } from "mysql2/promise";
-import { getErrorMessage } from "@/lib/utils";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
+import { getErrorMessage } from "@/lib/utils";
+
+import { NextResponse } from "next/server";
 
 export async function createProductSpecifications(
   data: FormData,
@@ -54,11 +55,10 @@ export async function createProductSpecifications(
 
       // Check if specifications exist or insert them
       for (const spec of specifications) {
-        const [existingSpec]: [RowDataPacket[], FieldPacket[]] =
-          await connection.query(
-            `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
-            [spec.specification_name]
-          );
+        const [existingSpec] = await connection.query(
+          `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
+          [spec.specification_name]
+        );
 
         let specificationId: number;
 
@@ -95,13 +95,13 @@ export async function createProductSpecifications(
         [productSpecInsertValues]
       );
 
-      await connection.commit(); // Commit the transaction if all queries succeed
+      return NextResponse.json({
+        success: true,
+        message: "Specifications added successfully",
+      });
     } catch (error) {
-      await connection.rollback(); // Rollback if any error occurs
       console.error("Error adding specifications:", getErrorMessage(error)); // Use getErrorMessage to handle the error
       throw new Error(getErrorMessage(error)); // Throw a more readable error message
-    } finally {
-      connection.release(); // Release the connection
     }
   });
 }
