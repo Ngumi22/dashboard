@@ -37,8 +37,8 @@ export default function NewNavbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div
-        className={`transition-all duration-50 overflow-hidden ${
-          showFullNav ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0"
+        className={`transition-all duration-300 ease-in-out ${
+          showFullNav ? "max-h-screen" : "max-h-0 overflow-hidden"
         }`}>
         <TopNav />
       </div>
@@ -48,8 +48,8 @@ export default function NewNavbar() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
       <div
-        className={`transition-all duration-50 w-full overflow-hidden ${
-          showFullNav ? "opacity-100 max-h-[500px]" : "opacity-0 max-h-0"
+        className={`transition-all duration-300 ease-in-out w-full ${
+          showFullNav ? "max-h-screen" : "max-h-0 overflow-hidden"
         }`}>
         <MegaMenu navigation={navigation} />
       </div>

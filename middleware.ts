@@ -42,7 +42,7 @@ export default async function middleware(req: NextRequest) {
 
   const corsHeaders = {
     "Access-Control-Allow-Origin": normalizedOrigin || "http://localhost:3000",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
   };
