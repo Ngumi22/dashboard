@@ -1,19 +1,23 @@
 import { z } from "zod";
 
-export const variantTypeSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().min(1, "Variant type name is required"),
-  description: z.string().optional(),
+// Zod schema for variant validation
+export const VariantSchema = z.object({
+  variant_id: z.number().optional(), // Optional for new variants
+  product_id: z.string().min(1, "Product ID is required"),
+  specification_id: z.number().min(1, "Specification ID is required"),
+  value: z.string().min(1, "Variant value is required"),
+  variant_price: z.number().min(0, "Price must be a positive number"),
+  variant_quantity: z.number().min(0, "Quantity must be a positive number"),
+  variant_status: z.enum(["active", "inactive"]).default("active"),
+  images: z
+    .array(
+      z.object({
+        image_data: z.string().min(1, "Image data is required"), // Base64-encoded image
+        image_type: z.enum(["full", "thumbnail"]).default("full"),
+      })
+    )
+    .optional(), // Optional array of images
 });
 
-export const variantSchema = z.object({
-  id: z.number().optional(),
-  variant_type_id: z.number().int().positive(),
-  value: z.string().min(1, "Variant value is required"),
-  price: z.number().min(0, "Price must be non-negative"),
-  quantity: z.number().int().min(0, "Quantity must be non-negative"),
-  status: z.enum(["active", "inactive"]),
-  variant_image: z.instanceof(File).optional(),
-  variant_thumbnail1: z.instanceof(File).optional(),
-  variant_thumbnail2: z.instanceof(File).optional(),
-});
+// Type for the form data
+export type VariantFormValues = z.infer<typeof VariantSchema>;

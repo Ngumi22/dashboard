@@ -18,8 +18,9 @@ export default function AdminPanelLayout({
   const isOpen = useStore(useSidebarToggle, (state) => state.isOpen);
 
   return (
-    <html lang="en">
-      <body className="font" suppressHydrationWarning={true}>
+    <html lang="en" suppressHydrationWarning={true}>
+      <body className="font">
+        {/* Move ThemeProvider inside the body */}
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -34,8 +35,8 @@ export default function AdminPanelLayout({
             <Navbar title="Dashboard" />
             {children}
           </main>
+          <Toaster />
         </ThemeProvider>
-        <Toaster />
       </body>
     </html>
   );

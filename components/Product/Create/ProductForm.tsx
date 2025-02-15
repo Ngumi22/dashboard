@@ -271,22 +271,22 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       formData.append("brand_id", selectedBrandId.toString());
     }
 
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(`${key}:`, value);
+    // }
 
     try {
       let result;
 
       if (!product.product_id) {
         result = await onSubmitAction({ message: "" }, formData);
-        console.log(`Inserting:`, result);
+        // console.log(`Inserting:`, result);
       } else {
         result = await updateProductAction(
           String(product.product_id),
           formData
         );
-        console.log(`Editing:`, result);
+        // console.log(`Editing:`, result);
       }
 
       if (result) {
@@ -552,11 +552,21 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 onChange={handleThumbnailsChange}
               />
               <div className="mt-2 flex gap-2">
-                {product.thumbnails.map((thumbnail, index) => {
+                {(Array.isArray(product.thumbnails)
+                  ? product.thumbnails.flatMap((t: any) =>
+                      t instanceof File
+                        ? t
+                        : typeof t === "object"
+                        ? Object.values(t)
+                        : [t]
+                    )
+                  : []
+                ).map((thumbnail, index) => {
+                  // Ensure we determine the correct image source
                   const thumbnailSrc =
                     thumbnail instanceof File
-                      ? URL.createObjectURL(thumbnail)
-                      : `data:image/webp;base64,${thumbnail}`;
+                      ? URL.createObjectURL(thumbnail) // Preview newly inserted files
+                      : `data:image/webp;base64,${thumbnail}`; // Display base64-encoded images
 
                   return (
                     <div key={index} className="relative">

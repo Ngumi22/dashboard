@@ -186,41 +186,49 @@ export async function dbsetupTables() {
     `);
 
     // Create the variant_types table
+
     await query(`
       CREATE TABLE IF NOT EXISTS variant_types (
           variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
-          category_id INT NOT NULL,
-          variant_type_name VARCHAR(255) NOT NULL,
-          variant_type_description VARCHAR(255),
+          specification_id INT NOT NULL UNIQUE,  -- Links to specifications
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
-          UNIQUE KEY category_variant (category_id, variant_type_name)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant types associated with categories';
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant types linked to specifications';
     `);
 
-    // Create the variants table to hold each product variant
     await query(`
       CREATE TABLE IF NOT EXISTS variants (
-        variant_id INT AUTO_INCREMENT PRIMARY KEY,
-        product_id INT NOT NULL,
-        variant_type_id INT NOT NULL,
-        variant_value VARCHAR(255) NOT NULL,  -- Stores the actual value (e.g., "16GB", "Red", "Core i7")
-        variant_price DECIMAL(10, 2) DEFAULT 0.00,
-        variant_quantity INT DEFAULT 0,
-        variant_status ENUM('active', 'inactive') DEFAULT 'active',
-        variant_image MEDIUMBLOB NULL,  -- Optional image for the variant
-        variant_thumbnail1 MEDIUMBLOB NULL,  -- Optional thumbnails (if you want to allow multiple images)
-        variant_thumbnail2 MEDIUMBLOB NULL,  -- Additional optional thumbnails
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP NULL,
-        FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
-        FOREIGN KEY (variant_type_id) REFERENCES variant_types(variant_type_id) ON DELETE CASCADE,
-        INDEX idx_product_id (product_id),
-        INDEX idx_variant_type_id (variant_type_id)
-    ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants with optional images';
-  `);
+          variant_id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          specification_id INT NOT NULL,  -- Links to specifications
+          value VARCHAR(255) NOT NULL,  -- The value of the variant (e.g., "Red", "16GB")
+          variant_price DECIMAL(10, 2) DEFAULT 0.00,
+          variant_quantity INT DEFAULT 0,
+          variant_status ENUM('active', 'inactive') DEFAULT 'active',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP NULL,
+          FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
+          UNIQUE KEY unique_variant (product_id, specification_id, value),  -- Prevent duplicates
+          INDEX idx_product_id (product_id),
+          INDEX idx_specification_id (specification_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants with values for variant types';
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS variant_images (
+          variant_image_id INT AUTO_INCREMENT PRIMARY KEY,
+          variant_id INT NOT NULL,
+          image_data MEDIUMBLOB NOT NULL,
+          image_type ENUM('full', 'thumbnail') DEFAULT 'full',
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (variant_id) REFERENCES variants(variant_id) ON DELETE CASCADE,
+          INDEX idx_variant_id (variant_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Images for product variants stored as BLOBs';
+    `);
 
     // Customer-related tables
     await query(`

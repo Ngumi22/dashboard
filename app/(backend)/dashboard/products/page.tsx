@@ -160,6 +160,20 @@ export default function ProductsPage() {
     }
   };
 
+  const handleAddVariant = async (product_id: string) => {
+    if (!product_id) {
+      alert("No product ID provided.");
+      return;
+    }
+
+    const result = await handleDeleteAction(Number(product_id)); // Ensure this is an async call
+    if (result == result) {
+      router.push(`/dashboard/products/${product_id}/addVariants`);
+    } else {
+      throw new Error("Failed to open page.");
+    }
+  };
+
   const handleDeleteProduct = async (product_id: string) => {
     if (!product_id) {
       alert("No product ID provided.");
@@ -210,7 +224,7 @@ export default function ProductsPage() {
       icon: Plus,
 
       onClick: (product) => {
-        router.push(`/dashboard/products/${product.product_id}/addVariants`);
+        handleAddVariant(product.product_id);
       },
     },
     {

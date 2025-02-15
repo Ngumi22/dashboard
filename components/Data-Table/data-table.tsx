@@ -1,10 +1,6 @@
 "use client";
-
 import React, { useState } from "react";
 import { Table } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown } from "lucide-react";
 import TableHeader from "./table-header";
 import TablePagination from "./table-pagination";
 import TableRowActions from "./table-row-actions";
@@ -31,7 +27,7 @@ export default function DataTable<T extends { id: string | number }>({
   activeFilters,
   onClearFilter,
   columnRenderers,
-  noDataMessage,
+  noDataMessage = "No data available", // Default message if noDataMessage is not provided
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -60,7 +56,7 @@ export default function DataTable<T extends { id: string | number }>({
       />
       <div className="border p-2">
         <Table>
-          <thead className="border-b ">
+          <thead className="border-b">
             <tr>
               {includedKeys.map((key) => (
                 <th
@@ -74,21 +70,30 @@ export default function DataTable<T extends { id: string | number }>({
             </tr>
           </thead>
           <tbody>
-            {data.map((item) => (
-              <tr key={item.id}>
-                {includedKeys.map((key) => (
-                  <td key={key as string}>
-                    {columnRenderers && columnRenderers[key]
-                      ? columnRenderers[key]!(item)
-                      : String(item[key])}
+            {data.length > 0 ? (
+              data.map((item) => (
+                <tr key={item.id}>
+                  {includedKeys.map((key) => (
+                    <td key={`${item.id}-${key as string}`}>
+                      {columnRenderers && columnRenderers[key]
+                        ? columnRenderers[key]!(item)
+                        : String(item[key])}
+                    </td>
+                  ))}
+                  <td>
+                    <TableRowActions item={item} actions={rowActions} />
                   </td>
-                ))}
-
-                <td>
-                  <TableRowActions item={item} actions={rowActions} />
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={includedKeys.length + 1}
+                  className="text-center py-4">
+                  {noDataMessage}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </Table>
       </div>
