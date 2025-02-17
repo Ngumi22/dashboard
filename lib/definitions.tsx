@@ -231,14 +231,14 @@ export interface TabbedScrollableSectionProps {
   itemClassName?: string;
 }
 
-export interface SubMenuItem {
+export interface SubCategory {
   title: string;
   href: string;
   imageUrl?: string;
 }
 
-export interface NavigationItem {
+export interface Category {
   title: string;
   href: string;
-  items?: SubMenuItem[];
+  items?: SubCategory[];
 }

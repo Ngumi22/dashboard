@@ -36,14 +36,23 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { fetchProductById, Product } from "@/lib/actions/Product/fetchById";
+import { useStore } from "@/app/store";
 
 export default function ProductPage() {
+  const fetchUniqueCategoriesWithSubs = useStore(
+    (state) => state.fetchUniqueCategoriesWithSubs
+  );
+  const categories = useStore((state) => state.categories);
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    fetchUniqueCategoriesWithSubs(); // Fetch initial page
+  }, [fetchUniqueCategoriesWithSubs]);
 
   useEffect(() => {
     if (id) {
@@ -129,16 +138,34 @@ export default function ProductPage() {
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  {product.main_image && (
-                    <Image
-                      src={`data:image/jpeg;base64,${product.main_image}`}
-                      alt="Main Image"
-                      width={400}
-                      height={400}
-                      className="rounded-lg object-cover"
-                    />
-                  )}
+                  <div>
+                    {product.main_image && (
+                      <Image
+                        src={`data:image/jpeg;base64,${product.main_image}`}
+                        alt="Main Image"
+                        width={400}
+                        height={400}
+                        className="rounded-lg object-cover"
+                      />
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-5 gap-4">
+                    {product.thumbnails
+                      .flatMap((thumbnailObj) => Object.values(thumbnailObj))
+                      .map((thumbnail, index) => (
+                        <Image
+                          key={index}
+                          src={`data:image/webp;base64,${thumbnail}`}
+                          alt={`Thumbnail ${index + 1}`}
+                          width={50}
+                          height={50}
+                          className="h-12 w-12 object-cover"
+                        />
+                      ))}
+                  </div>
                 </div>
+
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="name">Product Name</Label>
@@ -154,7 +181,17 @@ export default function ProductPage() {
                   </div>
                   <div>
                     <Label htmlFor="category">Category</Label>
-                    <Input id="category" value={product.category_id} readOnly />
+                    <Input
+                      id="category"
+                      value={
+                        categories.find(
+                          (category) =>
+                            Number(category.category_id) ===
+                            Number(product.category_id)
+                        )?.category_name || "Category not found"
+                      }
+                      readOnly
+                    />
                   </div>
                 </div>
               </div>

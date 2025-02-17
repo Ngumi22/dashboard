@@ -14,6 +14,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const generateSlug = (name: string) => {
+  return name
+    .toLowerCase() // Convert to lowercase
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/[^a-z0-9-]/g, ""); // Remove special characters
+};
+
 export const getErrorMessage = (error: unknown, context?: string): string => {
   let message: string;
   let errorDetails: string | undefined = undefined;

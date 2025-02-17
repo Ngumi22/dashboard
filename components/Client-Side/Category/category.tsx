@@ -1,26 +1,31 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import { useStore } from "@/app/store";
 import Base64Image from "@/components/Data-Table/base64-image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 
 export default function FeaturedProducts() {
+  const fetchUniqueCategoriesWithSubs = useStore(
+    (state) => state.fetchUniqueCategoriesWithSubs
+  );
   const categories = useStore((state) => state.categories);
-  const fetchCategories = useStore((state) => state.fetchUniqueCategories);
 
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories, categories]);
+    fetchUniqueCategoriesWithSubs(); // Fetch initial page
+  }, [fetchUniqueCategoriesWithSubs]);
+
+  const filteredCategories = categories.filter(
+    (category) => category.parent_category_id === null
+  );
 
   return (
     <ScrollableSection
       title="Shop By Categories"
-      items={categories.map((category) => ({
+      items={filteredCategories.map((category) => ({
         id: category.category_id,
         content: (
           <div

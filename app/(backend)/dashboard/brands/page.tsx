@@ -151,7 +151,7 @@ export default function BrandPage() {
   };
 
   const handleAddNew = () => {
-    router.push("/dashboard/products/create");
+    router.push("/dashboard/brand/create");
   };
 
   const handleClearFilter = (key: string, value: string) => {

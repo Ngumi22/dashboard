@@ -5,6 +5,7 @@ import { createProductSlice, ProductState } from "./product";
 import { CategoryState, createCategorySlice } from "./category";
 import { BrandState, createBrandSlice } from "./brand";
 import { createSupplierSlice, SupplierState } from "./supplier";
+import { createVariantSlice, VariantState } from "./variants";
 
 // Combine the state types
 type StoreState = BannerState &
@@ -12,7 +13,8 @@ type StoreState = BannerState &
   ProductState &
   CategoryState &
   BrandState &
-  SupplierState;
+  SupplierState &
+  VariantState;
 
 // Create the Zustand store
 export const useStore = create<StoreState>((...a) => ({
@@ -22,4 +24,5 @@ export const useStore = create<StoreState>((...a) => ({
   ...createCategorySlice(...a),
   ...createBrandSlice(...a),
   ...createSupplierSlice(...a),
+  ...createVariantSlice(...a),
 }));

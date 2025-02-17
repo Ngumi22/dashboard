@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useParams, useRouter } from "next/navigation";
-import { Loader2, Plus, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, X } from "lucide-react";
 import { variantFormSchema, type VariantFormValues } from "./schema";
-
 import { getSpecificationsForProduct } from "@/lib/actions/Specifications/fetch";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,19 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { toast } from "@/components/ui/use-toast";
 import { ImagePreview } from "./image-preview";
-import { getVariant, upsertVariant } from "@/lib/actions/Variants/actions";
+import { updateVariant } from "@/lib/actions/Variants/update";
+import { createVariant } from "@/lib/actions/Variants/actions";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface VariantFormProps {
   variantId?: number;
@@ -46,122 +37,147 @@ interface VariantFormProps {
 }
 
 export function VariantForm({ variantId, productId }: VariantFormProps) {
-  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const [specifications, setSpecifications] = useState<
     { specification_id: number; specification_name: string }[]
   >([]);
+  const [selectedSpec, setSelectedSpec] = useState<number | null>(null);
+  const [specValue, setSpecValue] = useState("");
 
   const form = useForm<VariantFormValues>({
     resolver: zodResolver(variantFormSchema),
     defaultValues: {
       variantId: variantId,
-      productId: Number.parseInt(productId),
-      specificationId: 0,
-      value: "",
+      productId: Number(productId),
       variantPrice: 0,
       variantQuantity: 0,
       variantStatus: "active",
+      specifications: [],
+      images: [],
     },
   });
 
   useEffect(() => {
+    if (!productId) {
+      console.error("No productId provided.");
+      return;
+    }
+
     const fetchSpecifications = async () => {
       const specs = await getSpecificationsForProduct(productId);
-      if (specs) {
-        setSpecifications(specs); // Directly set the array of specifications
-      }
+      setSpecifications(specs);
     };
 
     fetchSpecifications();
   }, [productId]);
 
   useEffect(() => {
-    if (variantId && open) {
-      getVariant(variantId).then((data) => {
-        if (data) {
+    if (variantId) {
+      const fetchVariant = async () => {
+        const response = await fetch(`/api/variants/${variantId}`);
+        if (response.ok) {
+          const data = await response.json();
           form.reset(data);
         }
-      });
+      };
+      fetchVariant();
     }
-  }, [variantId, open, form]);
+  }, [variantId, form]);
 
-  async function onSubmit(data: VariantFormValues) {
+  const addSpecification = () => {
+    if (selectedSpec && specValue) {
+      const currentSpecifications = form.getValues("specifications");
+      form.setValue("specifications", [
+        ...currentSpecifications,
+        { specificationId: selectedSpec, value: specValue },
+      ]);
+      setSelectedSpec(null);
+      setSpecValue("");
+    }
+  };
+
+  const removeSpecification = (index: number) => {
+    const currentSpecifications = form.getValues("specifications");
+    form.setValue(
+      "specifications",
+      currentSpecifications.filter((_, i) => i !== index)
+    );
+  };
+
+  const onSubmit = async (data: VariantFormValues) => {
     setIsLoading(true);
+
     try {
-      const result = await upsertVariant(data);
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: variantId
-            ? "Variant updated successfully"
-            : "Variant created successfully",
-        });
-        setOpen(false);
-        form.reset();
-        router.refresh();
+      const formData = new FormData();
+      if (data.productId !== undefined) {
+        formData.append("productId", data.productId.toString());
       }
+      formData.append("variantPrice", data.variantPrice.toString());
+      formData.append("variantQuantity", data.variantQuantity.toString());
+      formData.append("variantStatus", data.variantStatus);
+
+      // Append specifications as JSON
+      if (data.specifications.length > 0) {
+        formData.append("specifications", JSON.stringify(data.specifications));
+      }
+
+      // Append images properly
+      if (data.images && data.images.length > 0) {
+        data.images.forEach((file, index) => {
+          if (index === 0) {
+            // First image is the full image
+            formData.append("images[]", file);
+            formData.append("image_type", "full");
+          } else {
+            // All other images are thumbnails
+            formData.append("images[]", file);
+            formData.append("image_type", "thumbnail");
+          }
+        });
+      }
+
+      if (variantId) {
+        await updateVariant(variantId, formData);
+      } else {
+        await createVariant(formData);
+      }
+
+      router.push(`/dashboard/products/${productId}/variants`);
     } catch (error) {
+      console.error("Error submitting form:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "Failed to submit the form. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button>
-          {variantId ? (
-            <Pencil className="mr-2 h-4 w-4" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          {variantId ? "Edit Variant" : "Add Variant"}
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent className="w-50 overflow-y-scroll">
-        <DrawerHeader>
-          <DrawerTitle>
-            {variantId ? "Edit Variant" : "Add New Variant"}
-          </DrawerTitle>
-          <DrawerDescription>
-            {variantId
-              ? "Update the details of an existing variant."
-              : "Fill in the details to create a new product variant."}
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="p-4">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <FormField
-                control={form.control}
-                name="specificationId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Specification</FormLabel>
-                    <Select
-                      onValueChange={(value) =>
-                        field.onChange(Number.parseInt(value))
-                      }
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
+    <div className="p-4 overflow-y-scroll">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Specifications Field */}
+          <FormField
+            control={form.control}
+            name="specifications"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Specifications</FormLabel>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex space-x-2 mb-4">
+                      <Select
+                        value={selectedSpec?.toString() || ""}
+                        onValueChange={(value) =>
+                          setSelectedSpec(Number(value))
+                        }>
+                        <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Select a specification" />
                         </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
                         <SelectContent>
                           {specifications.map((spec) => (
                             <SelectItem
@@ -171,147 +187,171 @@ export function VariantForm({ variantId, productId }: VariantFormProps) {
                             </SelectItem>
                           ))}
                         </SelectContent>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Choose the specification for this variant.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Value</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Enter the value of the variant (e.g. red, 16gb).
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="variantPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
+                      </Select>
                       <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(Number.parseFloat(e.target.value))
-                        }
+                        placeholder="Value"
+                        value={specValue}
+                        onChange={(e) => setSpecValue(e.target.value)}
+                        className="flex-grow"
                       />
-                    </FormControl>
-                    <FormDescription>
-                      Enter the price of the variant.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="variantQuantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(Number.parseInt(e.target.value))
-                        }
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter the quantity of the variant in stock.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="variantStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select variant status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Choose the status of the variant.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="images"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Images</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          field.onChange(files);
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Upload images for the variant (optional).
-                    </FormDescription>
-                    <FormMessage />
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {field.value?.map((file, index) => (
-                        <ImagePreview key={index} file={file} />
+                      <Button
+                        type="button"
+                        onClick={addSpecification}
+                        disabled={!selectedSpec || !specValue}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {field.value.map((spec, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-muted p-2 rounded-md">
+                          <span>
+                            {
+                              specifications.find(
+                                (s) =>
+                                  s.specification_id === spec.specificationId
+                              )?.specification_name
+                            }
+                            : {spec.value}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSpecification(index)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </div>
-        <DrawerFooter>
-          <Button
-            type="submit"
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={isLoading}>
+                  </CardContent>
+                </Card>
+                <FormDescription>
+                  Add specifications for this variant.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* Price Input */}
+          <FormField
+            control={form.control}
+            name="variantPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(Number.parseFloat(e.target.value))
+                    }
+                  />
+                </FormControl>
+                <FormDescription>
+                  Enter the price of the variant.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Quantity Input */}
+          <FormField
+            control={form.control}
+            name="variantQuantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(Number.parseInt(e.target.value))
+                    }
+                  />
+                </FormControl>
+                <FormDescription>
+                  Enter the quantity of the variant in stock.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Status Select */}
+          <FormField
+            control={form.control}
+            name="variantStatus"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select variant status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Choose the status of the variant.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Image Upload */}
+          <FormField
+            control={form.control}
+            name="images"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Images</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      // Assuming first image is full, the rest are thumbnails
+                      const [fullImage, ...thumbnailImages] = files;
+                      const updatedImages = [fullImage, ...thumbnailImages]; // Keep the first as full, the rest as thumbnails
+                      field.onChange(updatedImages);
+                    }}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Upload images for the variant (optional).
+                </FormDescription>
+                <FormMessage />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {field.value?.map((file, index) => (
+                    <ImagePreview key={index} file={file} />
+                  ))}
+                </div>
+              </FormItem>
+            )}
+          />
+
+          {/* Submit Button */}
+          <Button type="submit" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {variantId ? "Update Variant" : "Create Variant"}
           </Button>
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+        </form>
+      </Form>
+    </div>
   );
 }

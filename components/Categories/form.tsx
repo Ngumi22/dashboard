@@ -49,7 +49,9 @@ export default function CategoryForm({
   });
 
   const categories = useStore((state) => state.categories);
-  const fetchCategories = useStore((state) => state.fetchUniqueCategories);
+  const fetchCategories = useStore(
+    (state) => state.fetchUniqueCategoriesWithSubs
+  );
 
   useEffect(() => {
     fetchCategories();

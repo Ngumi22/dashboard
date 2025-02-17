@@ -43,15 +43,12 @@ export default function TopNav() {
           className="relative"
           onMouseEnter={() => setActiveMenu("account")}
           onMouseLeave={() => setActiveMenu(null)}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs md:text-sm px-2 text-white hover:bg-gray-800 rounded-none">
+          <Button className="text-xs md:text-sm px-2 text-white rounded-none hover:bg-none">
             Account
             <ChevronDown className="ml-1 h-4 w-4" />
           </Button>
           {activeMenu === "account" && (
-            <div className="absolute right-0 w-32 bg-white border border-gray-200 shadow-lg z-10">
+            <div className="absolute right-0 w-32 bg-white border border-gray-200 shadow-lg z-50">
               {accountOptions.map((option) => (
                 <Button
                   key={option}

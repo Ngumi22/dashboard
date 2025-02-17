@@ -15,7 +15,9 @@ export default function ClientSideWrapper({
   // Access store methods to fetch data
   const fetchBanners = useStore((state) => state.fetchBanners);
   const fetchCarousels = useStore((state) => state.fetchCarousels);
-  const fetchCategories = useStore((state) => state.fetchUniqueCategories);
+  const fetchCategories = useStore(
+    (state) => state.fetchUniqueCategoriesWithSubs
+  );
   const fetchProducts = useStore((state) => state.fetchProductsState);
   // Fetch all data on initial render
   useEffect(() => {

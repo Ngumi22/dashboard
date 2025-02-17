@@ -1,22 +1,28 @@
-// createVariant.ts
+// updateVariant.ts
 "use server";
 
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { variantFormSchema } from "@/components/Product/Variants/schema";
+import {
+  variantFormSchema,
+  VariantFormValues,
+} from "@/components/Product/Variants/schema";
 import { revalidatePath } from "next/cache";
 import { parseVariantForm } from "./parse";
 
-export async function createVariant(formData: FormData) {
-  // Parse the FormData into a plain object.
-  const parsedData = await parseVariantForm(formData);
+export async function updateVariant(variantId: number, formData: FormData) {
+  if (!variantId) return { error: "Invalid variant ID" };
 
-  // Validate the parsed data against your schema.
+  // Parse the FormData.
+  const parsedData = await parseVariantForm(formData);
+  // Force the variantId from the parameter (if not provided via formData).
+  parsedData.variantId = variantId;
+
+  // Validate using your Zod schema.
   const validatedFields = variantFormSchema.safeParse(parsedData);
   if (!validatedFields.success) {
     return { error: "Invalid fields", details: validatedFields.error };
   }
 
-  let variantId = validatedFields.data.variantId;
   const {
     productId,
     specifications,
@@ -30,27 +36,17 @@ export async function createVariant(formData: FormData) {
     const result = await dbOperation(async (connection) => {
       await connection.beginTransaction();
 
-      if (variantId) {
-        // Update existing variant if variantId exists.
-        await connection.query(
-          `UPDATE variants SET variant_price = ?, variant_quantity = ?, variant_status = ? WHERE variant_id = ?`,
-          [variantPrice, variantQuantity, variantStatus, variantId]
-        );
+      // Update variant record.
+      await connection.query(
+        `UPDATE variants SET variant_price = ?, variant_quantity = ?, variant_status = ? WHERE variant_id = ?`,
+        [variantPrice, variantQuantity, variantStatus, variantId]
+      );
 
-        // Delete old variant combinations.
-        await connection.query(
-          `DELETE FROM variant_combinations WHERE variant_id = ?`,
-          [variantId]
-        );
-      } else {
-        // Insert new variant.
-        const [insertResult]: any = await connection.query(
-          `INSERT INTO variants (product_id, variant_price, variant_quantity, variant_status)
-           VALUES (?, ?, ?, ?)`,
-          [productId, variantPrice, variantQuantity, variantStatus]
-        );
-        variantId = insertResult.insertId;
-      }
+      // Delete and reinsert variant combinations.
+      await connection.query(
+        `DELETE FROM variant_combinations WHERE variant_id = ?`,
+        [variantId]
+      );
 
       // Insert or update variant values and get their IDs.
       for (const { specificationId, value } of specifications) {
@@ -79,14 +75,12 @@ export async function createVariant(formData: FormData) {
         );
       }
 
-      // Handle variant images.
+      // Update variant images.
       if (images && images.length > 0) {
-        // Remove any existing images.
         await connection.query(
           `DELETE FROM variant_images WHERE variant_id = ?`,
           [variantId]
         );
-
         for (const image of images) {
           await connection.query(
             `INSERT INTO variant_images (variant_id, image_data, image_type) VALUES (?, ?, ?)`,
@@ -96,13 +90,13 @@ export async function createVariant(formData: FormData) {
       }
 
       await connection.commit();
-      return { success: true, variantId };
+      return { success: true };
     });
 
     revalidatePath(`/dashboard/products/${productId}/variants`);
     return result;
   } catch (error) {
-    console.error("Error upserting variant:", error);
-    return { error: "Failed to upsert variant" };
+    console.error("Error updating variant:", error);
+    return { error: "Failed to update variant" };
   }
 }

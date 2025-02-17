@@ -57,7 +57,7 @@ export async function getUniqueCategories(): Promise<Category[]> {
 }
 
 export async function fetchCategoryWithSubCat(): Promise<Category[]> {
-  const cacheKey = "categoriesWithSubs";
+  const cacheKey = "categories";
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {

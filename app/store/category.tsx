@@ -4,7 +4,6 @@ import {
   fetchCategoryById,
   fetchCategoryWithSubCat,
   fetchCategoryWithSubCatById,
-  getUniqueCategories,
 } from "@/lib/actions/Category/fetch";
 import { getCachedData, setCachedData, clearCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
@@ -14,7 +13,6 @@ export interface CategoryState {
   loading: boolean;
   error: string | null;
   selectedCategory: Category | null;
-  fetchUniqueCategories: () => Promise<void>;
   fetchUniqueCategoriesWithSubs: () => Promise<void>;
   deleteCategoryState: (category_id: number) => Promise<{ success: boolean }>;
   fetchCategoryWithSubByIdState: (
@@ -28,41 +26,8 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
   error: null,
   selectedCategory: null,
 
-  fetchUniqueCategories: async () => {
-    const cacheKey = "categories";
-
-    // Check if data is cached
-    const cachedData = getCachedData<Category[]>(cacheKey);
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { categories } = get();
-      if (JSON.stringify(categories) !== JSON.stringify(cachedData)) {
-        set({ categories: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
-    // Prevent redundant API calls if already loading
-    const { loading } = get();
-    if (loading) return;
-
-    set({ loading: true, error: null });
-
-    try {
-      const categories = await getUniqueCategories(); // Fetch categories
-      setCachedData(cacheKey, categories, { ttl: 2 * 60 }); // Cache the data for 2 minutes
-      set({ categories, loading: false, error: null });
-    } catch (err) {
-      set({
-        loading: false,
-        error:
-          err instanceof Error ? err.message : "Failed to fetch categories",
-      });
-    }
-  },
-
   fetchUniqueCategoriesWithSubs: async () => {
-    const cacheKey = "categoriesWithSubs";
+    const cacheKey = "categories";
 
     // Check if data is cached
     const cachedData = getCachedData<Category[]>(cacheKey);
@@ -147,7 +112,7 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
       clearCachedData(cacheKey);
 
       // Refetch categories after deletion to get the latest data
-      const freshData = (await getUniqueCategories()) as Category[];
+      const freshData = (await fetchCategoryWithSubCat()) as Category[];
 
       // Update the cache with the fresh data
       setCachedData(cacheKey, freshData, { ttl: 2 * 60 });

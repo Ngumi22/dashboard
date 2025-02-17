@@ -166,9 +166,9 @@ export default function ProductsPage() {
       return;
     }
 
-    const result = await handleDeleteAction(Number(product_id)); // Ensure this is an async call
+    const result = fetchProductById(Number.parseInt(product_id));
     if (result == result) {
-      router.push(`/dashboard/products/${product_id}/addVariants`);
+      router.push(`/dashboard/products/${product_id}/variants`);
     } else {
       throw new Error("Failed to open page.");
     }

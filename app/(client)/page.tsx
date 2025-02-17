@@ -21,6 +21,7 @@ import Banners1 from "./main/Banners1";
 import SpecialOffers from "./main/SpecialOffers";
 import NewestProducts from "./main/NewestProducts";
 import PopularProducts from "./main/Popular";
+import MegaMenu from "@/components/Client-Side/Navbar/MegaMenu";
 // import CategoryHome from "./Products/Category";
 
 // Skeleton Loaders
@@ -52,6 +53,7 @@ export default function Page() {
       {/* Main Content */}
       <div className="bg-[#F5F5F7] pt-2 md:container p-1 space-y-6">
         <Service />
+
         <CategorySection />
         <FeaturedCollection />
         <PopularProducts />

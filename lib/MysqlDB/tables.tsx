@@ -178,43 +178,52 @@ export async function dbsetupTables() {
           product_tag_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
           tag_id INT NOT NULL,
-          FOREIGN KEY (product_id) REFERENCES products(product_id),
+          FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
           FOREIGN KEY (tag_id) REFERENCES tags(tag_id),
           INDEX idx_product_id (product_id),
           INDEX idx_tag_id (tag_id)
       ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product tags relationship';
     `);
 
-    // Create the variant_types table
-
     await query(`
-      CREATE TABLE IF NOT EXISTS variant_types (
-          variant_type_id INT AUTO_INCREMENT PRIMARY KEY,
-          specification_id INT NOT NULL UNIQUE,  -- Links to specifications
+      CREATE TABLE IF NOT EXISTS variant_values (
+          variant_value_id INT AUTO_INCREMENT PRIMARY KEY,
+          specification_id INT NOT NULL,
+          value VARCHAR(255) NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Variant types linked to specifications';
+          FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
+          UNIQUE KEY unique_variant_value (specification_id, value)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Stores valid values for product-specific specifications';
     `);
 
     await query(`
       CREATE TABLE IF NOT EXISTS variants (
           variant_id INT AUTO_INCREMENT PRIMARY KEY,
           product_id INT NOT NULL,
-          specification_id INT NOT NULL,  -- Links to specifications
-          value VARCHAR(255) NOT NULL,  -- The value of the variant (e.g., "Red", "16GB")
-          variant_price DECIMAL(10, 2) DEFAULT 0.00,
+          variant_price DECIMAL(10,2) DEFAULT 0.00,
           variant_quantity INT DEFAULT 0,
           variant_status ENUM('active', 'inactive') DEFAULT 'active',
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP NULL,
           FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+          INDEX idx_product_id (product_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Stores unique product variants based on product specifications';
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS variant_combinations (
+          variant_combination_id INT AUTO_INCREMENT PRIMARY KEY,
+          variant_id INT NOT NULL,
+          specification_id INT NOT NULL,
+          variant_value_id INT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (variant_id) REFERENCES variants(variant_id) ON DELETE CASCADE,
           FOREIGN KEY (specification_id) REFERENCES specifications(specification_id) ON DELETE CASCADE,
-          UNIQUE KEY unique_variant (product_id, specification_id, value),  -- Prevent duplicates
-          INDEX idx_product_id (product_id),
-          INDEX idx_specification_id (specification_id)
-      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Product variants with values for variant types';
+          FOREIGN KEY (variant_value_id) REFERENCES variant_values(variant_value_id) ON DELETE CASCADE,
+          UNIQUE KEY unique_variant_combination (variant_id, specification_id, variant_value_id)
+      ) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Links product variants to their allowed specifications and values';
     `);
 
     await query(`
