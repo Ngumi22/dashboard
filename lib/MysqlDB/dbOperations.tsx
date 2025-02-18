@@ -1,6 +1,5 @@
 import { getErrorMessage } from "../utils";
 import { getConnection } from "./initDb";
-import mysql from "mysql2/promise";
 
 // Core database operation with transaction and retry
 export async function dbOperation<T>(

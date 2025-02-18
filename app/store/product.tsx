@@ -1,10 +1,9 @@
-import { handleDeleteAction } from "@/lib/actions/Product/delete";
 import {
   fetchProductByIdFromDb,
+  fetchProductByName,
   fetchProducts,
 } from "@/lib/actions/Product/fetch";
 import { Product } from "@/lib/actions/Product/productTypes";
-import { clearCachedData } from "@/lib/cache";
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
 
@@ -13,11 +12,13 @@ export interface ProductState {
   selectedProduct: Product | null;
   loading: boolean;
   error: string | null;
+  productDetails: Product | null; // Added this
   fetchProductsState: (
     currentPage: number,
     filter: Record<string, any>
   ) => Promise<void>;
   fetchProductByIdState: (product_id: string) => Promise<Product | null>; // Return Product | null
+  fetchProductBySlug: (productName: string) => Promise<Product | null>;
 }
 
 export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
@@ -25,6 +26,7 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
   selectedProduct: null,
   loading: false,
   error: null,
+  productDetails: null,
 
   fetchProductsState: async (currentPage = 1, filter = {}) => {
     const cacheKey = `products_${currentPage}_${JSON.stringify(filter)}`;
@@ -92,6 +94,25 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
       set({
         error:
           err instanceof Error ? err.message : "Error fetching product details",
+        loading: false,
+      });
+      return null;
+    }
+  },
+
+  fetchProductBySlug: async (productName: string) => {
+    try {
+      set({ loading: true });
+      const product = await fetchProductByName(productName);
+      set({
+        productDetails: product,
+        loading: false,
+        error: null,
+      });
+      return product;
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Error fetching product",
         loading: false,
       });
       return null;

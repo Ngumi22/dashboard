@@ -208,3 +208,37 @@ export async function fetchProductByIdFromDb(
     }
   });
 }
+
+export async function fetchProductByName(productName: string) {
+  const cacheKey = `${productName}`;
+
+  // Check cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Product[];
+    }
+    cache.delete(cacheKey);
+  }
+  return dbOperation(async (connection) => {
+    try {
+      const result = await connection.query(
+        `SELECT * FROM products
+          WHERE LOWER(product_name) = LOWER(${productName})`
+      );
+
+      if (result.rows.length === 0) {
+        return null; // No product found
+      }
+      // Cache the result
+      cache.set(cacheKey, {
+        value: result.rows,
+        expiry: Date.now() + 3600 * 10, // 10 hours
+      });
+      return result.rows[0]; // Return the first matching product
+    } catch (error) {
+      console.error("Error fetching product name:", error);
+      throw error;
+    }
+  });
+}

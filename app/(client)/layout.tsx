@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
 import { initialize } from "@/lib/MysqlDB/initialize";
+import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
 
 export const metadata: Metadata = {
   title: "Bernzz Digital Solutions",
@@ -21,7 +22,10 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning={true}>
         <ClientSideWrapper>
-          <Suspense fallback={<Loading />}>{children}</Suspense>
+          <Suspense fallback={<Loading />}>
+            <NewNavbar />
+            {children}
+          </Suspense>
         </ClientSideWrapper>
         <ToastContainer position="bottom-left" />
       </body>

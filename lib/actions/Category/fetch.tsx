@@ -451,3 +451,86 @@ export async function fetchCategoryTreeWithSpecs(
     }
   });
 }
+
+export async function fetchCategoryByName(categoryName: string) {
+  const cacheKey = `${categoryName}`;
+
+  // Check cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Category[];
+    }
+    cache.delete(cacheKey);
+  }
+  return dbOperation(async (connection) => {
+    try {
+      // Step 1: Fetch category hierarchy using recursive CTE
+      const result = await connection.query(
+        `SELECT * FROM categories
+      WHERE LOWER(category_name) = LOWER(${categoryName})`
+      );
+
+      if (result.rows.length === 0) {
+        return null; // No category found
+      }
+      // Cache the result
+      cache.set(cacheKey, {
+        value: result.rows,
+        expiry: Date.now() + 3600 * 10, // 10 hours
+      });
+      return result.rows[0]; // Return the first matching category
+    } catch (error) {
+      console.error("Error fetching category tree with specs:", error);
+      throw error;
+    }
+  });
+}
+
+export const fetchSubcategoryByName = async (
+  categorySlug: string,
+  subcategorySlug: string
+) => {
+  return dbOperation(async (connection) => {
+    try {
+      // Generate the category and subcategory names from the slugs
+      const categoryName = categorySlug.replace(/-/g, " ");
+      const subcategoryName = subcategorySlug.replace(/-/g, " ");
+
+      // Example using raw SQL (Vercel Postgres)
+      const result = await connection.query`
+      SELECT sub.* FROM categories AS sub
+      JOIN categories AS parent ON sub.parent_category_id = parent.category_id
+      WHERE LOWER(parent.category_name) = LOWER(${categoryName})
+      AND LOWER(sub.category_name) = LOWER(${subcategoryName})
+    `;
+
+      if (result.rows.length === 0) {
+        return null; // No subcategory found
+      }
+
+      return result.rows[0]; // Return the first matching subcategory
+    } catch (error) {
+      console.error("Error fetching subcategory by slug:", error);
+      throw error;
+    }
+  });
+};
+
+export async function generateMetadata({ params }: any) {
+  const { categorySlug, subcategorySlug } = params;
+
+  return {
+    title: subcategorySlug
+      ? `${subcategorySlug} - ${categorySlug} | Electronics Store`
+      : `${categorySlug} | Electronics Store`,
+    description: `Explore ${
+      subcategorySlug || categorySlug
+    } products at the best prices.`,
+    openGraph: {
+      title: `${subcategorySlug || categorySlug} - Electronics Store`,
+      description: `Find the best deals on ${subcategorySlug || categorySlug}.`,
+      type: "website",
+    },
+  };
+}

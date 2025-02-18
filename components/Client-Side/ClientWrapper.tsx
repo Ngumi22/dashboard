@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Loading from "@/app/(client)/loading";
-import NewNavbar from "./Navbar/Navbar";
 import { useStore } from "@/app/store";
 
 export default function ClientSideWrapper({
@@ -43,10 +42,5 @@ export default function ClientSideWrapper({
     return <Loading />; // Show loading spinner or skeleton UI
   }
 
-  return (
-    <>
-      <NewNavbar />
-      {children}
-    </>
-  );
+  return <section className="mt-[9.5rem] lg:mt-[11.5rem]">{children}</section>;
 }

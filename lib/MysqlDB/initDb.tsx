@@ -1,5 +1,4 @@
 import mysql from "mysql2/promise";
-import { performance } from "perf_hooks";
 
 let slowQueryThreshold = 1000; // in ms, adjust as needed
 
