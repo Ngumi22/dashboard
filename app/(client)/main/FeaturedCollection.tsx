@@ -20,17 +20,17 @@ export default function FeaturedCollection() {
     <ScrollableSection
       title="Featured Products"
       items={products.map((product) => ({
-        id: product.product_id,
+        id: product.id,
         content: (
           <ProductCard
-            images={{ mainImage: product.images.mainImage }}
+            main_image={product.main_image}
             price={product.price}
-            product_id={product.product_id}
+            id={String(product.id)}
             name={product.name}
-            ratings={product.ratings}
             discount={product.discount}
             description={product.description}
             quantity={product.quantity}
+            ratings={product.ratings}
           />
         ),
       }))}

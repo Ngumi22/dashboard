@@ -18,21 +18,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  rating: number;
-  date: string;
-}
+import { Product } from "@/lib/actions/Product/productTypes";
+import Base64Image from "@/components/Data-Table/base64-image";
 
 interface ProductsGridProps {
   products: Product[];
   productsPerRow: string;
   productsPerPage: string;
   sortBy: string;
+  currentPage: number;
+  onPageChange: (page: number) => void;
 }
 
 export default function ProductsGrid({
@@ -40,8 +35,9 @@ export default function ProductsGrid({
   productsPerRow,
   productsPerPage,
   sortBy,
+  currentPage,
+  onPageChange,
 }: ProductsGridProps) {
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortedProducts, setSortedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -56,19 +52,24 @@ export default function ProductsGrid({
         case "price_desc":
           return b.price - a.price;
         case "date_asc":
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
+          return (
+            new Date(a.createdAt || "").getTime() -
+            new Date(b.createdAt || "").getTime()
+          );
         case "date_desc":
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
+          return (
+            new Date(b.createdAt || "").getTime() -
+            new Date(a.createdAt || "").getTime()
+          );
         case "rating_desc":
-          return b.rating - a.rating;
+          return b.ratings - a.ratings;
         case "rating_asc":
-          return a.rating - b.rating;
+          return a.ratings - b.ratings;
         default:
           return 0;
       }
     });
     setSortedProducts(sorted);
-    setCurrentPage(1);
   }, [products, sortBy]);
 
   const gridCols = {
@@ -90,23 +91,22 @@ export default function ProductsGrid({
         {currentProducts.map((product) => (
           <Card key={product.id}>
             <CardHeader>
-              <Image
-                src={product.image || "/placeholder.svg"}
+              <Base64Image
+                src={product.main_image}
                 alt={product.name}
                 width={200}
                 height={200}
-                className="w-full h-48 object-cover"
               />
             </CardHeader>
             <CardContent>
               <CardTitle>{product.name}</CardTitle>
-              <p className="text-2xl font-bold">${product.price.toFixed(2)}</p>
+              <p className="text-2xl font-bold">${product.price}</p>
               <div className="flex items-center mt-2">
                 {[...Array(5)].map((_, i) => (
                   <svg
                     key={i}
                     className={`w-5 h-5 ${
-                      i < Math.round(product.rating)
+                      i < Math.round(product.ratings)
                         ? "text-yellow-400"
                         : "text-gray-300"
                     }`}
@@ -116,12 +116,9 @@ export default function ProductsGrid({
                   </svg>
                 ))}
                 <span className="ml-2 text-sm text-gray-600">
-                  ({product.rating.toFixed(1)})
+                  ({product.ratings})
                 </span>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Added on: {new Date(product.date).toLocaleDateString()}
-              </p>
             </CardContent>
             <CardFooter>
               <Button className="w-full">Add to Cart</Button>
@@ -131,33 +128,34 @@ export default function ProductsGrid({
       </div>
       <Pagination className="mt-8">
         <PaginationContent>
-          <PaginationItem>
-            {currentPage > 1 && (
-              <PaginationPrevious
-                href="#"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              />
-            )}
+          <PaginationItem className="cursor-pointer">
+            <PaginationPrevious
+              onClick={(e) => {
+                e.preventDefault();
+                if (currentPage > 1) onPageChange(currentPage - 1);
+              }}
+              className={currentPage === 1 ? "disabled" : ""}
+            />
           </PaginationItem>
           {[...Array(totalPages)].map((_, i) => (
-            <PaginationItem key={i}>
+            <PaginationItem className="cursor-pointer" key={i}>
               <PaginationLink
-                href="#"
-                onClick={() => setCurrentPage(i + 1)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onPageChange(i + 1);
+                }}
                 isActive={currentPage === i + 1}>
                 {i + 1}
               </PaginationLink>
             </PaginationItem>
           ))}
-          <PaginationItem>
-            {currentPage < totalPages && (
-              <PaginationNext
-                href="#"
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
-              />
-            )}
+          <PaginationItem className="cursor-pointer">
+            <PaginationNext
+              onClick={(e) => {
+                if (currentPage < totalPages) onPageChange(currentPage + 1);
+              }}
+              className={currentPage === totalPages ? "disabled" : ""}
+            />
           </PaginationItem>
         </PaginationContent>
       </Pagination>

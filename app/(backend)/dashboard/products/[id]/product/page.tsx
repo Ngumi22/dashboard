@@ -35,8 +35,10 @@ import { ProductAnalytics } from "@/components/Product/ProductPage/product-analy
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-import { fetchProductById, Product } from "@/lib/actions/Product/fetchById";
+
 import { useStore } from "@/app/store";
+import { fetchProductById } from "@/lib/actions/Product/fetch";
+import { Product } from "@/lib/actions/Product/productTypes";
 
 export default function ProductPage() {
   const fetchUniqueCategoriesWithSubs = useStore(
@@ -169,15 +171,15 @@ export default function ProductPage() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="name">Product Name</Label>
-                    <Input id="name" value={product.product_name} readOnly />
+                    <Input id="name" value={product.name} readOnly />
                   </div>
                   <div>
                     <Label htmlFor="sku">SKU</Label>
-                    <Input id="sku" value={product.product_sku} readOnly />
+                    <Input id="sku" value={product.sku} readOnly />
                   </div>
                   <div>
                     <Label htmlFor="price">Price</Label>
-                    <Input id="price" value={product.product_price} readOnly />
+                    <Input id="price" value={product.price} readOnly />
                   </div>
                   <div>
                     <Label htmlFor="category">Category</Label>
@@ -204,7 +206,7 @@ export default function ProductPage() {
             <CardContent>
               <Textarea
                 className="min-h-[100px]"
-                value={product.product_description}
+                value={product.description}
                 readOnly
               />
             </CardContent>
@@ -269,7 +271,7 @@ export default function ProductPage() {
             <CardContent className="space-y-4">
               <div>
                 <CardDescription>In Stock</CardDescription>
-                <p className="text-2xl font-bold">{product.product_quantity}</p>
+                <p className="text-2xl font-bold">{product.quantity}</p>
               </div>
               <div>
                 <CardDescription>Low Stock Threshold</CardDescription>

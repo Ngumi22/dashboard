@@ -4,46 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
-import { fetchProductById } from "@/lib/actions/Product/fetchById";
-
-export interface Product {
-  product_id: number;
-  product_name: string;
-  product_sku: string;
-  product_description: string;
-  product_price: number;
-  product_quantity: number;
-  product_discount: number;
-  product_status: "draft" | "pending" | "approved";
-  tags: string[];
-  main_image: string;
-  thumbnails: {
-    thumbnail1: string;
-    thumbnail2: string;
-    thumbnail3: string;
-    thumbnail4: string;
-    thumbnail5: string;
-  }[];
-  category_id: string;
-  brand: {
-    brand_id: string;
-    brand_name: string;
-    brand_image: string;
-  };
-  specifications: {
-    specification_name: string;
-    specification_value: string;
-    category_id: string;
-  }[];
-  suppliers: {
-    supplier_id?: number;
-    supplier_name?: string;
-    supplier_email?: string;
-    supplier_phone_number?: string;
-    supplier_location?: string;
-    isNew?: boolean;
-  }[];
-}
+import { fetchProductById } from "@/lib/actions/Product/fetch";
+import { Product } from "@/lib/actions/Product/productTypes";
 
 export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -130,9 +92,7 @@ export default function ProductPage() {
         </div>
 
         <div className="mx-auto px-5 lg:px-5">
-          <h2 className="pt-3 text-2xl font-bold lg:pt-0">
-            {product.product_name}
-          </h2>
+          <h2 className="pt-3 text-2xl font-bold lg:pt-0">{product.name}</h2>
           <div className="mt-1">
             <div className="flex items-center">
               <svg
@@ -202,7 +162,7 @@ export default function ProductPage() {
           <p className="mt-5 font-bold">
             Availability:
             <span className="text-green-600 ml-2">
-              {product.product_quantity > 0 ? "In Stock" : "Out of Stock"}
+              {product.quantity > 0 ? "In Stock" : "Out of Stock"}
             </span>
           </p>
           <p className="font-bold">
@@ -213,16 +173,16 @@ export default function ProductPage() {
             Category: <span className="font-normal">{product.category_id}</span>
           </p>
           <p className="font-bold">
-            SKU: <span className="font-normal">{product.product_sku}</span>
+            SKU: <span className="font-normal">{product.sku}</span>
           </p>
 
           <p className="mt-4 text-4xl font-bold text-violet-900">
-            {product.product_price}
+            {product.price}
             <span className="text-xs text-gray-400 line-through">$550</span>
           </p>
 
           <p className="pt-5 text-sm leading-5 text-gray-500">
-            {product.product_description}
+            {product.description}
           </p>
 
           <div className="mt-6">

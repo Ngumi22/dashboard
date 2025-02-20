@@ -11,11 +11,11 @@ interface ProductCardProps extends MinimalProduct {
 }
 
 export default function ProductCard({
-  product_id,
+  id,
   name,
   description,
   price,
-  images,
+  main_image,
   ratings,
   orientation = "vertical",
   discount,
@@ -30,12 +30,10 @@ export default function ProductCard({
   // Define individual action handlers
   const handleAddToCart = () => {
     const product = {
-      product_id,
+      id,
       name,
       price,
-      images: {
-        mainImage: images.mainImage,
-      },
+      main_image,
       ratings,
       discount,
       description,
@@ -89,7 +87,7 @@ export default function ProductCard({
           orientation === "horizontal" ? "md:w-1/3" : ""
         }`}>
         <Image
-          src={`data:image/jpeg;base64,${images.mainImage}`}
+          src={`data:image/jpeg;base64,${main_image}`}
           alt={name}
           width={200}
           height={200}

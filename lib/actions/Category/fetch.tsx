@@ -5,57 +5,6 @@ import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { Category, Specification } from "./catType";
 
-export async function getUniqueCategories(): Promise<Category[]> {
-  const cacheKey = "categories";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category[]; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
-  return dbOperation(async (connection) => {
-    try {
-      const [categories] = await connection.query(
-        `SELECT category_id, category_name, category_image, category_description, category_status FROM categories`
-      );
-
-      // Return an empty array if no categories found
-      if (!categories || categories.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
-        return [];
-      }
-
-      const uniqueCategories: Category[] = await Promise.all(
-        categories.map(async (cat: any) => ({
-          category_id: cat.category_id,
-          category_name: cat.category_name,
-
-          category_image: cat.category_image
-            ? await compressAndEncodeBase64(cat.category_image)
-            : null,
-
-          category_description: cat.category_description,
-          category_status: cat.category_status,
-        }))
-      );
-
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: uniqueCategories,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
-      });
-      return uniqueCategories;
-    } catch (error) {
-      console.error("Error fetching unique categories:", error);
-      throw error;
-    }
-  });
-}
-
 export async function fetchCategoryWithSubCat(): Promise<Category[]> {
   const cacheKey = "categories";
 
@@ -533,4 +482,54 @@ export async function generateMetadata({ params }: any) {
       type: "website",
     },
   };
+}
+export async function getUniqueCategories(): Promise<Category[]> {
+  const cacheKey = "categories";
+
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Category[]; // Ensure data is returned as an array
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
+
+  return dbOperation(async (connection) => {
+    try {
+      const [categories] = await connection.query(
+        `SELECT category_id, category_name, category_image, category_description, category_status FROM categories`
+      );
+
+      // Return an empty array if no categories found
+      if (!categories || categories.length === 0) {
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+        return [];
+      }
+
+      const uniqueCategories: Category[] = await Promise.all(
+        categories.map(async (cat: any) => ({
+          category_id: cat.category_id,
+          category_name: cat.category_name,
+
+          category_image: cat.category_image
+            ? await compressAndEncodeBase64(cat.category_image)
+            : null,
+
+          category_description: cat.category_description,
+          category_status: cat.category_status,
+        }))
+      );
+
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: uniqueCategories,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
+      return uniqueCategories;
+    } catch (error) {
+      console.error("Error fetching unique categories:", error);
+      throw error;
+    }
+  });
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Loading from "@/app/(client)/loading";
 import { useStore } from "@/app/store";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 export default function ClientSideWrapper({
   children,
@@ -10,6 +11,7 @@ export default function ClientSideWrapper({
   children: React.ReactNode;
 }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [queryClient] = useState(() => new QueryClient());
 
   // Access store methods to fetch data
   const fetchBanners = useStore((state) => state.fetchBanners);
@@ -42,5 +44,9 @@ export default function ClientSideWrapper({
     return <Loading />; // Show loading spinner or skeleton UI
   }
 
-  return <section className="mt-[9.5rem] lg:mt-[11.5rem]">{children}</section>;
+  return (
+    <section className="mt-[9.5rem] lg:mt-[11.5rem]">
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </section>
+  );
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import ProductForm from "@/components/Product/Create/ProductForm";
-import { fetchProductById, Product } from "@/lib/actions/Product/fetchById";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
+import { fetchProductById } from "@/lib/actions/Product/fetch";
+import { Product } from "@/lib/actions/Product/productTypes";
 
 export default function UpdateProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -24,11 +25,7 @@ export default function UpdateProductPage() {
           const res = await fetchProductById(productId);
           setProduct(res);
         } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to fetch product",
-          });
+          throw error;
         }
       };
 
@@ -41,14 +38,14 @@ export default function UpdateProductPage() {
     if (!product) return null;
 
     return {
-      product_id: product.product_id,
-      product_name: product.product_name || "",
-      product_sku: product.product_sku || "",
-      product_description: product.product_description || "",
-      product_price: Number(product.product_price) || 0,
-      product_quantity: Number(product.product_quantity) || 0,
-      product_discount: Number(product.product_discount) || 0,
-      product_status: product.product_status || "draft",
+      product_id: product.id,
+      product_name: product.name || "",
+      product_sku: product.sku || "",
+      product_description: product.description || "",
+      product_price: Number(product.price) || 0,
+      product_quantity: Number(product.quantity) || 0,
+      product_discount: Number(product.discount) || 0,
+      product_status: product.status || "draft",
       category_id: String(product.category_id || ""),
       tags: product.tags || [],
       suppliers:
@@ -72,30 +69,40 @@ export default function UpdateProductPage() {
       brand_name: product.brand?.brand_name || "",
       brand_image: product.brand?.brand_image || "",
       main_image: product.main_image || "",
-      thumbnails: Array.isArray(product.thumbnails) ? product.thumbnails : [],
+      thumbnails: Array.isArray(product.thumbnails)
+        ? product.thumbnails.flatMap((t) => t)
+        : [],
     };
   }, [product]);
 
-  if (loading) {
-    return (
-      <div className="w-full m-auto">
-        <p>Loading... Please Wait</p>
-      </div>
-    );
-  }
-
-  if (!processedData || error) {
-    return (
-      <div>
-        <p>Product not found.</p>
-        <Button
-          onClick={() => router.push("/dashboard/products")}
-          variant="default">
-          Back to Products
-        </Button>
-      </div>
-    );
-  }
-
-  return <ProductForm initialData={processedData} />;
+  return (
+    <section>
+      {loading ? (
+        <div>
+          <p>Loading... Please Wait</p>
+          {/* Optionally add a spinner or skeleton loader */}
+        </div>
+      ) : error ? (
+        <div>
+          <p>Error: {error || "Something went wrong."}</p>
+          <Button
+            onClick={() => router.push("/dashboard/products")}
+            variant="default">
+            Back to Products
+          </Button>
+        </div>
+      ) : !processedData ? (
+        <div>
+          <p>Product not found.</p>
+          <Button
+            onClick={() => router.push("/dashboard/products")}
+            variant="default">
+            Back to Products
+          </Button>
+        </div>
+      ) : (
+        <ProductForm initialData={processedData} />
+      )}
+    </section>
+  );
 }

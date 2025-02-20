@@ -20,12 +20,12 @@ export default function Cart() {
   const cartTotalAmount = useCartStore((state) => state.getTotalCost());
   const cartTotalQuantity = useCartStore((state) => state.getTotalQuantity());
 
-  const handleIncreaseCart = (product_id: string) => {
-    increaseQuantity(product_id);
+  const handleIncreaseCart = (id: string) => {
+    increaseQuantity(id);
   };
 
-  const handleRemoveFromCart = (product_id: string) => {
-    decreaseQuantity(product_id);
+  const handleRemoveFromCart = (id: string) => {
+    decreaseQuantity(id);
   };
 
   const handleClearCart = () => {
@@ -63,10 +63,10 @@ export default function Cart() {
               {cartItems.map((cartItem) => (
                 <div
                   className="flex justify-between items-center my-2 border-b py-2 font-semibold"
-                  key={cartItem.product_id}>
+                  key={cartItem.id}>
                   <Image
                     className="h-auto"
-                    src={`data:image/jpeg;base64,${cartItem.images.mainImage}`}
+                    src={`data:image/jpeg;base64,${cartItem.main_image}`}
                     alt={cartItem.name}
                     height={80}
                     width={80}
@@ -77,15 +77,11 @@ export default function Cart() {
                       <p>Ksh {cartItem.price}</p>
                     </div>
                     <div className="grid grid-flow-col gap-2 py-2 px-3 border border-black rounded">
-                      <button
-                        onClick={() =>
-                          handleRemoveFromCart(cartItem.product_id)
-                        }>
+                      <button onClick={() => handleRemoveFromCart(cartItem.id)}>
                         -
                       </button>
                       <p className="text-center">{cartItem.quantity}</p>
-                      <button
-                        onClick={() => handleIncreaseCart(cartItem.product_id)}>
+                      <button onClick={() => handleIncreaseCart(cartItem.id)}>
                         +
                       </button>
                     </div>

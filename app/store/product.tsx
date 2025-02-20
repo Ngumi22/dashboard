@@ -1,9 +1,10 @@
 import {
-  fetchProductByIdFromDb,
+  fetchProductById,
   fetchProductByName,
   fetchProducts,
 } from "@/lib/actions/Product/fetch";
 import { Product } from "@/lib/actions/Product/productTypes";
+
 import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
 
@@ -74,7 +75,7 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const product = await fetchProductByIdFromDb(product_id);
+      const product = await fetchProductById(Number.parseInt(product_id));
 
       if (product) {
         // Cache the product with a TTL of 2 minutes

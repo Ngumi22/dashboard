@@ -4,14 +4,14 @@ import { toast } from "react-toastify"; // Import react-toastify's toast method
 import { Product } from "@/lib/actions/Product/productTypes";
 
 export type MinimalProduct = {
-  product_id: string;
+  id: string;
   name: string;
   price: number;
   ratings: number;
   discount: number;
   description: string;
   quantity: number;
-  images: { mainImage: string | null };
+  main_image: string | null;
 };
 
 // Define the cart item type
@@ -23,10 +23,10 @@ type CartItem = MinimalProduct & {
 export type CartStoreState = {
   cartItems: CartItem[];
   addItemToCart: (product: MinimalProduct) => void;
-  removeItemFromCart: (product_id: string) => void;
+  removeItemFromCart: (id: string) => void;
   clearCart: () => void;
-  increaseItemQuantity: (product_id: string) => void;
-  decreaseItemQuantity: (product_id: string) => void;
+  increaseItemQuantity: (id: string) => void;
+  decreaseItemQuantity: (id: string) => void;
   getTotalCost: () => number;
   getTotalQuantity: () => number;
 };
@@ -39,19 +39,19 @@ export const useCartStore = create<CartStoreState>()(
 
       addItemToCart: (product: MinimalProduct) =>
         set((state) => {
-          if (!product || !product.product_id) {
+          if (!product || !product.id) {
             console.error("Invalid product passed to addItemToCart:", product);
             return state;
           }
 
           const existingItem = state.cartItems.find(
-            (item) => item.product_id === product.product_id
+            (item) => item.id === product.id
           );
 
           // If the product already exists in the cart, increase its quantity
           if (existingItem) {
             const updatedCartItems = state.cartItems.map((item) =>
-              item.product_id === product.product_id
+              item.id === product.id
                 ? { ...item, quantity: item.quantity + 1 }
                 : item
             );
@@ -71,34 +71,30 @@ export const useCartStore = create<CartStoreState>()(
         }),
 
       // Remove a product from the cart
-      removeItemFromCart: (product_id: string) =>
+      removeItemFromCart: (id: string) =>
         set((state) => ({
-          cartItems: state.cartItems.filter(
-            (item) => item.product_id !== product_id
-          ),
+          cartItems: state.cartItems.filter((item) => item.id !== id),
         })),
 
       // Clear the entire cart
       clearCart: () => set({ cartItems: [] }),
 
       // Increase the quantity of a product
-      increaseItemQuantity: (product_id: string) =>
+      increaseItemQuantity: (id: string) =>
         set((state) => {
           const updatedCartItems = state.cartItems.map((item) =>
-            item.product_id === product_id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
+            item.id === id ? { ...item, quantity: item.quantity + 1 } : item
           );
           toast.success("Increased quantity!");
           return { cartItems: updatedCartItems };
         }),
 
       // Decrease the quantity of a product, removing it if quantity drops to 0
-      decreaseItemQuantity: (product_id: string) =>
+      decreaseItemQuantity: (id: string) =>
         set((state) => {
           const updatedCartItems = state.cartItems
             .map((item) =>
-              item.product_id === product_id && item.quantity > 1
+              item.id === id && item.quantity > 1
                 ? { ...item, quantity: item.quantity - 1 }
                 : item
             )

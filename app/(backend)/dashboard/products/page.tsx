@@ -15,23 +15,44 @@ import { useStore } from "@/app/store";
 import { useRouter } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
-import { Product } from "@/lib/actions/Product/productTypes";
 import { handleDeleteAction } from "@/lib/actions/Product/delete";
-import { fetchProductById } from "@/lib/actions/Product/fetchById";
+import { fetchProductById } from "@/lib/actions/Product/fetch";
+import { Product } from "@/lib/actions/Product/productTypes";
 
 const includedKeys: (keyof Product)[] = [
   "sku",
   "name",
-  "images",
-  "category",
+  "main_image",
+  "category_id",
   "quantity",
   "status",
   "price",
   "discount",
 ];
 
-const columnRenderers = {
-  status: (item: { status: string }) => (
+const columnRenderers: Record<
+  keyof Product,
+  (item: Product) => React.ReactNode
+> = {
+  id: (item: Product) => item.id,
+  sku: (item: Product) => item.sku,
+  name: (item: Product) => item.name,
+  suppliers: (item: Product) => item.suppliers.join(", "),
+  description: (item: Product) => item.description,
+  main_image: (item: Product) =>
+    item.main_image ? (
+      <Base64Image
+        src={item.main_image}
+        alt={item.name}
+        width={50}
+        height={50}
+      />
+    ) : (
+      <span>No image</span>
+    ),
+  category_id: (item: Product) => item.category_id,
+  quantity: (item: Product) => item.quantity,
+  status: (item: Product) => (
     <Badge
       variant={
         item.status === "approved"
@@ -43,20 +64,29 @@ const columnRenderers = {
       {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
     </Badge>
   ),
-
-  images: (item: Product) =>
-    item.images && item.images.mainImage ? (
-      <Base64Image
-        src={item.images.mainImage}
-        alt={item.name}
-        width={50}
-        height={50}
-      />
-    ) : (
-      <span>No image</span>
-    ),
-
-  discount: (item: { discount: any }) => `${item.discount}%`,
+  price: (item: Product) => `$${item.price.toFixed(2)}`,
+  discount: (item: Product) => `${item.discount}%`,
+  tags: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
+  thumbnails: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
+  brand: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
+  specifications: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
+  ratings: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
+  createdAt: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
+  updatedAt: function (item: Product): React.ReactNode {
+    throw new Error("Function not implemented.");
+  },
 };
 
 export default function ProductsPage() {
@@ -84,7 +114,7 @@ export default function ProductsPage() {
   // Dynamically generate category options from the products data
   const categoryOptions = useMemo(() => {
     const uniqueCategories = new Set(
-      products.map((product) => product.category)
+      products.map((product) => product.category_id)
     );
     return Array.from(uniqueCategories).map((category) => ({
       value: category,
@@ -132,58 +162,58 @@ export default function ProductsPage() {
     [categoryOptions]
   );
 
-  const handleViewProduct = async (product_id: number) => {
-    if (!product_id) {
+  const handleViewProduct = async (id: number) => {
+    if (!id) {
       alert("No product ID provided.");
       return;
     }
 
-    const result = fetchProductById(product_id);
+    const result = fetchProductById(id);
     if (result == result) {
-      router.push(`/dashboard/products/${product_id}/product`);
+      router.push(`/dashboard/products/${id}/product`);
     } else {
       throw new Error("Failed to open page.");
     }
   };
 
-  const handleEditProduct = async (product_id: number) => {
-    if (!product_id) {
+  const handleEditProduct = async (id: number) => {
+    if (!id) {
       alert("No product ID provided.");
       return;
     }
 
-    const result = fetchProductById(product_id);
+    const result = fetchProductById(id);
     if (result == result) {
-      router.push(`/dashboard/products/${product_id}/edit`);
+      router.push(`/dashboard/products/${id}/edit`);
     } else {
       throw new Error("Failed to open page.");
     }
   };
 
-  const handleAddVariant = async (product_id: string) => {
-    if (!product_id) {
+  const handleAddVariant = async (id: string) => {
+    if (!id) {
       alert("No product ID provided.");
       return;
     }
 
-    const result = fetchProductById(Number.parseInt(product_id));
+    const result = fetchProductById(Number.parseInt(id));
     if (result == result) {
-      router.push(`/dashboard/products/${product_id}/variants`);
+      router.push(`/dashboard/products/${id}/variants`);
     } else {
       throw new Error("Failed to open page.");
     }
   };
 
-  const handleDeleteProduct = async (product_id: string) => {
-    if (!product_id) {
+  const handleDeleteProduct = async (id: string) => {
+    if (!id) {
       alert("No product ID provided.");
       return;
     }
 
-    setDeletingProduct(product_id); // Track the product being deleted
+    setDeletingProduct(id); // Track the product being deleted
 
     try {
-      const result = await handleDeleteAction(Number(product_id)); // Ensure this is an async call
+      const result = await handleDeleteAction(Number(id)); // Ensure this is an async call
       if (result) {
         toast({
           title: "Success",
@@ -209,14 +239,14 @@ export default function ProductsPage() {
       label: "View",
       icon: Eye,
       onClick: (product) => {
-        handleViewProduct(product.product_id); // Extract and set only the `product_id`
+        handleViewProduct(product.id); // Extract and set only the `id`
       },
     },
     {
       label: "Edit",
       icon: Edit,
       onClick: (product) => {
-        handleEditProduct(product.product_id);
+        handleEditProduct(product.id);
       },
     },
     {
@@ -224,17 +254,17 @@ export default function ProductsPage() {
       icon: Plus,
 
       onClick: (product) => {
-        handleAddVariant(product.product_id);
+        handleAddVariant(product.id);
       },
     },
     {
       label: "Delete",
       icon: Trash,
       onClick: (product) => {
-        handleDeleteProduct(product.product_id); // Pass only the `product_id`
+        handleDeleteProduct(product.id); // Pass only the `id`
       },
-      disabled: (product: { product_id: string | null }) =>
-        deletingProduct === product.product_id, // Disable while deleting
+      disabled: (product: { id: string | null }) =>
+        deletingProduct === product.id, // Disable while deleting
     },
   ];
 

@@ -64,6 +64,6 @@ export interface DataTableProps<T> {
   onResetFilters: () => void;
   activeFilters: Record<string, string[]>;
   onClearFilter: (key: string, value: string) => void;
-  columnRenderers?: Record<keyof T, (item: T) => React.ReactNode>;
+  columnRenderers: Record<keyof T, (item: T) => React.ReactNode>;
   noDataMessage?: string;
 }

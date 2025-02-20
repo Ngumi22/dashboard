@@ -13,6 +13,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const allFilters = [
   {
@@ -20,7 +22,7 @@ const allFilters = [
     name: "Price Range",
     type: "range",
     min: 0,
-    max: 2000,
+    max: 200000,
   },
   {
     id: "category",
@@ -73,12 +75,17 @@ export default function FilterSidebar() {
   ]);
 
   useEffect(() => {
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
+    if (minPrice && maxPrice) {
+      setPriceRange([Number.parseInt(minPrice), Number.parseInt(maxPrice)]);
+    }
+
     const active = allFilters
       .filter(
         (filter) =>
           searchParams.getAll(filter.id).length > 0 ||
-          (filter.id === "price" &&
-            (searchParams.get("minPrice") || searchParams.get("maxPrice")))
+          (filter.id === "price" && (minPrice || maxPrice))
       )
       .map((filter) => filter.id);
 
@@ -113,12 +120,28 @@ export default function FilterSidebar() {
     router.push(`/products?${params.toString()}`);
   };
 
+  const handlePriceInputChange = (index: number, value: string) => {
+    const newValue = Number.parseInt(value);
+    if (!isNaN(newValue)) {
+      const newPriceRange = [...priceRange];
+      newPriceRange[index] = newValue;
+      updatePriceRange(newPriceRange);
+    }
+  };
+
   const toggleFilter = (filterId: string) => {
     setOpenFilters((prev) =>
       prev.includes(filterId)
         ? prev.filter((id) => id !== filterId)
         : [...prev, filterId]
     );
+  };
+
+  const clearAllFilters = () => {
+    router.push("/products");
+    setPriceRange([0, 2000]);
+    setActiveFilters([]);
+    setOpenFilters(["price", "category", "brand"]);
   };
 
   return (
@@ -135,18 +158,36 @@ export default function FilterSidebar() {
               </AccordionTrigger>
               <AccordionContent>
                 {filter.type === "range" && (
-                  <div>
+                  <div className="space-y-4">
                     <Slider
                       min={filter.min}
                       max={filter.max}
-                      step={10}
+                      step={1000}
                       value={priceRange}
                       onValueChange={updatePriceRange}
                       className="mt-2"
                     />
-                    <div className="flex justify-between mt-2 text-sm">
-                      <span>${priceRange[0]}</span>
-                      <span>${priceRange[1]}</span>
+                    <div className="flex items-center space-x-1">
+                      <Label htmlFor="minPrice">Min:</Label>
+                      <Input
+                        type="number"
+                        id="minPrice"
+                        value={priceRange[0]}
+                        onChange={(e) =>
+                          handlePriceInputChange(0, e.target.value)
+                        }
+                        className="w-20"
+                      />
+                      <Label htmlFor="maxPrice">Max:</Label>
+                      <Input
+                        type="number"
+                        id="maxPrice"
+                        value={priceRange[1]}
+                        onChange={(e) =>
+                          handlePriceInputChange(1, e.target.value)
+                        }
+                        className="w-20"
+                      />
                     </div>
                   </div>
                 )}
@@ -176,34 +217,36 @@ export default function FilterSidebar() {
             </AccordionItem>
           ))}
         </Accordion>
-        {allFilters.length > 6 && (
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={() => setShowAllFilters(!showAllFilters)}>
-            {showAllFilters ? (
-              <>
-                <ChevronUp className="w-4 h-4 mr-2" />
-                Show Less
-              </>
-            ) : (
-              <>
-                <ChevronDown className="w-4 h-4 mr-2" />
-                Show More
-              </>
-            )}
-          </Button>
-        )}
-        {activeFilters.length > 0 && (
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={() => {
-              router.push("/products");
-            }}>
-            Clear All Filters
-          </Button>
-        )}
+        <div className="mt-4 space-y-2">
+          {allFilters.length > 6 && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowAllFilters(!showAllFilters)}>
+              {showAllFilters ? (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-2" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Show More
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+        <div className="mt-4 space-y-2">
+          {activeFilters.length > 0 && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={clearAllFilters}>
+              Clear All Filters
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
