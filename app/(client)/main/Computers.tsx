@@ -1,24 +1,24 @@
 "use client";
 
-import { useStore } from "@/app/store";
+import { useCategoryProductQuery } from "@/lib/actions/Hooks/useCategory";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import ProductCard from "@/components/Product/ProductCards/product-card";
 
-import { useEffect } from "react";
+export default function Computers() {
+  const categoryName = "Desktops Computers"; // Directly use "Computers"
+  const { data: categoryProducts, isLoading: isProductsLoading } =
+    useCategoryProductQuery(categoryName);
 
-export default function FeaturedCollection() {
-  const products = useStore((state) => state.products);
-  const fetchProducts = useStore((state) => state.fetchProductsState);
+  if (isProductsLoading) {
+    return <div>Loading...</div>;
+  }
 
-  useEffect(() => {
-    if (!products || products.length === 0) {
-      fetchProducts(1, {});
-    }
-  }, [fetchProducts, products]);
+  // Ensure categoryProducts has products before mapping
+  const products = categoryProducts?.products || [];
 
   return (
     <ScrollableSection
-      title="Featured Products"
+      title="Desktops & Computers"
       items={products.map((product) => ({
         id: product.id,
         content: (
@@ -31,6 +31,7 @@ export default function FeaturedCollection() {
             description={product.description}
             quantity={product.quantity}
             ratings={product.ratings}
+            created_at={product.created_at}
           />
         ),
       }))}

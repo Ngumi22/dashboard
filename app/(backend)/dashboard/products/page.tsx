@@ -81,7 +81,7 @@ const columnRenderers: Record<
   ratings: function (item: Product): React.ReactNode {
     throw new Error("Function not implemented.");
   },
-  createdAt: function (item: Product): React.ReactNode {
+  created_at: function (item: Product): React.ReactNode {
     throw new Error("Function not implemented.");
   },
   updatedAt: function (item: Product): React.ReactNode {

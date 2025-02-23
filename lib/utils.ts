@@ -271,7 +271,7 @@ export function mapProductRow(row: ProductRow): Product {
     price: row.price,
     discount: row.discount,
     quantity: row.quantity,
-    createdAt: formatDateToLocal(row.createdAt),
+    created_at: formatDateToLocal(row.created_at),
     updatedAt: formatDateToLocal(row.updatedAt),
     images: {
       main: convertToBase64(row.main_image),

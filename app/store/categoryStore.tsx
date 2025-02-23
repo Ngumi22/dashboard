@@ -8,8 +8,8 @@ interface FilterState {
   clearFilters: () => void;
 }
 
-export const useFilterStore = create<FilterState>((set) => ({
-  selectedCategory: "", // Default category
+export const useCategoryFilterStore = create<FilterState>((set) => ({
+  selectedCategory: "Laptops", // Default category
   filters: {},
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setFilter: (key, value) =>

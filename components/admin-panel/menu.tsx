@@ -73,7 +73,7 @@ export function Menu({ isOpen }: MenuProps) {
                               variant={active ? "secondary" : "ghost"}
                               className="w-full justify-start h-10 mb-1"
                               asChild>
-                              <Link href={href}>
+                              <Link href={href} prefetch={true}>
                                 <span
                                   className={cn(
                                     isOpen === false ? "" : "mr-4"

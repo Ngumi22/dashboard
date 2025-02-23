@@ -16,7 +16,13 @@ export async function fetchProducts(
   currentPage: number,
   filter: SearchParams
 ): Promise<{ products: Product[]; errorMessage?: string }> {
-  const cacheKey = `products_${currentPage}_${JSON.stringify(filter)}`;
+  const limit =
+    DBQUERYLIMITS[filter.type as keyof typeof DBQUERYLIMITS] ||
+    DBQUERYLIMITS.default;
+  const offset = (currentPage - 1) * limit;
+  const cacheKey = `products_${currentPage}_${limit}_${offset}_${JSON.stringify(
+    filter
+  )}`;
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
@@ -26,11 +32,6 @@ export async function fetchProducts(
     }
     cache.delete(cacheKey); // Invalidate expired cache
   }
-
-  const limit =
-    DBQUERYLIMITS[filter.type as keyof typeof DBQUERYLIMITS] ||
-    DBQUERYLIMITS.default;
-  const offset = (currentPage - 1) * limit;
 
   return dbOperation(async (connection) => {
     try {
@@ -46,6 +47,7 @@ export async function fetchProducts(
           p.product_status AS status,
           p.product_description AS description,
           p.category_id,
+          DATE_FORMAT(p.created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at,
           b.brand_id,
           b.brand_name,
           b.brand_image,
@@ -78,100 +80,7 @@ export async function fetchProducts(
       const [rows] = await connection.query(query, queryParams);
 
       // Map rows to Product interface
-      const products: Product[] = await Promise.all(
-        rows.map(async (row: any): Promise<Product> => {
-          const compressedMainImage: string =
-            (await compressAndEncodeBase64(row.main_image || null)) ?? "";
-          const compressedThumbnails: string[] = await Promise.all([
-            compressAndEncodeBase64(row.thumbnail1 || null).then(
-              (result) => result ?? ""
-            ),
-            compressAndEncodeBase64(row.thumbnail2 || null).then(
-              (result) => result ?? ""
-            ),
-            compressAndEncodeBase64(row.thumbnail3 || null).then(
-              (result) => result ?? ""
-            ),
-            compressAndEncodeBase64(row.thumbnail4 || null).then(
-              (result) => result ?? ""
-            ),
-            compressAndEncodeBase64(row.thumbnail5 || null).then(
-              (result) => result ?? ""
-            ),
-          ]);
-
-          // Parse suppliers and specifications
-          const suppliers: Supplier[] = row.suppliers
-            ? row.suppliers.split("|").map((supplier: string): Supplier => {
-                const [
-                  supplier_id,
-                  supplier_name,
-                  supplier_email,
-                  supplier_phone_number,
-                  supplier_location,
-                ] = supplier.split(":");
-                return {
-                  supplier_id: parseInt(supplier_id),
-                  supplier_name,
-                  supplier_email,
-                  supplier_phone_number,
-                  supplier_location,
-                };
-              })
-            : [];
-
-          const specifications: Specification[] = row.specifications
-            ? row.specifications
-                .split("|")
-                .map((spec: string): Specification => {
-                  const [
-                    specification_id,
-                    specification_name,
-                    specification_value,
-                    category_id,
-                  ] = spec.split(":");
-                  return {
-                    specification_id,
-                    specification_name,
-                    specification_value,
-                    category_id,
-                  };
-                })
-            : [];
-
-          return {
-            id: parseInt(row.id),
-            name: row.name,
-            sku: row.sku,
-            description: row.description,
-            price: parseFloat(row.price),
-            quantity: parseInt(row.quantity),
-            discount: parseFloat(row.discount),
-            status: row.status as ProductStatus,
-            tags: row.tags ? row.tags.split(",") : [],
-            main_image: compressedMainImage || "",
-            thumbnails: [
-              {
-                thumbnail1: compressedThumbnails[0] || "",
-                thumbnail2: compressedThumbnails[1] || "",
-                thumbnail3: compressedThumbnails[2] || "",
-                thumbnail4: compressedThumbnails[3] || "",
-                thumbnail5: compressedThumbnails[4] || "",
-              },
-            ],
-            category_id: row.category_id.toString(),
-            brand: {
-              brand_id: row.brand_id.toString(),
-              brand_name: row.brand_name,
-              brand_image:
-                (await compressAndEncodeBase64(row.brand_image)) ?? "",
-            },
-            specifications,
-            suppliers,
-            ratings: row.ratings,
-          };
-        })
-      );
+      const products: Product[] = await mapRowsToProducts(rows);
 
       const result = { products };
 
@@ -190,11 +99,109 @@ export async function fetchProducts(
   });
 }
 
+// Helper to map database rows to Product objects
+async function mapRowsToProducts(rows: any[]): Promise<Product[]> {
+  return Promise.all(
+    rows.map(async (row): Promise<Product> => {
+      const compressedMainImage: string =
+        (await compressAndEncodeBase64(row.main_image || null)) ?? "";
+      const compressedThumbnails: string[] = await Promise.all([
+        compressAndEncodeBase64(row.thumbnail1 || null).then(
+          (result) => result ?? ""
+        ),
+        compressAndEncodeBase64(row.thumbnail2 || null).then(
+          (result) => result ?? ""
+        ),
+        compressAndEncodeBase64(row.thumbnail3 || null).then(
+          (result) => result ?? ""
+        ),
+        compressAndEncodeBase64(row.thumbnail4 || null).then(
+          (result) => result ?? ""
+        ),
+        compressAndEncodeBase64(row.thumbnail5 || null).then(
+          (result) => result ?? ""
+        ),
+      ]);
+
+      // Parse suppliers and specifications
+      const suppliers: Supplier[] = row.suppliers
+        ? row.suppliers.split("|").map((supplier: string): Supplier => {
+            const [
+              supplier_id,
+              supplier_name,
+              supplier_email,
+              supplier_phone_number,
+              supplier_location,
+            ] = supplier.split(":");
+            return {
+              supplier_id: parseInt(supplier_id),
+              supplier_name,
+              supplier_email,
+              supplier_phone_number,
+              supplier_location,
+            };
+          })
+        : [];
+
+      const specifications: Specification[] = row.specifications
+        ? row.specifications.split("|").map((spec: string): Specification => {
+            const [
+              specification_id,
+              specification_name,
+              specification_value,
+              category_id,
+            ] = spec.split(":");
+            return {
+              specification_id,
+              specification_name,
+              specification_value,
+              category_id,
+            };
+          })
+        : [];
+
+      return {
+        id: parseInt(row.id),
+        name: row.name,
+        sku: row.sku,
+        description: row.description,
+        price: parseFloat(row.price),
+        quantity: parseInt(row.quantity),
+        discount: parseFloat(row.discount),
+        status: row.status as ProductStatus,
+        tags: row.tags ? row.tags.split(",") : [],
+        main_image: compressedMainImage || "",
+        thumbnails: [
+          {
+            thumbnail1: compressedThumbnails[0] || "",
+            thumbnail2: compressedThumbnails[1] || "",
+            thumbnail3: compressedThumbnails[2] || "",
+            thumbnail4: compressedThumbnails[3] || "",
+            thumbnail5: compressedThumbnails[4] || "",
+          },
+        ],
+        category_id: row.category_id.toString(),
+        created_at: row.created_at,
+        brand: {
+          brand_id: row.brand_id.toString(),
+          brand_name: row.brand_name,
+          brand_image: (await compressAndEncodeBase64(row.brand_image)) ?? "",
+        },
+        specifications,
+        suppliers,
+        ratings: row.ratings,
+      };
+    })
+  );
+}
+
 // Helper to build WHERE clause dynamically
 function buildFilterConditions(filter: SearchParams) {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
 
+  if (filter.name)
+    conditions.push("p.product_name LIKE ?"), params.push(`%${filter.name}%`);
   if (filter.minPrice)
     conditions.push("p.product_price >= ?"), params.push(filter.minPrice);
   if (filter.maxPrice)
@@ -203,16 +210,16 @@ function buildFilterConditions(filter: SearchParams) {
     conditions.push("p.product_discount >= ?"), params.push(filter.minDiscount);
   if (filter.maxDiscount)
     conditions.push("p.product_discount <= ?"), params.push(filter.maxDiscount);
-  if (filter.name)
-    conditions.push("p.product_name LIKE ?"), params.push(`%${filter.name}%`);
   if (filter.brand)
     conditions.push("b.brand_name = ?"), params.push(filter.brand);
   if (filter.category)
     conditions.push("p.category_id = ?"), params.push(filter.category);
   if (filter.status !== undefined)
     conditions.push("p.product_status = ?"), params.push(filter.status);
-  if (filter.stock)
-    conditions.push("p.product_quantity >= ?"), params.push(filter.stock);
+  if (filter.quantity)
+    conditions.push("p.product_quantity >= ?"), params.push(filter.quantity);
+  if (filter.created_at)
+    conditions.push("p.created_at >= ?"), params.push(filter.created_at);
   if (filter.minRating) {
     conditions.push("COALESCE(ROUND(AVG(pr.rating), 1) >= ?");
     params.push(filter.minRating);
@@ -221,7 +228,6 @@ function buildFilterConditions(filter: SearchParams) {
     conditions.push("COALESCE(ROUND(AVG(pr.rating), 1) <= ?");
     params.push(filter.maxRating);
   }
-
   if (filter.tags) {
     const tags = filter.tags.split(",");
     conditions.push(`(${tags.map(() => "t.tag_name = ?").join(" OR ")})`);
@@ -259,6 +265,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
             p.product_status,
             p.product_description,
             p.category_id,
+            DATE_FORMAT(p.created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at,
             b.brand_id,
             b.brand_name,
             b.brand_image,
@@ -303,6 +310,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
         discount: parseFloat(row.product_discount),
         status: row.product_status as ProductStatus,
         category_id: String(row.category_id),
+        created_at: row.created_at,
         ratings: row.ratings,
         tags: row.tags ? row.tags.split(",").filter(Boolean) : [],
         main_image: (await compressAndEncodeBase64(row.main_image)) ?? "",

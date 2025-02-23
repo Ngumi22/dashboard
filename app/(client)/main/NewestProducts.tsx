@@ -1,36 +1,35 @@
 "use client";
 
-import { useStore } from "@/app/store";
+import { useCategoryProductQuery } from "@/lib/actions/Hooks/useCategory";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import ProductCard from "@/components/Product/ProductCards/product-card";
 
-import { useEffect } from "react";
+import { useProducts } from "@/lib/actions/Hooks/useProducts";
+import { useProductFilters } from "@/app/store/ProductFilterStore";
 
-export default function NewestProducts() {
-  const products = useStore((state) => state.products);
-  const fetchProducts = useStore((state) => state.fetchProductsState);
+export default function NewProducts() {
+  const { setFilters } = useProductFilters();
+  const { data, isLoading, error } = useProducts(1); // Fetch products for page 1
 
-  useEffect(() => {
-    if (!products || products.length === 0) {
-      fetchProducts(1, {});
-    }
-  }, [fetchProducts, products]);
+  // Ensure categoryProducts has products before mapping
+  const products = data?.products || [];
 
   return (
     <ScrollableSection
-      title="Latest Products"
+      title="Newest Products"
       items={products.map((product) => ({
         id: product.id,
         content: (
           <ProductCard
             main_image={product.main_image}
             price={product.price}
-            id={String(product.id)}
+            id={product.id}
             name={product.name}
             discount={product.discount}
             description={product.description}
             quantity={product.quantity}
             ratings={product.ratings}
+            created_at={product.created_at} // Ensure this is passed to ProductCard
           />
         ),
       }))}

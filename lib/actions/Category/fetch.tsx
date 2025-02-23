@@ -484,7 +484,7 @@ export async function generateMetadata({ params }: any) {
   };
 }
 export async function getUniqueCategories(): Promise<Category[]> {
-  const cacheKey = "categories";
+  const cacheKey = "categoryData";
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
@@ -498,7 +498,15 @@ export async function getUniqueCategories(): Promise<Category[]> {
   return dbOperation(async (connection) => {
     try {
       const [categories] = await connection.query(
-        `SELECT category_id, category_name, category_image, category_description, category_status FROM categories`
+        `SELECT DISTINCT
+            category_id,
+            category_name,
+            category_image,
+            category_description,
+            category_status
+        FROM categories
+        WHERE category_status = 'active'
+        AND parent_category_id IS NULL`
       );
 
       // Return an empty array if no categories found

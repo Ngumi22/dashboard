@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchProductById, fetchProducts } from "../Product/fetch";
-import { SearchParams } from "../Product/productTypes";
+import { useProductFilters } from "@/app/store/ProductFilterStore";
 
 const MINUTE = 1000 * 60;
 
@@ -11,10 +11,11 @@ export function useProductsQuery(
 ) {
   return useQuery({
     queryKey: ["products", currentPage, filter],
-    queryFn: () => fetchProducts(currentPage, filter),
+    queryFn: async () =>
+      (await fetchProducts(currentPage, filter)) || { products: [] },
+    placeholderData: keepPreviousData,
     staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
     gcTime: 10 * MINUTE,
-    placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
 }
 
@@ -26,5 +27,17 @@ export function useProductByIdQuery(productId: number) {
     staleTime: 1000 * 60 * 30, // 30 minutes
     gcTime: 1000 * 60 * 60, // 1 hour
     enabled: !!productId, // Only run if productId is defined
+  });
+}
+
+export function useProducts(currentPage: number) {
+  const { filters } = useProductFilters();
+
+  return useQuery({
+    queryKey: ["products", currentPage, filters], // Unique cache key
+    queryFn: () => fetchProducts(currentPage, filters),
+    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
+    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
 }

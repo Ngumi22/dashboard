@@ -20,11 +20,11 @@ export default function Cart() {
   const cartTotalAmount = useCartStore((state) => state.getTotalCost());
   const cartTotalQuantity = useCartStore((state) => state.getTotalQuantity());
 
-  const handleIncreaseCart = (id: string) => {
+  const handleIncreaseCart = (id: number) => {
     increaseQuantity(id);
   };
 
-  const handleRemoveFromCart = (id: string) => {
+  const handleRemoveFromCart = (id: number) => {
     decreaseQuantity(id);
   };
 

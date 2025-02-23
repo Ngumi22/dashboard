@@ -15,7 +15,7 @@ export async function CategorySubmitAction(
   data: FormData
 ): Promise<FormState> {
   try {
-    console.log(data);
+    // console.log(data);
     // Validate form data using Zod schema
     const parsed = CategorySchema.safeParse({
       category_name: data.get("category_name"),
@@ -28,7 +28,7 @@ export async function CategorySubmitAction(
           : null, // Ensure parent_category_id is a number or null
     });
 
-    console.log("Parsed data:", parsed);
+    // console.log("Parsed data:", parsed);
 
     if (!parsed.success) {
       console.error("Validation failed:", parsed.error.format());

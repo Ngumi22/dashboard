@@ -53,13 +53,13 @@ export default function ProductsGrid({
           return b.price - a.price;
         case "date_asc":
           return (
-            new Date(a.createdAt || "").getTime() -
-            new Date(b.createdAt || "").getTime()
+            new Date(a.created_at || "").getTime() -
+            new Date(b.created_at || "").getTime()
           );
         case "date_desc":
           return (
-            new Date(b.createdAt || "").getTime() -
-            new Date(a.createdAt || "").getTime()
+            new Date(b.created_at || "").getTime() -
+            new Date(a.created_at || "").getTime()
           );
         case "rating_desc":
           return b.ratings - a.ratings;

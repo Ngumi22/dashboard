@@ -31,7 +31,7 @@ export interface ProductData {
   category: string;
   name: string;
   description: string;
-  createdAt: string;
+  created_at: string;
   updatedAt: string;
   images: {
     main: string; // Base64 string of main image
@@ -62,7 +62,7 @@ export interface ProductRow {
   status: string;
   description: string;
   brand: string;
-  createdAt: string;
+  created_at: string;
   updatedAt: string;
   main_image: Buffer | null;
   thumbnail1: Buffer | null;
@@ -86,7 +86,7 @@ export interface Product {
   status: string;
   description: string;
   brand: string;
-  createdAt: string;
+  created_at: string;
   updatedAt: string;
   images: {
     main: string;
@@ -170,11 +170,9 @@ export type SessionPayload = {
   expiresAt: Date;
 };
 
-import type { ReactNode } from "react";
-
 export interface ScrollableItemProps {
   id: string | number;
-  content: ReactNode;
+  content: any;
 }
 
 export interface ScrollableSectionProps {
@@ -183,6 +181,50 @@ export interface ScrollableSectionProps {
   className?: string;
   itemClassName?: string;
   banner?: BannerProps;
+}
+
+export type ProductStatus = "draft" | "pending" | "approved";
+export interface ProductCardProps {
+  id: number;
+  name: string;
+  sku: string;
+  description: string;
+  price: number;
+  quantity: number;
+  discount: number;
+  status: ProductStatus;
+  tags?: string[];
+  main_image: string;
+  thumbnails: {
+    thumbnail1: string;
+    thumbnail2: string;
+    thumbnail3: string;
+    thumbnail4: string;
+    thumbnail5: string;
+  }[];
+  category_id: string;
+  brand: {
+    brand_id: string;
+    brand_name: string;
+    brand_image: string;
+  };
+  specifications: {
+    specification_id: string;
+    specification_name: string;
+    specification_value: string;
+    category_id: string;
+  }[];
+  suppliers: {
+    supplier_id?: number;
+    supplier_name?: string;
+    supplier_email?: string;
+    supplier_phone_number?: string;
+    supplier_location?: string;
+    isNew?: boolean;
+  }[];
+  ratings: number;
+  created_at: string;
+  updatedAt?: string;
 }
 
 export interface BannerProps {
@@ -200,16 +242,9 @@ export interface BannerImage {
   link?: string;
 }
 
-export interface ProductCardProps {
-  id: string | number;
-  title: string;
-  price: string;
-  imageUrl: string;
-}
-
 export interface CategoryData {
   name: string;
-  products: ProductCardProps[];
+  products: MinimalProduct[];
 }
 
 export interface BannerImage {
@@ -218,17 +253,24 @@ export interface BannerImage {
   link?: string;
 }
 
-export interface ProductCardProps {
-  id: string | number;
-  title: string;
-  price: string;
-  imageUrl: string;
-}
+export type MinimalProduct = {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  main_image: string;
+  ratings: number;
+  discount: number;
+  quantity: number;
+  created_at: string;
+  category_id: string;
+};
 
 export interface TabbedScrollableSectionProps {
   categories: CategoryData[];
   className?: string;
   itemClassName?: string;
+  onCategorySelect: any;
 }
 
 export interface SubCategory {

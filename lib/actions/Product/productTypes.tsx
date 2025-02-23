@@ -10,8 +10,7 @@ export async function compressAndEncodeBase64(
 
   try {
     const compressedBuffer = await sharp(buffer)
-      .resize(100) // Resize to 100px width
-      .webp({ quality: 70 }) // Convert to WebP with 70% quality
+      .webp({ quality: 100 }) // Convert to WebP with 70% quality
       .toBuffer();
 
     return compressedBuffer.toString("base64");
@@ -68,7 +67,7 @@ export interface Product {
     isNew?: boolean;
   }[];
   ratings: number;
-  createdAt?: string;
+  created_at: string;
   updatedAt?: string;
 }
 
@@ -96,6 +95,7 @@ export interface ProductRow extends RowDataPacket, ImageFields {
   tagId?: string; // Add this if optional
   tagName?: string; // Add this if optional
   ratings: number;
+  created_at: string;
 }
 
 export interface ProductResponse {
@@ -117,6 +117,7 @@ export interface ProductResponse {
     thumbnails: string[] | null;
   };
   tags?: string[];
+  created_at: string;
 }
 
 // Define `SearchParams` interface with more explicit typing for query handling.
@@ -130,11 +131,12 @@ export interface SearchParams {
   brand?: string;
   category?: string;
   status?: string;
-  stock?: number;
+  quantity?: number;
   tags?: string;
   type?: "brand" | "category" | "default";
   minRating?: number;
   maxRating?: number;
+  created_at?: string;
 }
 
 export async function mapProductRow(row: ProductRow): Promise<Product> {
@@ -177,6 +179,7 @@ export async function mapProductRow(row: ProductRow): Promise<Product> {
     specifications: [], // You need to fetch this from your data
     suppliers: [], // You need to fetch this from your data
     ratings: 0,
+    created_at: "",
   };
 }
 

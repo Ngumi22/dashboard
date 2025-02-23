@@ -27,7 +27,10 @@ export default function SideBar() {
           )}
           variant="link"
           asChild>
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link
+            href="/dashboard"
+            prefetch={true}
+            className="flex items-center gap-2">
             <h1
               className={cn(
                 "font-bold text-4xl whitespace-nowrap transition-[transform,opacity,display] ease-in-out duration-300",

@@ -1,17 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { toast } from "react-toastify"; // Import react-toastify's toast method
-import { Product } from "@/lib/actions/Product/productTypes";
+import { toast } from "react-toastify";
 
 export type MinimalProduct = {
-  id: string;
+  id: number;
   name: string;
+  description: string;
   price: number;
+  main_image: string;
   ratings: number;
   discount: number;
-  description: string;
   quantity: number;
-  main_image: string | null;
+  created_at?: string;
 };
 
 // Define the cart item type
@@ -23,12 +23,25 @@ type CartItem = MinimalProduct & {
 export type CartStoreState = {
   cartItems: CartItem[];
   addItemToCart: (product: MinimalProduct) => void;
-  removeItemFromCart: (id: string) => void;
+  removeItemFromCart: (id: number) => void;
   clearCart: () => void;
-  increaseItemQuantity: (id: string) => void;
-  decreaseItemQuantity: (id: string) => void;
+  increaseItemQuantity: (id: number) => void;
+  decreaseItemQuantity: (id: number) => void;
   getTotalCost: () => number;
   getTotalQuantity: () => number;
+};
+
+// Toast configuration for consistency
+const showToast = (message: string, type: "success" | "error" = "success") => {
+  toast[type](message, {
+    position: "bottom-right",
+    autoClose: 3000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+  });
 };
 
 // Create the store with Zustand and persist middleware
@@ -37,13 +50,14 @@ export const useCartStore = create<CartStoreState>()(
     (set, get) => ({
       cartItems: [],
 
-      addItemToCart: (product: MinimalProduct) =>
-        set((state) => {
-          if (!product || !product.id) {
-            console.error("Invalid product passed to addItemToCart:", product);
-            return state;
-          }
+      // Add a product to the cart
+      addItemToCart: (product: MinimalProduct) => {
+        if (!product || !product.id) {
+          showToast("Invalid product. Please try again.", "error");
+          return;
+        }
 
+        set((state) => {
           const existingItem = state.cartItems.find(
             (item) => item.id === product.id
           );
@@ -55,8 +69,7 @@ export const useCartStore = create<CartStoreState>()(
                 ? { ...item, quantity: item.quantity + 1 }
                 : item
             );
-            // Show toast notification when item is added
-            toast.success(`Added 1 more ${product.name} to your cart!`);
+            showToast(`Added 1 more ${product.name} to your cart!`);
             return { cartItems: updatedCartItems };
           }
 
@@ -65,32 +78,43 @@ export const useCartStore = create<CartStoreState>()(
             ...state.cartItems,
             { ...product, quantity: 1 },
           ];
-          // Show toast notification when item is added
-          toast.success(`Added ${product.name} to your cart!`);
+          showToast(`Added ${product.name} to your cart!`);
           return { cartItems: updatedCartItems };
-        }),
+        });
+      },
 
       // Remove a product from the cart
-      removeItemFromCart: (id: string) =>
-        set((state) => ({
-          cartItems: state.cartItems.filter((item) => item.id !== id),
-        })),
+      removeItemFromCart: (id: number) => {
+        set((state) => {
+          const updatedCartItems = state.cartItems.filter(
+            (item) => item.id !== id
+          );
+          if (updatedCartItems.length !== state.cartItems.length) {
+            showToast("Item removed from cart.");
+          }
+          return { cartItems: updatedCartItems };
+        });
+      },
 
       // Clear the entire cart
-      clearCart: () => set({ cartItems: [] }),
+      clearCart: () => {
+        set({ cartItems: [] });
+        showToast("Cart cleared.");
+      },
 
       // Increase the quantity of a product
-      increaseItemQuantity: (id: string) =>
+      increaseItemQuantity: (id: number) => {
         set((state) => {
           const updatedCartItems = state.cartItems.map((item) =>
             item.id === id ? { ...item, quantity: item.quantity + 1 } : item
           );
-          toast.success("Increased quantity!");
+          showToast("Increased quantity!");
           return { cartItems: updatedCartItems };
-        }),
+        });
+      },
 
       // Decrease the quantity of a product, removing it if quantity drops to 0
-      decreaseItemQuantity: (id: string) =>
+      decreaseItemQuantity: (id: number) => {
         set((state) => {
           const updatedCartItems = state.cartItems
             .map((item) =>
@@ -101,11 +125,12 @@ export const useCartStore = create<CartStoreState>()(
             .filter((item) => item.quantity > 0);
 
           if (updatedCartItems.length !== state.cartItems.length) {
-            toast.success("Item removed from cart.");
+            showToast("Item removed from cart.");
           }
 
           return { cartItems: updatedCartItems };
-        }),
+        });
+      },
 
       // Get the total cost of items in the cart
       getTotalCost: () => {
@@ -116,13 +141,14 @@ export const useCartStore = create<CartStoreState>()(
         );
       },
 
+      // Get the total quantity of items in the cart
       getTotalQuantity: () => {
         const { cartItems } = get();
         return cartItems.reduce((total, item) => total + item.quantity, 0);
       },
     }),
     {
-      name: "cart-storage",
+      name: "cart-storage", // Name for localStorage persistence
     }
   )
 );

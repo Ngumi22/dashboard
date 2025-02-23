@@ -1,24 +1,24 @@
 "use client";
 
-import { useStore } from "@/app/store";
+import { useCategoryProductQuery } from "@/lib/actions/Hooks/useCategory";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import ProductCard from "@/components/Product/ProductCards/product-card";
 
-import { useEffect } from "react";
+export default function Laptops() {
+  const categoryName = "Laptops"; // Directly use "Laptops"
+  const { data: categoryProducts, isLoading: isProductsLoading } =
+    useCategoryProductQuery(categoryName);
 
-export default function FeaturedCollection() {
-  const products = useStore((state) => state.products);
-  const fetchProducts = useStore((state) => state.fetchProductsState);
+  if (isProductsLoading) {
+    return <div>Loading...</div>;
+  }
 
-  useEffect(() => {
-    if (!products || products.length === 0) {
-      fetchProducts(1, {});
-    }
-  }, [fetchProducts, products]);
+  // Ensure categoryProducts has products before mapping
+  const products = categoryProducts?.products || [];
 
   return (
     <ScrollableSection
-      title="Featured Products"
+      title="Laptops"
       items={products.map((product) => ({
         id: product.id,
         content: (
