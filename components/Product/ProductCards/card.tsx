@@ -82,10 +82,10 @@ export default function Caard() {
         {/* Image Container */}
         <div className="relative">
           <Image
-            height={100}
-            width={100}
             src="https://images.unsplash.com/photo-1592921870789-04563d55041c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=50"
             alt="Robot Toy"
+            height={100}
+            width={100}
             className="aspect-square w-full rounded-sm object-cover"
           />
 

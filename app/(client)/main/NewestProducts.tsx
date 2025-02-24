@@ -1,14 +1,11 @@
 "use client";
 
-import { useCategoryProductQuery } from "@/lib/actions/Hooks/useCategory";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import ProductCard from "@/components/Product/ProductCards/product-card";
 
 import { useProducts } from "@/lib/actions/Hooks/useProducts";
-import { useProductFilters } from "@/app/store/ProductFilterStore";
 
 export default function NewProducts() {
-  const { setFilters } = useProductFilters();
   const { data, isLoading, error } = useProducts(1); // Fetch products for page 1
 
   // Ensure categoryProducts has products before mapping

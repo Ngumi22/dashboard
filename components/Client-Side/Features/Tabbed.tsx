@@ -1,14 +1,20 @@
 "use client";
 
 import type React from "react";
-import { useRef, useEffect, useCallback, useState, useMemo } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { MinimalProduct } from "@/lib/definitions";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  // Add other product properties here
+}
 
 interface Tab {
   id: string;
   label: string;
-  products: MinimalProduct[];
+  products: Product[];
 }
 
 interface ScrollableTabbedSectionProps {
@@ -17,7 +23,7 @@ interface ScrollableTabbedSectionProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
   className?: string;
-  ProductCard: React.ComponentType<MinimalProduct>;
+  ProductCard: React.ComponentType<Product>;
   ProductCardSkeleton: React.ComponentType;
 }
 
@@ -35,11 +41,6 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
 
-  const activeTabData = useMemo(
-    () => tabs.find((tab) => tab.id === activeTab) || tabs[0],
-    [tabs, activeTab]
-  );
-
   const checkTabsOverflow = useCallback(() => {
     if (tabsRef.current) {
       const { scrollWidth, clientWidth, scrollLeft } = tabsRef.current;
@@ -54,7 +55,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
     return () => window.removeEventListener("resize", checkTabsOverflow);
   }, [checkTabsOverflow]);
 
-  const scrollTabs = useCallback((direction: "left" | "right") => {
+  const scrollTabs = (direction: "left" | "right") => {
     if (tabsRef.current) {
       const scrollAmount = tabsRef.current.clientWidth / 2;
       tabsRef.current.scrollBy({
@@ -62,7 +63,13 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
         behavior: "smooth",
       });
     }
-  }, []);
+  };
+
+  const handleTabClick = (tabId: string) => {
+    onTabChange(tabId);
+  };
+
+  const activeTabData = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
   return (
     <div className={`w-full ${className}`}>
@@ -77,10 +84,10 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => onTabChange(tab.id)}
+                onClick={() => handleTabClick(tab.id)}
                 className={`px-4 py-2 whitespace-nowrap transition-colors text-sm font-medium ${
                   activeTab === tab.id
-                    ? "bg-red-500 text-primary-foreground"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-background text-foreground hover:bg-muted"
                 }`}>
                 {tab.label}
@@ -111,13 +118,17 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
       <div
         ref={productsRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {activeTabData.products.length > 0
-          ? activeTabData.products.map((product) => (
-              <ProductCard key={product.id} {...product} />
-            ))
-          : Array.from({ length: 4 }).map((_, index) => (
+        {activeTabData.products.length > 0 ? (
+          activeTabData.products.map((product) => (
+            <ProductCard key={product.id} {...product} />
+          ))
+        ) : (
+          <>
+            {[...Array(4)].map((_, index) => (
               <ProductCardSkeleton key={index} />
             ))}
+          </>
+        )}
       </div>
     </div>
   );

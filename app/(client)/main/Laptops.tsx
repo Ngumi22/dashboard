@@ -1,41 +1,96 @@
 "use client";
 
-import { useCategoryProductQuery } from "@/lib/actions/Hooks/useCategory";
-import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
-import ProductCard from "@/components/Product/ProductCards/product-card";
+import { useState, useEffect, useMemo } from "react";
+import ProductCard, {
+  ProductCardSkeleton,
+} from "@/components/Product/ProductCards/product-card";
+import ScrollableTabbedSection from "@/components/Client-Side/Features/TabbedScrollableSection";
+import {
+  useFetchProductsBySubCategory,
+  useFetchSubCategories,
+} from "@/lib/actions/Hooks/useCategory";
 
-export default function Laptops() {
-  const categoryName = "Laptops"; // Directly use "Laptops"
-  const { data: categoryProducts, isLoading: isProductsLoading } =
-    useCategoryProductQuery(categoryName);
+export default function SubCategoryProductsLaptops() {
+  const categoryName = "Laptops"; // Hardcoded category name
 
-  if (isProductsLoading) {
+  const [subCategoryName, setSubCategoryName] = useState<string>("");
+  const {
+    data: subCategories,
+    isLoading: isSubCategoriesLoading,
+    error: subCategoriesError,
+  } = useFetchSubCategories(categoryName);
+
+  const {
+    data: subCategoryProducts,
+    isLoading: isProductsLoading,
+    error: productsError,
+  } = useFetchProductsBySubCategory(subCategoryName);
+
+  useEffect(() => {
+    if (subCategories && subCategories.length > 0 && !subCategoryName) {
+      setSubCategoryName(subCategories[0].category_name); // Set the first subcategory as default
+    }
+  }, [subCategories, subCategoryName]);
+
+  // Memoize the tabs array
+  const tabs = useMemo(() => {
+    return (
+      subCategories?.map((subCategory: any) => ({
+        id: subCategory.category_name,
+        label: subCategory.category_name,
+        products:
+          subCategoryProducts?.products?.filter(
+            (product) => product.category_id === subCategory.category_id
+          ) || [],
+      })) || []
+    );
+  }, [subCategories, subCategoryProducts]);
+
+  const [activeTab, setActiveTab] = useState(tabs.length > 0 ? tabs[0].id : "");
+
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(tabs[0].id); // Reset activeTab if it's not in the tabs array
+    }
+  }, [tabs, activeTab]);
+
+  const handleTabChange = (tabId: string) => {
+    setSubCategoryName(tabId); // Update the subcategory name when a tab is clicked
+    setActiveTab(tabId); // Update the activeTab state
+  };
+
+  // Handle errors
+  if (subCategoriesError || productsError) {
+    return (
+      <div className="text-center text-red-500">
+        {subCategoriesError?.message || productsError?.message}
+      </div>
+    );
+  }
+
+  // Hide the component if no subcategories are found
+  if (
+    !isSubCategoriesLoading &&
+    (!subCategories || subCategories.length === 0)
+  ) {
+    return null; // Hide the component
+  }
+
+  // Show loading state while data is being fetched
+  if (isSubCategoriesLoading || isProductsLoading) {
     return <div>Loading...</div>;
   }
 
-  // Ensure categoryProducts has products before mapping
-  const products = categoryProducts?.products || [];
-
   return (
-    <ScrollableSection
-      title="Laptops"
-      items={products.map((product) => ({
-        id: product.id,
-        content: (
-          <ProductCard
-            main_image={product.main_image}
-            price={product.price}
-            id={product.id}
-            name={product.name}
-            discount={product.discount}
-            description={product.description}
-            quantity={product.quantity}
-            ratings={product.ratings}
-          />
-        ),
-      }))}
-      className="mb-8"
-      itemClassName=""
-    />
+    <section>
+      <ScrollableTabbedSection
+        title="Shop Laptops"
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        ProductCard={ProductCard}
+        ProductCardSkeleton={ProductCardSkeleton}
+      />
+    </section>
   );
 }

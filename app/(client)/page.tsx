@@ -3,26 +3,26 @@
 // Import critical components
 import Service from "@/components/Client-Side/Services/service";
 import HeroSection from "./Hero/hero";
-import CategorySection from "@/components/Client-Side/Category/category";
+import ShopByBrand from "./main/ShopByBrand";
+import DiscountedOffers from "./main/Offers";
+import SubCategoryProductsLaptops from "./main/Laptops";
+import Categories from "./main/Categories";
+import SubCategoryProductsComputers from "./main/Computers";
 import NewProducts from "./main/NewestProducts";
-import Laptops from "./main/Laptops";
-import Computers from "./main/Computers";
-import SpecialOffers from "./main/SpecialOffers";
-import ShopByCategory from "./main/Main";
 
 export default function Page() {
   return (
     <div className="mt-[10rem] lg:mt-[12rem]">
       <HeroSection />
       {/* Main Content */}
-      <div className="bg-[#F5F5F7] pt-2 md:container p-1 space-y-6">
+      <div className="bg-[#F5F5F7] pt-2 md:container space-y-2">
         <Service />
-        <CategorySection />
-        <ShopByCategory />
-        <SpecialOffers />
-        <Laptops />
-        <Computers />
+        <DiscountedOffers />
+        <SubCategoryProductsLaptops />
+        {/* <SubCategoryProductsComputers /> */}
         <NewProducts />
+        <Categories />
+        <ShopByBrand />
       </div>
     </div>
   );

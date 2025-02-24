@@ -6,7 +6,7 @@ import { compressAndEncodeBase64 } from "../utils";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function getUniqueBrands(): Promise<Brand[]> {
-  const cacheKey = "brands";
+  const cacheKey = "brandData";
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {

@@ -15,23 +15,24 @@ export type Product = {
   quantity: number;
   created_at: string;
   category_id: string;
+  brand_id: string;
 };
 
-export type ProductCategory = {
+export type ProductBrand = {
   name: string;
   products: Product[];
 };
 
-export async function fetchProductByCategory(
-  category_name: string
-): Promise<ProductCategory | null> {
-  const cacheKey = `categoryProducts:${category_name}`;
+export async function fetchProductByBrand(
+  brand_name: string
+): Promise<ProductBrand | null> {
+  const cacheKey = `brandProducts:${brand_name}`;
 
   // Check cache
   if (cache.has(cacheKey)) {
     const cachedData = cache.get(cacheKey);
     if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as ProductCategory;
+      return cachedData.value as ProductBrand;
     }
     cache.delete(cacheKey); // Remove expired cache
   }
@@ -50,26 +51,24 @@ export async function fetchProductByCategory(
             p.product_discount AS discount,
             p.product_quantity AS quantity,
             p.category_id,
-            main_c.category_name AS main_category_name
+            b.brand_name as brand_name,
+            b.brand_id
         FROM
-            categories main_c
+            brands b
         JOIN
-            categories sub_c ON main_c.category_id = sub_c.parent_category_id OR main_c.category_id = sub_c.category_id
-        JOIN
-            products p ON sub_c.category_id = p.category_id
+            products p ON b.brand_id = p.brand_id
         LEFT JOIN
             product_images pi ON p.product_id = pi.product_id
         LEFT JOIN
             product_reviews pr ON p.product_id = pr.product_id
         WHERE
-            main_c.category_name = ?
-            AND main_c.category_status = 'active'
-            AND main_c.parent_category_id IS NULL -- Ensures we select only main categories
+            b.brand_name = ?
+            AND b.deleted_at IS NULL
         GROUP BY
-            p.product_id, main_c.category_name -- Group by product ID and main category name
+            p.product_id, b.brand_name
         ORDER BY
-            p.product_name ASC;`,
-        [category_name]
+            p.brand_id ASC`,
+        [brand_name]
       );
 
       const rows = result[0] || [];
@@ -79,6 +78,7 @@ export async function fetchProductByCategory(
         rows.map(async (row: any) => {
           const imageUrl = row.main_image;
           const base64Image = await compressAndEncodeBase64(imageUrl);
+
           return {
             id: row.id,
             name: row.name,
@@ -90,24 +90,22 @@ export async function fetchProductByCategory(
             quantity: row.quantity,
             created_at: row.created_at,
             category_id: row.category_id,
+            brand_id: row.brand_id,
           };
         })
       );
 
-      const category: ProductCategory = { name: category_name, products };
+      const brand: ProductBrand = { name: brand_name, products };
 
       // Store in cache
       cache.set(cacheKey, {
-        value: category,
+        value: brand,
         expiry: Date.now() + 1000 * 60 * 5,
       });
 
-      return category;
+      return brand;
     } catch (error: any) {
-      console.error(
-        `Error fetching products for category ${category_name}:`,
-        error
-      );
+      console.error(`Error fetching products for brand ${brand_name}:`, error);
       throw new Error(`Failed to fetch products: ${error.message}`);
     }
   });
