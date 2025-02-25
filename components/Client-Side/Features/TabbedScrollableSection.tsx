@@ -80,7 +80,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
                 onClick={() => onTabChange(tab.id)}
                 className={`px-4 py-2 whitespace-nowrap transition-colors text-sm font-medium ${
                   activeTab === tab.id
-                    ? "bg-red-500 text-primary-foreground"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-background text-foreground hover:bg-muted"
                 }`}>
                 {tab.label}

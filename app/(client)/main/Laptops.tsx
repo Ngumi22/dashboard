@@ -10,9 +10,13 @@ import {
   useFetchSubCategories,
 } from "@/lib/actions/Hooks/useCategory";
 
-export default function SubCategoryProductsLaptops() {
-  const categoryName = "Laptops"; // Hardcoded category name
+interface SubCategoryProductsProps {
+  categoryName: string;
+}
 
+export default function SubCategoryProducts({
+  categoryName,
+}: SubCategoryProductsProps) {
   const [subCategoryName, setSubCategoryName] = useState<string>("");
   const {
     data: subCategories,
@@ -84,7 +88,7 @@ export default function SubCategoryProductsLaptops() {
   return (
     <section>
       <ScrollableTabbedSection
-        title="Shop Laptops"
+        title={`Shop ${categoryName}`} // Dynamic title based on categoryName
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={handleTabChange}

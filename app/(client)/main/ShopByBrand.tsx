@@ -3,7 +3,6 @@ import {
   useBrandsQuery,
   useBrandProductsQuery,
 } from "@/lib/actions/Hooks/useBrand";
-import { Flame } from "lucide-react";
 import ProductCard, {
   ProductCardSkeleton,
 } from "@/components/Product/ProductCards/product-card";
