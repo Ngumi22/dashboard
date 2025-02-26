@@ -2,8 +2,8 @@
 
 import { cache, CacheUtil } from "@/lib/cache"; // Import CacheUtil
 import { Carousel } from "./carouselType";
-import { compressAndEncodeBase64 } from "../utils";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
+import { compressAndEncodeBase64 } from "../utils";
 
 export async function getUniqueCarousels({
   limit = 4,

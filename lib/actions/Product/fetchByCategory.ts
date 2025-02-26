@@ -2,7 +2,7 @@
 
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { compressAndEncodeBase64 } from "./productTypes";
+import { compressAndEncodeBase64 } from "../utils";
 
 export type Product = {
   id: number;

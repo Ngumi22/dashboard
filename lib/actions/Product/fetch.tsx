@@ -3,7 +3,6 @@
 import { cache } from "@/lib/cache";
 import { DBQUERYLIMITS } from "@/lib/Constants";
 import {
-  compressAndEncodeBase64,
   Product,
   ProductStatus,
   SearchParams,
@@ -11,6 +10,7 @@ import {
   Supplier,
 } from "./productTypes";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
+import { compressAndEncodeBase64 } from "../utils";
 
 export async function fetchProducts(
   currentPage: number,

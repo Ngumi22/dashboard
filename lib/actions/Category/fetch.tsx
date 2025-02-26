@@ -1,9 +1,9 @@
 "use server";
 
-import { compressAndEncodeBase64 } from "../utils";
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { Category, Specification } from "./catType";
+import { compressAndEncodeBase64 } from "../utils";
 
 export async function fetchCategoryWithSubCat(): Promise<Category[]> {
   const cacheKey = "categories";

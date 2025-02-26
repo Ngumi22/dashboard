@@ -2,9 +2,9 @@
 
 import { Banner } from "./bannerType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { compressAndEncodeBase64 } from "../utils";
 import { cache } from "@/lib/cache";
 import { UsageContext } from "@/app/(backend)/dashboard/banners/banner";
+import { compressAndEncodeBase64 } from "../utils";
 
 // Function to fetch unique banners
 export async function getUniqueBanners(): Promise<Banner[]> {
@@ -137,6 +137,75 @@ export async function fetchBannerById(
       expiry: Date.now() + 3600 * 10, // Cache for 10 hours
     });
     return processedBanner;
+  });
+}
+
+export async function fetchBannersByContext(
+  context_name: string
+): Promise<Banner[]> {
+  const cacheKey = `banners_${context_name}`;
+
+  // Check if the result is in cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as Banner[];
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
+
+  return await dbOperation(async (connection) => {
+    const [rows] = await connection.query(
+      `SELECT
+          b.banner_id,
+          b.title,
+          b.description,
+          b.link,
+          b.image,
+          b.text_color,
+          b.background_color,
+          b.status,
+          b.related_id,
+          b.usage_context_id,
+          uc.name AS usage_context_name
+      FROM banners AS b
+      INNER JOIN usage_contexts AS uc
+          ON b.usage_context_id = uc.context_id
+      WHERE LOWER(uc.name) = LOWER(?)
+        AND b.deleted_at IS NULL
+      ORDER BY b.banner_id DESC;`,
+      [context_name]
+    );
+
+    if (!rows || rows.length === 0) {
+      return []; // Return an empty array if no banners are found
+    }
+
+    const processedBanners: Banner[] = await Promise.all(
+      rows.map(async (banner: any) => ({
+        banner_id: banner.banner_id,
+        title: banner.title,
+        description: banner.description,
+        link: banner.link,
+        image: banner.image
+          ? await compressAndEncodeBase64(banner.image)
+          : undefined,
+        text_color: banner.text_color,
+        background_color: banner.background_color,
+        status: banner.status,
+        related_id: banner.related_id,
+        usage_context_id: banner.usage_context_id,
+        usage_context_name: banner.usage_context_name,
+      }))
+    );
+
+    // Cache the result for 10 hours
+    cache.set(cacheKey, {
+      value: processedBanners,
+      expiry: Date.now() + 3600 * 10 * 1000,
+    });
+
+    return processedBanners;
   });
 }
 

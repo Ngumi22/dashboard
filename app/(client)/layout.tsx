@@ -6,6 +6,7 @@ import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
 import { initialize } from "@/lib/MysqlDB/initialize";
 import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
+import Footer from "@/components/Client-Side/Footer/footer";
 
 export const metadata: Metadata = {
   title: "Bernzz Digital Solutions",
@@ -25,6 +26,7 @@ export default function RootLayout({
           <Suspense fallback={<Loading />}>
             <NewNavbar />
             {children}
+            <Footer />
           </Suspense>
         </ClientSideWrapper>
         <ToastContainer position="bottom-left" />

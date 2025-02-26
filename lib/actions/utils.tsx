@@ -7,8 +7,7 @@ export async function compressAndEncodeBase64(
 
   try {
     const compressedBuffer = await sharp(buffer)
-      .resize(100) // Resize to 100px width
-      .webp({ quality: 70 }) // Convert to WebP with 70% quality
+      .webp({ quality: 100 }) // Convert to WebP with 70% quality
       .toBuffer();
 
     return compressedBuffer.toString("base64");

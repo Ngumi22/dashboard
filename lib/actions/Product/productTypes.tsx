@@ -1,24 +1,7 @@
+import { compressAndEncodeBase64 } from "../utils";
 import { NewProductSchemaServer } from "@/lib/ZodSchemas/productSchema";
 import { RowDataPacket } from "mysql2/promise";
-import sharp from "sharp";
 import { z } from "zod";
-
-export async function compressAndEncodeBase64(
-  buffer: Buffer | null
-): Promise<string | null> {
-  if (!buffer) return null;
-
-  try {
-    const compressedBuffer = await sharp(buffer)
-      .webp({ quality: 100 }) // Convert to WebP with 70% quality
-      .toBuffer();
-
-    return compressedBuffer.toString("base64");
-  } catch (error) {
-    console.error("Image compression error:", error);
-    return null;
-  }
-}
 
 export type ProductStatus = "draft" | "pending" | "approved";
 
