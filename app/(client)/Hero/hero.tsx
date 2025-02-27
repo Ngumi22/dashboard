@@ -1,7 +1,7 @@
 "use client";
 
 import HeroCarousels from "@/components/Client-Side/Hero/hero-carousel";
-import Bannners from "../main/banners";
+import Banners from "../main/banners";
 
 export default function HeroSection() {
   return (
@@ -13,7 +13,7 @@ export default function HeroSection() {
 
       {/* Banner Component */}
       <div className="flex-1">
-        <Bannners
+        <Banners
           contextName="hero"
           gridCols="grid grid-cols-1 md:grid-cols-2"
           gap="gap-3 md:gap-4"

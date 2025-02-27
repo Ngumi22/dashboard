@@ -20,7 +20,7 @@ export default function Banners({
   gridCols = "", // Default grid columns
   gap = "", // Default gap
   height = "", // Default height
-  maxBanners = 3, // Default maximum number of banners
+  maxBanners = 4, // Default maximum number of banners
   className = "", // Additional custom class names
 }: BannerProps) {
   const { data: banners } = useBannersQueryContext(contextName);
