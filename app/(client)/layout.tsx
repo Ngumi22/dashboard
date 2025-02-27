@@ -9,8 +9,70 @@ import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
 import Footer from "@/components/Client-Side/Footer/footer";
 
 export const metadata: Metadata = {
-  title: "Bernzz Digital Solutions",
-  description: "Dashboard",
+  metadataBase: new URL("https://www.bernzzdigitalsolutions.co.ke"),
+  title: {
+    default: "Bernzz Digital Solutions - Premium Tech Products",
+    template: "%s | Bernzz Digital Solutions",
+  },
+  description:
+    "Shop the latest electronics, gadgets, and tech accessories at TechTrove. Find premium products at competitive prices with fast shipping.",
+  keywords: [
+    "electronics",
+    "tech",
+    "gadgets",
+    "smartphones",
+    "laptops",
+    "audio",
+    "smart home",
+  ],
+  authors: [{ name: "TechTrove Team" }],
+  creator: "Bernzz Digital Solutions",
+  publisher: "TechTrove Inc.",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://www.bernzzdigitalsolutions.co.ke",
+    siteName: "Bernzz Digital Solutions",
+    title: "Bernzz Digital Solutions - Premium Tech Products",
+    description:
+      "Shop the latest electronics, gadgets, and tech accessories at TechTrove.",
+    images: [
+      {
+        url: "https://www.bernzzdigitalsolutions.co.ke/og-image.jpg", // This would be a real image in production
+        width: 1200,
+        height: 630,
+        alt: "Bernzz Digital Solutions",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bernzz Digital Solutions",
+    description:
+      "Shop the latest electronics, gadgets, and tech accessories at TechTrove.",
+    images: ["https://www.bernzzdigitalsolutions.co.ke/twitter-image.jpg"], // This would be a real image in production
+    creator: "@techtrove",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "https://www.bernzzdigitalsolutions.co.ke/site.webmanifest",
+  alternates: {
+    canonical: "https://www.bernzzdigitalsolutions.co.ke",
+    languages: {
+      "en-US": "https://www.bernzzdigitalsolutions.co.ke",
+    },
+  },
+  verification: {
+    google: "google-site-verification-code", // Replace with actual verification code
+  },
 };
 
 export default function RootLayout({

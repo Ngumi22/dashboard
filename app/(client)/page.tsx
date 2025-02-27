@@ -9,6 +9,8 @@ import Categories from "./main/Categories";
 import NewProducts from "./main/NewestProducts";
 import SubCategoryProducts from "./main/Laptops";
 import Banners from "./main/banners";
+import HomeBlogSection from "./main/home-blog";
+import NeckbandBanner from "./main/newbanner";
 
 export default function Page() {
   return (
@@ -16,6 +18,7 @@ export default function Page() {
       <HeroSection />
       {/* Main Content */}
       <div className="bg-[#F5F5F7] pt-2 md:container space-y-8">
+        {/* <NeckbandBanner /> */}
         <Service />
         <DiscountedOffers />
         <Banners
@@ -52,6 +55,7 @@ export default function Page() {
         />
         <ShopByBrand />
         <SubCategoryProducts categoryName="Smartwatches" />
+        <HomeBlogSection />
       </div>
     </div>
   );
