@@ -18,6 +18,7 @@ export default function HeroSection() {
           gridCols="grid grid-cols-1 md:grid-cols-2"
           gap="gap-3 md:gap-4"
           height="h-full md:h-full"
+          maxBanners={4}
         />
       </div>
     </section>

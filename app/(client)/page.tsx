@@ -23,6 +23,7 @@ export default function Page() {
           gridCols="grid grid-cols-1 md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
+          maxBanners={3}
         />
         <NewProducts />
         <Banners
@@ -30,6 +31,7 @@ export default function Page() {
           gridCols="grid grid-cols-1 md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
+          maxBanners={3}
         />
         <SubCategoryProducts categoryName="Laptops" />
         <SubCategoryProducts categoryName="Desktop Computers" />
@@ -46,6 +48,7 @@ export default function Page() {
           gridCols="grid grid-cols-1 md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
+          maxBanners={3}
         />
         <ShopByBrand />
         <SubCategoryProducts categoryName="Smartwatches" />
