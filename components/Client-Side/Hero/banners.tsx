@@ -34,11 +34,10 @@ export default function BannerComponent({
   const { toast } = useToast();
   const fetchBanners = useStore((state) => state.fetchBanners);
   const banners = useStore((state) => state.banners);
-
   const removeBanner = useStore((state) => state.deleteBannerState);
 
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Fetch banners only if they are not already loaded
   useEffect(() => {
@@ -47,6 +46,7 @@ export default function BannerComponent({
     }
   }, [banners, fetchBanners]);
 
+  // Filter banners based on usage context and admin status
   const filteredBanners = useMemo(() => {
     if (!Array.isArray(banners)) {
       console.error("banners is not an array:", banners);
@@ -68,48 +68,60 @@ export default function BannerComponent({
     });
   }, [banners, usageContext, isAdmin]);
 
-  // Memoize the delete handler to avoid recreating it on every render
+  // Handle banner deletion
   const handleDelete = useCallback(
     async (banner_id: number) => {
       try {
-        removeBanner(banner_id);
+        await removeBanner(banner_id); // Delete banner from the database
+        fetchBanners(); // Refetch banners to update the UI
         toast({
           variant: "destructive",
-          title: "Delete banner",
-          description: `Banner with id ${banner_id} deleted successfully`,
+          title: "Banner Deleted",
+          description: `Banner with ID ${banner_id} was deleted successfully.`,
           action: <ToastAction altText="Close">Close</ToastAction>,
         });
       } catch (error) {
         toast({
           variant: "destructive",
-          title: "Delete banner",
-          description: `Banner with id ${banner_id} was not deleted successfully`,
-          action: <ToastAction altText="Undo">Undo</ToastAction>,
+          title: "Error",
+          description: `Failed to delete banner with ID ${banner_id}.`,
+          action: <ToastAction altText="Try Again">Try Again</ToastAction>,
         });
       }
     },
-    [removeBanner, toast]
+    [removeBanner, fetchBanners, toast]
   );
+
+  // Handle form submission success
+  const handleFormSuccess = useCallback(() => {
+    setIsSheetOpen(false); // Close the sheet
+    fetchBanners(); // Refetch banners to update the UI
+    setEditingBanner(null); // Reset editing banner
+  }, [fetchBanners]);
 
   return (
     <div className="grid">
+      {/* Admin Actions (Add/Edit Banner) */}
       <AdminActions
         isAdmin={isAdmin}
-        isDialogOpen={isDialogOpen}
-        setIsDialogOpen={setIsDialogOpen}
+        isSheetOpen={isSheetOpen}
+        setIsSheetOpen={setIsSheetOpen}
         editingBanner={editingBanner}
         setEditingBanner={setEditingBanner}
+        onFormSuccess={handleFormSuccess}
       />
 
+      {/* Empty State */}
       {filteredBanners.length === 0 && (
-        <EmptyState isAdmin={isAdmin} setIsDialogOpen={setIsDialogOpen} />
+        <EmptyState isAdmin={isAdmin} setIsSheetOpen={setIsSheetOpen} />
       )}
 
+      {/* Banner List */}
       <BannerList
         banners={filteredBanners}
         isAdmin={isAdmin}
         setEditingBanner={setEditingBanner}
-        setIsDialogOpen={setIsDialogOpen}
+        setIsSheetOpen={setIsSheetOpen}
         handleDelete={handleDelete}
       />
     </div>
@@ -120,56 +132,60 @@ export default function BannerComponent({
 const AdminActions = React.memo(
   ({
     isAdmin,
-    isDialogOpen,
-    setIsDialogOpen,
+    isSheetOpen,
+    setIsSheetOpen,
     editingBanner,
     setEditingBanner,
+    onFormSuccess,
   }: {
     isAdmin: boolean;
-    isDialogOpen: boolean;
-    setIsDialogOpen: (open: boolean) => void;
+    isSheetOpen: boolean;
+    setIsSheetOpen: (open: boolean) => void;
     editingBanner: Banner | null;
     setEditingBanner: (banner: Banner | null) => void;
+    onFormSuccess: () => void;
   }) => {
     useEffect(() => {
-      if (!isDialogOpen) {
-        // Reset the editing banner when the sheet is closed
-        setEditingBanner(null);
+      if (!isSheetOpen) {
+        setEditingBanner(null); // Reset editing banner when the sheet is closed
       }
-    }, [isDialogOpen, setEditingBanner]);
+    }, [isSheetOpen, setEditingBanner]);
 
     if (!isAdmin) return null;
+
     return (
-      <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <SheetTrigger className="border border-black p-2 rounded-md justify-self-end my-6">
-          {editingBanner ? "Edit Banner" : "Add New Banner"}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetTrigger asChild>
+          <Button className="border border-black p-2 rounded-md justify-self-end my-6">
+            {editingBanner ? "Edit Banner" : "Add New Banner"}
+          </Button>
         </SheetTrigger>
         <SheetContent className="overflow-scroll">
           <BannerForm
-            initialData={editingBanner || undefined}
-            onClose={() => setIsDialogOpen(false)}
+            initialData={editingBanner || undefined} // Ensure editingBanner is not null
+            onClose={() => setIsSheetOpen(false)}
+            onSuccess={onFormSuccess}
           />
         </SheetContent>
       </Sheet>
     );
   }
 );
-
 AdminActions.displayName = "AdminActions"; // Add displayName
 
 // Memoize EmptyState to prevent unnecessary re-renders
 const EmptyState = React.memo(
   ({
     isAdmin,
-    setIsDialogOpen,
+    setIsSheetOpen,
   }: {
     isAdmin: boolean;
-    setIsDialogOpen: (open: boolean) => void;
+    setIsSheetOpen: (open: boolean) => void;
   }) => (
     <div className="text-center my-4">
       <p>No banners available.</p>
       {isAdmin && (
-        <Button onClick={() => setIsDialogOpen(true)}>Add New Banner</Button>
+        <Button onClick={() => setIsSheetOpen(true)}>Add New Banner</Button>
       )}
     </div>
   )
@@ -183,13 +199,13 @@ const BannerList = React.memo(
     banners,
     isAdmin,
     setEditingBanner,
-    setIsDialogOpen,
+    setIsSheetOpen,
     handleDelete,
   }: {
     banners: Banner[];
     isAdmin: boolean;
     setEditingBanner: (banner: Banner | null) => void;
-    setIsDialogOpen: (open: boolean) => void;
+    setIsSheetOpen: (open: boolean) => void;
     handleDelete: (banner_id: number) => void;
   }) => (
     <ul className="flex-1 scrollbar overflow-x-scroll lg:overflow-hidden flex md:grid md:grid-cols-2 gap-2 md:gap-4 h-32 md:h-96">
@@ -197,7 +213,7 @@ const BannerList = React.memo(
         <li
           key={banner.banner_id}
           style={{ backgroundColor: banner.background_color }}
-          className="min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md">
+          className="relative min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md">
           <div className="grid">
             <h1
               className="text-xl lg:text-2xl font-semibold"
@@ -232,7 +248,7 @@ const BannerList = React.memo(
                   <DropdownMenuItem
                     onClick={() => {
                       setEditingBanner(banner);
-                      setIsDialogOpen(true);
+                      setIsSheetOpen(true);
                     }}>
                     Edit
                   </DropdownMenuItem>
@@ -250,4 +266,4 @@ const BannerList = React.memo(
   )
 );
 
-BannerList.displayName = "BannerList"; // Add displayName
+BannerList.displayName = "BannerList";

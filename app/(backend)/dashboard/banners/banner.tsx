@@ -20,11 +20,10 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { createBanner } from "@/lib/actions/Banners/post";
-import { updateBannerAction } from "@/lib/actions/Banners/update";
 import { bannerSchema } from "@/lib/ZodSchemas/bannerschema";
-import { useStore } from "@/app/store";
 import { fetchUsageContexts } from "@/lib/actions/Banners/fetch";
 import { Banner } from "@/lib/actions/Banners/bannerType";
+import { updateBannerAction } from "@/lib/actions/Banners/update";
 
 export interface UsageContext {
   context_id: number | string;
@@ -34,9 +33,14 @@ export interface UsageContext {
 interface BannerFormProps {
   initialData?: Banner;
   onClose?: () => void;
+  onSuccess?: () => void;
 }
 
-export default function BannerForm({ initialData }: BannerFormProps) {
+export default function BannerForm({
+  initialData,
+  onClose,
+  onSuccess,
+}: BannerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(
     typeof initialData?.image === "string"
@@ -58,10 +62,13 @@ export default function BannerForm({ initialData }: BannerFormProps) {
       background_color: initialData?.background_color || "#FFFFFF",
       status: initialData?.status || "active",
       context_type: initialData?.usage_context_id ? "existing" : "new",
-      usage_context_id: initialData?.usage_context_id || "",
+      usage_context_id: initialData?.usage_context_id
+        ? Number(initialData.usage_context_id)
+        : undefined,
       new_context_name: initialData?.usage_context_id
         ? ""
         : initialData?.new_context_name || "",
+      image: undefined,
     },
   });
 
@@ -71,30 +78,45 @@ export default function BannerForm({ initialData }: BannerFormProps) {
     setValue,
     watch,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
+
+  // console.log("Is Form Dirty?", isDirty);
+  // console.log("Form Errors:", errors);
 
   const contextType = watch("context_type");
 
   useEffect(() => {
     const loadUsageContexts = async () => {
-      const contexts = await fetchUsageContexts();
-      setUsageContexts(contexts || []);
-
-      if (initialData?.usage_context_id) {
-        setValue("usage_context_id", initialData.usage_context_id);
-        setValue("context_type", "existing");
+      try {
+        const contexts = await fetchUsageContexts();
+        setUsageContexts(contexts || []);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load usage contexts.",
+          variant: "destructive",
+        });
       }
     };
     loadUsageContexts();
+  }, [toast]);
+
+  useEffect(() => {
+    if (initialData?.usage_context_id) {
+      setValue("usage_context_id", initialData.usage_context_id);
+      setValue("context_type", "existing");
+    }
   }, [initialData, setValue]);
 
   const onSubmit = async (data: Banner) => {
+    console.log("Form Data Submitted:", data);
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     const formData = new FormData();
 
+    // Append all fields to the form data
     Object.entries(data).forEach(([key, value]) => {
       if (key === "image" && value instanceof File) {
         formData.append(key, value);
@@ -110,17 +132,19 @@ export default function BannerForm({ initialData }: BannerFormProps) {
         ? await updateBannerAction(initialData.banner_id.toString(), formData)
         : await createBanner(formData);
 
-      if (result) {
+      console.log("Form Submission Result:", result);
+
+      if (result.success) {
         toast({
           title: "Success",
           description: initialData
             ? "Banner updated successfully"
             : "Banner created successfully",
         });
-        router.push("/dashboard/banners");
-        router.refresh();
+        onSuccess?.();
+        onClose?.();
       } else {
-        throw new Error("Failed to process banner.");
+        throw new Error(result.message || "Failed to process banner.");
       }
     } catch (error: any) {
       console.error("Error:", error);
@@ -160,29 +184,43 @@ export default function BannerForm({ initialData }: BannerFormProps) {
 
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* Other form fields remain unchanged */}
-
+          {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" {...register("title")} />
-            {errors.title && <p>{errors.title.message}</p>}
+            {errors.title && (
+              <p className="text-red-500">{errors.title.message}</p>
+            )}
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" {...register("description")} />
-            {errors.description && <p>{errors.description.message}</p>}
+            {errors.description && (
+              <p className="text-red-500">{errors.description.message}</p>
+            )}
           </div>
+
+          {/* Link */}
           <div className="space-y-2">
             <Label htmlFor="link">Link to</Label>
             <Input id="link" type="url" {...register("link")} />
-            {errors.link && <p>{errors.link.message}</p>}
+            {errors.link && (
+              <p className="text-red-500">{errors.link.message}</p>
+            )}
           </div>
+
+          {/* Text Color */}
           <div className="space-y-2">
             <Label htmlFor="text_color">Text Colour</Label>
             <Input id="text_color" type="color" {...register("text_color")} />
-            {errors.text_color && <p>{errors.text_color.message}</p>}
+            {errors.text_color && (
+              <p className="text-red-500">{errors.text_color.message}</p>
+            )}
           </div>
+
+          {/* Background Color */}
           <div className="space-y-2">
             <Label htmlFor="background_color">Background Colour</Label>
             <Input
@@ -191,9 +229,11 @@ export default function BannerForm({ initialData }: BannerFormProps) {
               {...register("background_color")}
             />
             {errors.background_color && (
-              <p>{errors.background_color.message}</p>
+              <p className="text-red-500">{errors.background_color.message}</p>
             )}
           </div>
+
+          {/* Image Upload */}
           <div className="space-y-2">
             <Label htmlFor="image">Image</Label>
             <Input
@@ -202,7 +242,9 @@ export default function BannerForm({ initialData }: BannerFormProps) {
               accept="image/*"
               onChange={handleImageChange}
             />
-            {errors.image && <p>{errors.image.message}</p>}
+            {errors.image && (
+              <p className="text-red-500">{errors.image.message}</p>
+            )}
             {imagePreview && (
               <Image
                 src={imagePreview || "/placeholder.svg"}
@@ -213,6 +255,8 @@ export default function BannerForm({ initialData }: BannerFormProps) {
               />
             )}
           </div>
+
+          {/* Status */}
           <div className="space-y-2">
             <Label>Status</Label>
             <RadioGroup
@@ -229,9 +273,12 @@ export default function BannerForm({ initialData }: BannerFormProps) {
                 <Label htmlFor="inactive">Inactive</Label>
               </div>
             </RadioGroup>
-            {errors.status && <p>{errors.status.message}</p>}
+            {errors.status && (
+              <p className="text-red-500">{errors.status.message}</p>
+            )}
           </div>
 
+          {/* Usage Context */}
           <div className="space-y-2">
             <Label htmlFor="context_type">Usage Context</Label>
             <Controller
@@ -262,6 +309,7 @@ export default function BannerForm({ initialData }: BannerFormProps) {
             />
           </div>
 
+          {/* Existing Context or New Context */}
           {contextType === "existing" ? (
             <div className="space-y-2">
               <Label htmlFor="usage_context_id">Select Context</Label>
@@ -271,43 +319,34 @@ export default function BannerForm({ initialData }: BannerFormProps) {
                 render={({ field }) => (
                   <Select
                     onValueChange={(value) => {
-                      // console.log("Selected context_id:", value); // Logs the selected context_id
-                      field.onChange(value);
-
-                      // Ensure value is a number to match against context_id
+                      field.onChange(value); // Convert to number
                       const matchedContext = usageContexts.find(
-                        (context) => context.context_id === value
+                        (context) => context.context_id === Number(value)
                       );
-
-                      // Debugging log to check if the matched context is found
-                      // console.log("Matched context:", matchedContext);
-
                       if (matchedContext) {
-                        // Update the field with the selected context name
-                        setValue("usage_context_name", matchedContext.name); // Update context name
+                        setValue("usage_context_name", matchedContext.name);
                       } else {
-                        setValue("usage_context_name", ""); // Clear the name if not found
+                        setValue("usage_context_name", "");
                       }
                     }}
-                    value={field.value}>
+                    value={String(field.value)} // Ensure value is a string for the Select component
+                  >
                     <SelectTrigger>
                       <SelectValue>
-                        <SelectValue>
-                          {field.value
-                            ? usageContexts.find(
-                                (context) =>
-                                  context.context_id === Number(field.value)
-                              )?.name || "Invalid context"
-                            : "Select a context"}
-                        </SelectValue>
+                        {field.value
+                          ? usageContexts.find(
+                              (context) =>
+                                context.context_id === Number(field.value)
+                            )?.name || "Invalid context"
+                          : "Select a context"}
                       </SelectValue>
                     </SelectTrigger>
-
                     <SelectContent>
                       {usageContexts.map((context) => (
                         <SelectItem
                           key={context.context_id}
-                          value={String(context.context_id)}>
+                          value={String(context.context_id)} // Ensure value is a string
+                        >
                           {context.name}
                         </SelectItem>
                       ))}
@@ -328,6 +367,7 @@ export default function BannerForm({ initialData }: BannerFormProps) {
             </div>
           )}
 
+          {/* Submit Button */}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting
               ? "Submitting..."

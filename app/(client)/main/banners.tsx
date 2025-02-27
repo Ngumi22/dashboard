@@ -1,22 +1,35 @@
 "use client";
+
 import Base64Image from "@/components/Data-Table/base64-image";
 import { Button } from "@/components/ui/button";
-import {
-  useBannersQuery,
-  useBannersQueryContext,
-} from "@/lib/actions/Hooks/useBanner";
+import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
 import Link from "next/link";
+import React from "react";
 
 interface BannerProps {
-  contextName: string;
+  contextName: string; // Context for fetching banners
+  gridCols?: string; // Custom grid columns (e.g., "grid-cols-1 md:grid-cols-3")
+  gap?: string; // Custom gap (e.g., "gap-2 md:gap-4")
+  height?: string; // Custom height (e.g., "h-32 md:h-44")
+  maxBanners?: number; // Maximum number of banners to display
+  className?: string; // Additional custom class names
 }
 
-export default function Bannners({ contextName }: BannerProps) {
+export default function Banners({
+  contextName,
+  gridCols = "", // Default grid columns
+  gap = "", // Default gap
+  height = "", // Default height
+  maxBanners = 3, // Default maximum number of banners
+  className = "", // Additional custom class names
+}: BannerProps) {
   const { data: banners } = useBannersQueryContext(contextName);
 
-  const slicedBanners = banners?.slice(0, 3);
+  // Slice banners based on the maxBanners prop
+  const slicedBanners = banners?.slice(0, maxBanners);
+
   return (
-    <ul className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 h-32 md:h-44 my-6">
+    <ul className={`grid ${gridCols} ${gap} ${height} ${className}`}>
       {slicedBanners?.map((banner) => (
         <li
           key={banner.banner_id}

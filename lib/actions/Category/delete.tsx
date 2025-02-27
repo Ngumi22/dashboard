@@ -6,7 +6,7 @@ import { FieldPacket, RowDataPacket } from "mysql2/promise";
 
 export async function deleteCategory(category_id: number) {
   const categoryCacheKey = `category_${category_id}`;
-  const uniqueCategoriesCacheKey = "categories";
+  const uniqueCategoriesCacheKey = "categoryData";
   const uniqueCategoriesCacheKey1 = "categoriesWithSubs";
 
   return await dbOperation(async (connection) => {

@@ -1,5 +1,4 @@
 import {
-  deleteBanner,
   fetchBannerById,
   fetchUsageContexts,
   getUniqueBanners,
@@ -8,6 +7,7 @@ import { clearCachedData, getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 import { Banner, UsageContext } from "@/lib/actions/Banners/bannerType";
+import { deleteBanner } from "@/lib/actions/Banners/delete";
 
 export interface BannerState {
   banners: Banner[]; // Array of Banner objects

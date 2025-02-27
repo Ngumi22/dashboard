@@ -24,14 +24,15 @@ export async function createBanner(data: FormData) {
 
     const image = data.get("image") as File | null;
 
-    let imagePath = null;
+    let imageBuffer = null;
     if (image) {
-      imagePath = await fileToBuffer(image);
+      imageBuffer = await fileToBuffer(image);
     }
 
     const result = await dbOperation(async (connection) => {
       let contextId: number;
 
+      // Handle context type (existing or new)
       if (context_type === "existing" && usage_context_id) {
         // Verify the existing context
         const [existingContext]: any = await connection.execute(
@@ -40,7 +41,7 @@ export async function createBanner(data: FormData) {
         );
 
         if (existingContext.length === 0) {
-          throw new Error("Selected context does not exist");
+          throw new Error("Selected usage context does not exist.");
         }
 
         contextId = Number(usage_context_id);
@@ -52,7 +53,7 @@ export async function createBanner(data: FormData) {
         );
         contextId = insertedContext.insertId;
       } else {
-        throw new Error("Invalid context data provided");
+        throw new Error("Invalid context data provided.");
       }
 
       // Insert the banner
@@ -63,7 +64,7 @@ export async function createBanner(data: FormData) {
           title,
           description,
           link,
-          imagePath,
+          imageBuffer,
           text_color,
           background_color,
           contextId,
@@ -77,7 +78,7 @@ export async function createBanner(data: FormData) {
     revalidatePath("/dashboard/banners");
     return {
       success: true,
-      message: "Banner saved successfully",
+      message: "Banner created successfully.",
       id: result.id,
     };
   } catch (error) {
@@ -85,7 +86,7 @@ export async function createBanner(data: FormData) {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "An unknown error occurred",
+        error instanceof Error ? error.message : "An unknown error occurred.",
     };
   }
 }

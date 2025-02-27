@@ -28,12 +28,14 @@ function DataFetchingWrapper({ children }: { children: ReactNode }) {
   const brandsQuery = useBrandsQuery();
   const categoriesQuery = useCategoriesQuery();
   const productsQuery = useProductsQuery(1, {}); // Adjust arguments as needed
+  const bannersQuery = useBannersQuery();
 
   // Check if any query is still loading
   const isLoading =
     brandsQuery.isLoading ||
     categoriesQuery.isLoading ||
-    productsQuery.isLoading;
+    productsQuery.isLoading ||
+    bannersQuery.isLoading;
 
   if (isLoading) {
     return <Loading />;

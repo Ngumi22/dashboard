@@ -3,6 +3,8 @@ import * as z from "zod";
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+// bannerSchema.ts
+
 export const bannerSchema = z
   .object({
     title: z.string().min(1, "Title is required"),
@@ -29,7 +31,7 @@ export const bannerSchema = z
       .default("#FFFFFF"),
     status: z.enum(["active", "inactive"]),
     context_type: z.enum(["existing", "new"]),
-    usage_context_id: z.string().optional(),
+    usage_context_id: z.coerce.number().optional(), // Coerce to number
     new_context_name: z.string().optional(),
   })
   .refine(

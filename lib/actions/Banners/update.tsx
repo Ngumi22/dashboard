@@ -1,95 +1,147 @@
 "use server";
-
-import { fileToBuffer } from "@/lib/utils";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { CacheUtil } from "@/lib/cache";
+import { fileToBuffer } from "@/lib/utils";
+import { bannerSchema } from "@/lib/ZodSchemas/bannerschema";
 
-export async function updateBannerAction(
+export const updateBannerAction = async (
   banner_id: string,
   formData: FormData
-) {
-  const uniqueBannerCacheKey = `banner_${banner_id}`;
-  CacheUtil.get(uniqueBannerCacheKey);
+) => {
+  try {
+    // Validate and coerce incoming form data using Zod
+    const validatedData = bannerSchema.parse(Object.fromEntries(formData));
+    const {
+      title,
+      description,
+      link,
+      image,
+      text_color,
+      background_color,
+      status,
+      context_type,
+      usage_context_id, // this is now a number (if provided) due to z.coerce.number()
+      new_context_name,
+    } = validatedData;
 
-  return await dbOperation(async (connection) => {
-    const updates: string[] = [];
-    const values: any[] = [];
+    if (!banner_id) {
+      throw new Error("Banner ID is required.");
+    }
+
+    // Fetch the existing banner
+    const existingBanner: any = await dbOperation(async (connection) => {
+      const [banner]: any = await connection.execute(
+        `SELECT * FROM banners WHERE banner_id = ? LIMIT 1`,
+        [banner_id]
+      );
+      return banner.length > 0 ? banner[0] : null;
+    });
+
+    if (!existingBanner) {
+      throw new Error("Banner not found.");
+    }
+
+    // Ensure that the existing usage_context_id is a number for proper comparison
+    const existingUsageContextId = Number(existingBanner.usage_context_id);
+
+    let updates: string[] = [];
+    let values: any[] = [];
     let hasChanges = false;
 
-    // Fields for banners table
-    const fields = [
-      "title",
-      "description",
-      "link",
-      "text_color",
-      "background_color",
-      "status",
-    ];
+    if (title && title !== existingBanner.title) {
+      updates.push("title = ?");
+      values.push(title);
+      hasChanges = true;
+    }
 
-    for (const field of fields) {
-      const value = formData.get(field);
-      if (value !== null && value !== undefined && value !== "") {
-        updates.push(`${field} = ?`);
-        values.push(value);
+    if (description && description !== existingBanner.description) {
+      updates.push("description = ?");
+      values.push(description);
+      hasChanges = true;
+    }
+
+    if (link && link !== existingBanner.link) {
+      updates.push("link = ?");
+      values.push(link);
+      hasChanges = true;
+    }
+
+    if (text_color && text_color !== existingBanner.text_color) {
+      updates.push("text_color = ?");
+      values.push(text_color);
+      hasChanges = true;
+    }
+
+    if (
+      background_color &&
+      background_color !== existingBanner.background_color
+    ) {
+      updates.push("background_color = ?");
+      values.push(background_color);
+      hasChanges = true;
+    }
+
+    if (status && status !== existingBanner.status) {
+      updates.push("status = ?");
+      values.push(status);
+      hasChanges = true;
+    }
+
+    if (context_type === "existing") {
+      // usage_context_id is a number (thanks to Zod coercion)
+      if (usage_context_id !== existingUsageContextId) {
+        // Check that the context exists
+        const existingContext: any = await dbOperation(async (connection) => {
+          const [context]: any = await connection.execute(
+            `SELECT context_id FROM usage_contexts WHERE context_id = ? LIMIT 1`,
+            [usage_context_id]
+          );
+          return context.length > 0 ? context[0] : null;
+        });
+        if (!existingContext) {
+          throw new Error("Selected usage context does not exist.");
+        }
+        updates.push("usage_context_id = ?");
+        values.push(usage_context_id);
+        hasChanges = true;
+      }
+    } else if (context_type === "new") {
+      const insertedContext: any = await dbOperation(async (connection) => {
+        const [result]: any = await connection.execute(
+          `INSERT INTO usage_contexts (name) VALUES (?)`,
+          [new_context_name]
+        );
+        return result.insertId ? result.insertId : null;
+      });
+      if (!insertedContext) {
+        throw new Error("Failed to create new usage context.");
+      }
+      if (insertedContext !== existingUsageContextId) {
+        updates.push("usage_context_id = ?");
+        values.push(insertedContext);
         hasChanges = true;
       }
     }
 
-    // Handle usage context
-    const newContextName = formData.get("new_context_name") as string | null;
-    const usageContextId = formData.get("usage_context_id") as string | null;
-
-    if (newContextName) {
-      // Create a new usage context and get its ID
-      const [result]: [any, any] = await connection.execute(
-        `INSERT INTO usage_contexts (name) VALUES (?) ON DUPLICATE KEY UPDATE name = VALUES(name), context_id = LAST_INSERT_ID(context_id)`,
-        [newContextName]
-      );
-      const newContextId = result.insertId;
-
-      updates.push("usage_context_id = ?");
-      values.push(newContextId);
-      hasChanges = true;
-    } else if (usageContextId) {
-      updates.push("usage_context_id = ?");
-      values.push(usageContextId);
-      hasChanges = true;
-    } else {
-      throw new Error(
-        "Either 'usage_context_id' or 'new_context_name' must be provided."
-      );
-    }
-
-    // Handle image upload
-    const newImageFile = formData.get("image") as File | null;
-    if (newImageFile && newImageFile.size > 0) {
-      const newImageBuffer = await fileToBuffer(newImageFile);
+    if (image instanceof File && image.size > 0) {
+      const imageBuffer = await fileToBuffer(image);
       updates.push("image = ?");
-      values.push(newImageBuffer);
+      values.push(imageBuffer);
       hasChanges = true;
     }
 
     if (!hasChanges) {
-      return { success: false, message: "No updates were made." };
+      throw new Error("No changes detected.");
     }
 
-    updates.push("updated_at = NOW()");
-    const query = `
-      UPDATE banners
-      SET ${updates.join(", ")}
-      WHERE banner_id = ?;
-    `;
-    values.push(banner_id);
-
-    const [result]: [any, any] = await connection.execute(query, values);
-
-    if (result.affectedRows === 0) {
-      throw new Error("Failed to update banner. Banner might not exist.");
-    }
-
-    // Invalidate the cache
-    CacheUtil.invalidate(uniqueBannerCacheKey);
+    await dbOperation(async (connection) => {
+      const query = `UPDATE banners SET ${updates.join(
+        ", "
+      )} WHERE banner_id = ?`;
+      await connection.execute(query, [...values, banner_id]);
+    });
 
     return { success: true, message: "Banner updated successfully." };
-  });
-}
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};

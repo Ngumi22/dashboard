@@ -6,7 +6,7 @@ export interface Banner {
   image?: string | File | null;
   text_color: string;
   background_color: string;
-  usage_context_id: string;
+  usage_context_id: string | number;
   usage_context_name: string;
   context_type: "new" | "existing";
   status: "active" | "inactive";

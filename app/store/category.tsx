@@ -49,7 +49,7 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
   subcategoryDetails: null, // Added this
 
   fetchUniqueCategoriesWithSubs: async () => {
-    const cacheKey = "categoriess";
+    const cacheKey = "categoryData";
 
     const cachedData = getCachedData<Category[]>(cacheKey);
     if (cachedData) {
