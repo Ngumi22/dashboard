@@ -7,6 +7,7 @@ import { ToastContainer } from "react-toastify";
 import { initialize } from "@/lib/MysqlDB/initialize";
 import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
 import Footer from "@/components/Client-Side/Footer/footer";
+import { prefetchData } from "@/lib/actions/serverSideFetching";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.bernzzdigitalsolutions.co.ke"),
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s | Bernzz Digital Solutions",
   },
   description:
-    "Shop the latest electronics, gadgets, and tech accessories at TechTrove. Find premium products at competitive prices with fast shipping.",
+    "Shop the latest electronics, gadgets, and tech accessories at Bernzz Digital Solutions. Find premium products at competitive prices with fast shipping.",
   keywords: [
     "electronics",
     "tech",
@@ -25,9 +26,9 @@ export const metadata: Metadata = {
     "audio",
     "smart home",
   ],
-  authors: [{ name: "TechTrove Team" }],
+  authors: [{ name: "Bernzz Digital Solutions" }],
   creator: "Bernzz Digital Solutions",
-  publisher: "TechTrove Inc.",
+  publisher: "Bernzz Digital Solutions.",
   formatDetection: {
     email: false,
     address: false,
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
     siteName: "Bernzz Digital Solutions",
     title: "Bernzz Digital Solutions - Premium Tech Products",
     description:
-      "Shop the latest electronics, gadgets, and tech accessories at TechTrove.",
+      "Shop the latest electronics, gadgets, and tech accessories at Bernzz Digital Solutions.",
     images: [
       {
         url: "https://www.bernzzdigitalsolutions.co.ke/og-image.jpg", // This would be a real image in production
@@ -54,9 +55,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Bernzz Digital Solutions",
     description:
-      "Shop the latest electronics, gadgets, and tech accessories at TechTrove.",
+      "Shop the latest electronics, gadgets, and tech accessories at Bernzz Digital Solutions.",
     images: ["https://www.bernzzdigitalsolutions.co.ke/twitter-image.jpg"], // This would be a real image in production
-    creator: "@techtrove",
+    creator: "Bernzz Digital Solutions",
   },
   icons: {
     icon: "/favicon.ico",
@@ -75,21 +76,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Initialize your database (if needed)
   initialize();
+
+  // Prefetch data on the server
+  const dehydratedState = await prefetchData();
+
   return (
     <html lang="en">
       <body suppressHydrationWarning={true}>
-        <ClientSideWrapper>
-          <Suspense fallback={<Loading />}>
-            <NewNavbar />
-            {children}
-            <Footer />
-          </Suspense>
+        <ClientSideWrapper dehydratedState={dehydratedState}>
+          <NewNavbar />
+          {children}
+          <Footer />
         </ClientSideWrapper>
         <ToastContainer position="bottom-left" />
       </body>

@@ -42,10 +42,6 @@ export default function ShopByBrand() {
     setActiveTab(tabId);
   }, []);
 
-  if (isBrandsLoading || isProductsLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <section>
       {activeTab && (

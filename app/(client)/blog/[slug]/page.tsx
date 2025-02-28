@@ -29,7 +29,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${post.title} | TechTrove Blog`,
+    title: `${post.title} | BDS Blog`,
     description: post.excerpt,
     keywords: post.tags?.join(", "),
     authors: [{ name: post.author }],

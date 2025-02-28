@@ -10,20 +10,18 @@ import NewProducts from "./main/NewestProducts";
 import SubCategoryProducts from "./main/Laptops";
 import Banners from "./main/banners";
 import HomeBlogSection from "./main/home-blog";
-import NeckbandBanner from "./main/newbanner";
 
 export default function Page() {
   return (
-    <div className="mt-[10rem] lg:mt-[12rem]">
+    <div className="mt-[10rem] lg:mt-[12rem] bg-muted/30">
       <HeroSection />
       {/* Main Content */}
       <div className="bg-[#F5F5F7] pt-2 md:container space-y-8">
-        {/* <NeckbandBanner /> */}
         <Service />
         <DiscountedOffers />
         <Banners
           contextName="Hero"
-          gridCols="grid grid-cols-1 md:grid-cols-3"
+          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}
@@ -31,7 +29,7 @@ export default function Page() {
         <NewProducts />
         <Banners
           contextName="Hero"
-          gridCols="grid grid-cols-1 md:grid-cols-3"
+          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}
@@ -40,15 +38,16 @@ export default function Page() {
         <SubCategoryProducts categoryName="Desktop Computers" />
         <Banners
           contextName="Hero"
-          gridCols="grid grid-cols-1 md:grid-cols-3"
+          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
+          maxBanners={3}
         />
         <Categories />
         <SubCategoryProducts categoryName="SmartPhones" />
         <Banners
           contextName="Hero"
-          gridCols="grid grid-cols-1 md:grid-cols-3"
+          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}

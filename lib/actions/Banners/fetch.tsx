@@ -8,7 +8,7 @@ import { compressAndEncodeBase64 } from "../utils";
 
 // Function to fetch unique banners
 export async function getUniqueBanners(): Promise<Banner[]> {
-  const cacheKey = "banners";
+  const cacheKey = "bannersData";
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {

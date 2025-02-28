@@ -65,7 +65,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
   }, []);
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`mx-auto py-8 max-w-9xl ${className}`}>
       <h2 className="text-2xl font-bold mb-4">{title}</h2>
       <div className="relative mb-4">
         <div className="flex items-center justify-between">
@@ -110,7 +110,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
 
       <div
         ref={productsRef}
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        className="grid grid-flow-col overflow-hidden scrollbar md:grid-cols-2 lg:grid-cols-4 gap-2">
         {activeTabData.products.length > 0
           ? activeTabData.products.map((product) => (
               <ProductCard key={product.id} {...product} />

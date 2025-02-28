@@ -1,6 +1,7 @@
+// components/Client-Side/ClientWrapper.tsx
 "use client";
 
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import Loading from "@/app/(client)/loading";
 import { getQueryClient } from "./get-query-client";
@@ -9,28 +10,43 @@ import { useCategoriesQuery } from "@/lib/actions/Hooks/useCategory";
 import { useProductsQuery } from "@/lib/actions/Hooks/useProducts";
 import { useBannersQuery } from "@/lib/actions/Hooks/useBanner";
 
+interface ClientSideWrapperProps {
+  children: ReactNode;
+  dehydratedState: unknown; // Use a more specific type if available
+}
+
 export default function ClientSideWrapper({
   children,
-}: {
-  children: ReactNode;
-}) {
+  dehydratedState,
+}: ClientSideWrapperProps) {
   const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DataFetchingWrapper>{children}</DataFetchingWrapper>
+      <HydrationBoundary state={dehydratedState}>
+        <DataFetchingWrapper>{children}</DataFetchingWrapper>
+      </HydrationBoundary>
     </QueryClientProvider>
   );
 }
 
 function DataFetchingWrapper({ children }: { children: ReactNode }) {
-  // Use the React Query hooks instead of server actions
   const brandsQuery = useBrandsQuery();
   const categoriesQuery = useCategoriesQuery();
-  const productsQuery = useProductsQuery(1, {}); // Adjust arguments as needed
+  const productsQuery = useProductsQuery(1, {});
   const bannersQuery = useBannersQuery();
 
-  // Check if any query is still loading
+  // Handle errors
+  if (
+    brandsQuery.isError ||
+    categoriesQuery.isError ||
+    productsQuery.isError ||
+    bannersQuery.isError
+  ) {
+    return <div>Error loading data. Please try again later.</div>;
+  }
+
+  // Check loading state
   const isLoading =
     brandsQuery.isLoading ||
     categoriesQuery.isLoading ||

@@ -1,10 +1,10 @@
 "use client";
 
+import React, { useMemo } from "react";
+import Link from "next/link";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { Button } from "@/components/ui/button";
 import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
-import Link from "next/link";
-import React from "react";
 
 interface BannerProps {
   contextName: string; // Context for fetching banners
@@ -15,22 +15,25 @@ interface BannerProps {
   className?: string; // Additional custom class names
 }
 
-export default function Banners({
+function Banners({
   contextName,
-  gridCols = "", // Default grid columns
-  gap = "", // Default gap
-  height = "", // Default height
+  gridCols = "grid-cols-1 md:grid-cols-3", // Default grid columns
+  gap = "gap-2 md:gap-4", // Default gap
+  height = "h-32 md:h-44", // Default height
   maxBanners = 0, // Default maximum number of banners
   className = "", // Additional custom class names
 }: BannerProps) {
   const { data: banners } = useBannersQueryContext(contextName);
 
-  // Slice banners based on the maxBanners prop
-  const slicedBanners = banners?.slice(0, maxBanners);
+  // Memoize the sliced banners to avoid recalculating on every render
+  const slicedBanners = useMemo(() => {
+    if (!banners) return [];
+    return maxBanners > 0 ? banners.slice(0, maxBanners) : banners;
+  }, [banners, maxBanners]);
 
   return (
-    <ul className={`grid ${gridCols} ${gap} ${height} ${className}`}>
-      {slicedBanners?.map((banner) => (
+    <ul className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>
+      {slicedBanners.map((banner) => (
         <li
           key={banner.banner_id}
           style={{ backgroundColor: banner.background_color }}
@@ -61,3 +64,5 @@ export default function Banners({
     </ul>
   );
 }
+
+export default React.memo(Banners);

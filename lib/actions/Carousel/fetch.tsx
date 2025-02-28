@@ -1,9 +1,19 @@
 "use server";
 
-import { cache, CacheUtil } from "@/lib/cache"; // Import CacheUtil
+import { cache } from "@/lib/cache"; // Import CacheUtil
 import { Carousel } from "./carouselType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+
+interface MiniCarousel {
+  carousel_id: string;
+  title: string;
+  short_description: string;
+  description: string;
+  link: string;
+  image: string;
+  status: "active" | "inactive";
+}
 
 export async function getUniqueCarousels({
   limit = 4,
@@ -12,7 +22,7 @@ export async function getUniqueCarousels({
   limit?: number;
   status?: "active" | "inactive" | "all";
 } = {}): Promise<Carousel[]> {
-  const cacheKey = `carousels_${status}_${limit}`; // Unique cache key based on status and limit
+  const cacheKey = `carouselsData`; // Unique cache key based on status and limit
 
   // Check if the result is already in the cache
   if (cache.has(cacheKey)) {
@@ -52,7 +62,7 @@ export async function getUniqueCarousels({
       // Parallelize image compression for all carousels
       const uniqueCarousels: Carousel[] = await Promise.all(
         carousels.map(async (carousel: any) => ({
-          carousel_id: carousel.carousel_id,
+          carousel_id: String(carousel.carousel_id),
           title: carousel.title,
           short_description: carousel.short_description,
           description: carousel.description,
@@ -110,7 +120,7 @@ export async function fetchCarouselById(
       // Map database results to a carousel object
       const carousel = rows[0];
       const processedCarousel: any = {
-        carousel_id: carousel.carousel_id,
+        carousel_id: String(carousel.carousel_id),
         title: carousel.title,
         short_description: carousel.short_description,
         description: carousel.description,
@@ -172,6 +182,69 @@ export async function deleteCarousel(carousel_id: number): Promise<boolean> {
     } catch (error) {
       console.error("Error deleting carousel:", error);
       throw new Error("Failed to delete carousel");
+    }
+  });
+}
+
+export async function fetchCarousels(): Promise<MiniCarousel[]> {
+  const cacheKey = `carouselsData`; // Unique cache key based on status and limit
+
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value as MiniCarousel[]; // Return cached data
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
+
+  return await dbOperation(async (connection) => {
+    try {
+      const [rows] = await connection.query(
+        `SELECT
+            carousel_id,
+            title,
+            short_description,
+            description,
+            link,
+            image,
+            status
+        FROM carousels
+        WHERE status = 'active'
+        ORDER BY carousel_id DESC;`
+      );
+
+      // Return an empty array if no carousels found
+      if (!rows || rows.length === 0) {
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 }); // Cache empty result
+        return [];
+      }
+
+      // Parallelize image compression for all carousels
+      const uniqueCarousels: MiniCarousel[] = await Promise.all(
+        rows.map(async (carousel: any) => ({
+          carousel_id: carousel.carousel_id,
+          title: carousel.title,
+          short_description: carousel.short_description,
+          description: carousel.description,
+          link: carousel.link,
+          image: carousel.image
+            ? await compressAndEncodeBase64(carousel.image)
+            : null, // Compress image if it exists
+          status: carousel.status,
+        }))
+      );
+
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: uniqueCarousels,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
+
+      return uniqueCarousels;
+    } catch (error) {
+      console.error("Error fetching unique carousels:", error);
+      throw new Error("Failed to fetch carousels");
     }
   });
 }

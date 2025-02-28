@@ -1,6 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchBannersByContext, getUniqueBanners } from "../Banners/fetch";
-import { Banner } from "../Banners/bannerType";
 
 const MINUTE = 1000 * 60;
 

@@ -49,61 +49,59 @@ export default function HomeBlogSection() {
   ];
 
   return (
-    <section className="py-12 bg-muted/30">
-      <div className="container px-4 md:px-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">
-              Latest from our Blog
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              Stay updated with the latest tech trends and product reviews
-            </p>
-          </div>
-          <Button asChild variant="ghost" className="mt-4 md:mt-0">
-            <Link href="/blog" className="flex items-center">
-              View all posts <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+    <div className="mx-auto py-8 max-w-9xl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Latest from our Blog
+          </h2>
+          <p className="text-muted-foreground mt-2">
+            Stay updated with the latest tech trends and product reviews
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredPosts.map((post) => (
-            <Card key={post.id} className="flex flex-col h-full">
-              <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
-                <Image
-                  src={post.image || "/placeholder.svg"}
-                  alt={post.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-              <CardHeader className="flex-grow">
-                <div className="flex items-center text-sm text-muted-foreground mb-2">
-                  <span>{post.category}</span>
-                  <span className="mx-2">•</span>
-                  <span>{post.date}</span>
-                </div>
-                <CardTitle className="line-clamp-2">
-                  <Link href={`/blog/${post.slug}`} className="hover:underline">
-                    {post.title}
-                  </Link>
-                </CardTitle>
-                <CardDescription className="line-clamp-3 mt-2">
-                  {post.excerpt}
-                </CardDescription>
-              </CardHeader>
-              <CardFooter className="border-t pt-4">
-                <div className="text-sm">By {post.author}</div>
-                <Button asChild variant="ghost" size="sm" className="ml-auto">
-                  <Link href={`/blog/${post.slug}`}>Read more</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+        <Button asChild variant="ghost" className="mt-4 md:mt-0">
+          <Link href="/blog" className="flex items-center">
+            View all posts <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </div>
-    </section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {featuredPosts.map((post) => (
+          <Card key={post.id} className="flex flex-col h-full">
+            <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+              <Image
+                src={post.image || "/placeholder.svg"}
+                alt={post.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </div>
+            <CardHeader className="flex-grow">
+              <div className="flex items-center text-sm text-muted-foreground mb-2">
+                <span>{post.category}</span>
+                <span className="mx-2">•</span>
+                <span>{post.date}</span>
+              </div>
+              <CardTitle className="line-clamp-2">
+                <Link href={`/blog/${post.slug}`} className="hover:underline">
+                  {post.title}
+                </Link>
+              </CardTitle>
+              <CardDescription className="line-clamp-3 mt-2">
+                {post.excerpt}
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="border-t pt-4">
+              <div className="text-sm">By {post.author}</div>
+              <Button asChild variant="ghost" size="sm" className="ml-auto">
+                <Link href={`/blog/${post.slug}`}>Read more</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
