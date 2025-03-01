@@ -6,7 +6,7 @@ import CarouselSlide from "./Carousel-Slide";
 import { useCarouselsQuery } from "@/lib/actions/Hooks/useCarousel";
 
 export default function Carousel() {
-  const { data } = useCarouselsQuery();
+  const { data, isLoading } = useCarouselsQuery();
   const carousels = data || []; // Fallback to empty array if no data
 
   const [activeIndex, setActiveIndex] = useState(carousels.length);
@@ -89,9 +89,13 @@ export default function Carousel() {
     }
   }, [nextSlide, carousels.length]);
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div
-      className="relative w-full h-[400px] overflow-hidden"
+      className="relative w-full h-52 md:h-96 overflow-hidden"
       onMouseEnter={pauseAutoPlay}
       onMouseLeave={resumeAutoPlay}>
       <div

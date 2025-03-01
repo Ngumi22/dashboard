@@ -1,4 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  UseQueryOptions,
+} from "@tanstack/react-query";
 import {
   fetchProductByCategory,
   ProductCategory,
@@ -11,7 +15,10 @@ import {
 
 const MINUTE = 1000 * 60;
 
-export function useFetchProductsBySubCategory(subCategoryName: string) {
+export function useFetchProductsBySubCategory(
+  subCategoryName: string,
+  options?: UseQueryOptions<any, Error> // Add optional options parameter
+) {
   return useQuery({
     queryKey: ["subCategoryProducts", subCategoryName],
     queryFn: async () => {
@@ -27,6 +34,7 @@ export function useFetchProductsBySubCategory(subCategoryName: string) {
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
     enabled: Boolean(subCategoryName), // Run only if subCategoryName is present
     retry: false, // Disable retries to immediately show errors
+    ...options, // Spread the options to override defaults
   });
 }
 export function useFetchSubCategories(categoryName: string) {

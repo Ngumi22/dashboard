@@ -11,6 +11,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+
+const formatCurrency = (value: number, currency = "Ksh") => {
+  return `${currency} ${value.toFixed(2)}`;
+};
 
 export default function Cart() {
   const cartItems = useCartStore((state) => state.cartItems);
@@ -46,7 +51,7 @@ export default function Cart() {
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-96">
-        <ScrollArea className="h-96 rounded-md p-4">
+        <ScrollArea className="rounded-md p-4">
           {cartItems?.length === 0 ? (
             <div className="text-center">
               <p className="font-semibold my-4">Your Cart is empty</p>
@@ -89,15 +94,24 @@ export default function Cart() {
                   <p>Ksh {cartItem.price * cartItem.quantity}</p>
                 </div>
               ))}
+              <div className="subtotal flex justify-between items-center gap-x-4 my-4">
+                <p className="font-bold text-2xl">Subtotal:</p>
+                <p className="font-bold text-xl">
+                  {formatCurrency(cartTotalAmount)}
+                </p>
+              </div>
 
-              <div className="flex justify-between items-center">
-                <button className="border px-4 py-2" onClick={handleClearCart}>
+              <div className="flex justify-between items-center my-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border px-4 py-2"
+                  onClick={handleClearCart}>
                   Clear Cart
-                </button>
-                <div className="subtotal flex justify-between items-center gap-x-4 my-4">
-                  <p className="font-bold">Subtotal:</p>
-                  <p className="font-bold">Ksh {cartTotalAmount}</p>
-                </div>
+                </Button>
+                <Button size="lg" className="border px-4 py-2">
+                  <Link href="/checkout">Continue To Checkout</Link>
+                </Button>
               </div>
             </div>
           )}

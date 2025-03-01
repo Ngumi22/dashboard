@@ -23,13 +23,53 @@ function Banners({
   maxBanners = 0, // Default maximum number of banners
   className = "", // Additional custom class names
 }: BannerProps) {
-  const { data: banners } = useBannersQueryContext(contextName);
+  const {
+    data: banners,
+    isLoading,
+    isError,
+  } = useBannersQueryContext(contextName);
 
   // Memoize the sliced banners to avoid recalculating on every render
   const slicedBanners = useMemo(() => {
     if (!banners) return [];
     return maxBanners > 0 ? banners.slice(0, maxBanners) : banners;
   }, [banners, maxBanners]);
+
+  // Fallback UI for error state
+  if (isError) {
+    return (
+      <div className="text-center text-red-500">
+        Failed to load banners. Please try again later.
+      </div>
+    );
+  }
+
+  // Fallback UI for no banners
+  if (!isLoading && (!slicedBanners || slicedBanners.length === 0)) {
+    return (
+      <div className="text-center text-gray-500">No banners available.</div>
+    );
+  }
+
+  // Loading skeletons
+  if (isLoading) {
+    return (
+      <ul className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>
+        {Array.from({ length: maxBanners || 3 }).map((_, index) => (
+          <li
+            key={index}
+            className="min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md bg-gray-200 animate-pulse">
+            <div className="grid gap-2">
+              <div className="h-6 bg-gray-300 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+              <div className="h-8 bg-gray-300 rounded w-1/3"></div>
+            </div>
+            <div className="w-20 h-20 bg-gray-300 rounded"></div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
     <ul className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>

@@ -1,7 +1,11 @@
 // components/Client-Side/ClientWrapper.tsx
 "use client";
 
-import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
+import {
+  QueryClientProvider,
+  HydrationBoundary,
+  dehydrate,
+} from "@tanstack/react-query";
 import { ReactNode } from "react";
 import Loading from "@/app/(client)/loading";
 import { getQueryClient } from "./get-query-client";
@@ -12,18 +16,16 @@ import { useBannersQuery } from "@/lib/actions/Hooks/useBanner";
 
 interface ClientSideWrapperProps {
   children: ReactNode;
-  dehydratedState: unknown; // Use a more specific type if available
 }
 
 export default function ClientSideWrapper({
   children,
-  dehydratedState,
 }: ClientSideWrapperProps) {
   const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HydrationBoundary state={dehydratedState}>
+      <HydrationBoundary state={dehydrate(queryClient)}>
         <DataFetchingWrapper>{children}</DataFetchingWrapper>
       </HydrationBoundary>
     </QueryClientProvider>

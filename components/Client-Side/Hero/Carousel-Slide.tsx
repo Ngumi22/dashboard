@@ -20,7 +20,7 @@ export default function CarouselSlide({
   isAnimating: boolean;
 }) {
   return (
-    <div className="relative max-w-5xl aspect-[16/9] bg-gradient-to-tr from-gray-900 to-gray-800 rounded-lg overflow-hidden shadow-2xl w-full h-full py-8">
+    <div className="relative max-w-5xl aspect-[16/9] bg-gradient-to-tr from-gray-900 to-gray-800 rounded overflow-hidden shadow-2xl w-full h-full py-8">
       {/* Carousel image positioned behind text */}
       <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1/2 h-full flex items-center justify-center z-0">
         <div

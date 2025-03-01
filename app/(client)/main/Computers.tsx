@@ -38,7 +38,7 @@ export default function SubCategoryProductsComputers() {
         label: subCategory.category_name,
         products:
           subCategoryProducts?.products?.filter(
-            (product) => product.category_id === subCategory.category_id
+            (product: any) => product.category_id === subCategory.category_id
           ) || [],
       })) || []
     );

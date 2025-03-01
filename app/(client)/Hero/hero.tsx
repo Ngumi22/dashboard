@@ -7,7 +7,7 @@ export default function HeroSection() {
   return (
     <section className="flex md:flex-row flex-col gap-4 items-stretch md:px-2">
       {/* Hero Carousel */}
-      <div className="w-full max-w-3xl h-80 md:h-[400px]">
+      <div className="w-full max-w-3xl">
         <Carousel />
       </div>
 

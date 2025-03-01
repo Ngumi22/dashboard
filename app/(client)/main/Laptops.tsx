@@ -28,8 +28,10 @@ export default function SubCategoryProducts({
     data: subCategoryProducts,
     isLoading: isProductsLoading,
     error: productsError,
+    isFetching: isProductsFetching,
   } = useFetchProductsBySubCategory(subCategoryName);
 
+  // Set the default subcategory when subCategories are loaded
   useEffect(() => {
     if (subCategories && subCategories.length > 0 && !subCategoryName) {
       setSubCategoryName(subCategories[0].category_name); // Set the first subcategory as default
@@ -44,7 +46,8 @@ export default function SubCategoryProducts({
         label: subCategory.category_name,
         products:
           subCategoryProducts?.products?.filter(
-            (product) => product.category_id === subCategory.category_id
+            (product: { category_id: any }) =>
+              product.category_id === subCategory.category_id
           ) || [],
       })) || []
     );
@@ -52,6 +55,7 @@ export default function SubCategoryProducts({
 
   const [activeTab, setActiveTab] = useState(tabs.length > 0 ? tabs[0].id : "");
 
+  // Synchronize activeTab with subCategoryName
   useEffect(() => {
     if (tabs.length > 0 && !tabs.some((tab) => tab.id === activeTab)) {
       setActiveTab(tabs[0].id); // Reset activeTab if it's not in the tabs array
@@ -82,7 +86,13 @@ export default function SubCategoryProducts({
 
   // Show loading state while data is being fetched
   if (isSubCategoriesLoading || isProductsLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <ProductCardSkeleton key={index} />
+        ))}
+      </div>
+    );
   }
 
   return (

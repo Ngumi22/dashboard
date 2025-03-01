@@ -77,6 +77,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                type="button" // Prevent form submission
                 onClick={() => onTabChange(tab.id)}
                 className={`px-4 py-2 whitespace-nowrap transition-colors text-sm font-medium ${
                   activeTab === tab.id

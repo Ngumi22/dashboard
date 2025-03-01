@@ -12,7 +12,13 @@ import { SelectSeparator } from "@/components/ui/select";
 import { useStore } from "@/app/store";
 import { useEffect } from "react";
 import Base64Image from "@/components/Data-Table/base64-image";
-import { Sparkles } from "lucide-react";
+import {
+  CalendarHeart,
+  ReplaceAll,
+  Sparkle,
+  Sparkles,
+  Truck,
+} from "lucide-react";
 import { generateSlug } from "@/lib/utils";
 
 export interface Category {
@@ -68,44 +74,55 @@ export default function MegaMenu() {
               </NavigationMenuTrigger>
             </Link>
             <NavigationMenuContent>
-              <div className="flex items-center justify-start gap-2 shadow-lg px-4 py-6 h-fit">
-                <div className="flex flex-col items-start w-1/5 bg-gray-100 px-4 py-6">
-                  <h2 className="font-bold text-center">Good to know</h2>
-                  <ol>
-                    <li>
-                      <p>We accept returns</p>
+              <div className="flex items-center justify-start gap-2 shadow-lg p-4 h-72">
+                <div className="flex flex-col items-center w-1/5 bg-gray-100 p-4 h-full">
+                  <h2 className="font-bold underline text-xl text-gray-900">
+                    Good to know
+                  </h2>
+                  <ul className="flex flex-col justify-between space-y-4 h-full my-4 text-sm">
+                    <li className="flex gap-2 items-center">
+                      <ReplaceAll />
+                      We accept returns
                     </li>
-                    <li>
-                      <p>We have payment on delivery</p>
+                    <li className="flex gap-2 items-center">
+                      <Truck />
+                      We have payment on delivery
                     </li>
-                    <li>
-                      <p>We offer free delivery </p>
+                    <li className="flex gap-2 items-center">
+                      <Sparkle />
+                      Exclusive Deals
                     </li>
-                  </ol>
+                    <li className="flex gap-2 items-center">
+                      <CalendarHeart />
+                      We offer 12 months Warranty
+                    </li>
+                  </ul>
                 </div>
                 <SelectSeparator />
                 <div className="pr-8 w-4/5">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="font-semibold text-gray-700">Categories</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-lg text-gray-900">
+                      Categories
+                    </p>
                     <Link
                       href={`/category/${category.category_id}`}
-                      className="text-sm text-gray-900 hover:underline">
+                      className="text-sm text-gray-900 font-bold underline underline-offset-1">
                       See all
                     </Link>
                   </div>
-                  <div className="flex flex-nowrap md:flex-wrap items-center justify-start gap-x-4">
+                  <div className="flex items-center justify-start gap-4 overflow-scroll scrollbar snap-mandatory my-2">
                     {/* Render subcategories for this main category */}
                     {subcategories(category.category_id).length > 0 ? (
                       subcategories(category.category_id).map((subItem) => (
                         <Link
                           key={subItem.category_id}
                           href={`/category/${category.category_id}/${subItem.category_id}`}
-                          className="group block aspect-square space-y-5">
+                          className="group block aspect-square space-y-5  my-auto items-center h-56">
                           <Base64Image
                             src={subItem.category_image || "/placeholder.svg"}
                             alt={subItem.category_name}
-                            width={100}
-                            height={100}
+                            width={150}
+                            height={150}
                           />
                           <h3 className="text-sm font-medium text-gray-900">
                             {subItem.category_name}
