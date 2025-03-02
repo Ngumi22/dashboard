@@ -1,3 +1,4 @@
+// components/Client-Side/get-query-client.ts
 import { isServer, QueryClient } from "@tanstack/react-query";
 
 function makeQueryClient() {

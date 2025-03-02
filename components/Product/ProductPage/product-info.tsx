@@ -6,29 +6,43 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Product } from "@/lib/actions/Product/productTypes";
+import { useState } from "react";
+import Link from "next/link"; // Import the Link component
 
 interface ProductInfoProps {
   product: Product;
 }
 
 export default function ProductInfo({ product }: ProductInfoProps) {
-  const [quantity, setQuantity] = React.useState(1);
-  const [isWishlisted, setIsWishlisted] = React.useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   const finalPrice = product.price - (product.price * product.discount) / 100;
 
-  const getStatusColor = (status: Product["status"]) => {
-    switch (status) {
-      case "draft":
-        return "bg-green-100 text-green-800";
-      case "approved":
-        return "bg-red-100 text-red-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  // Determine status color and text based on product quantity
+  const getStockStatus = (quantity: number) => {
+    if (quantity > 10) {
+      return {
+        color: "bg-green-100 text-green-800",
+        text: "In Stock",
+        description: `${quantity} units available`,
+      };
+    } else if (quantity > 0) {
+      return {
+        color: "bg-yellow-100 text-yellow-800",
+        text: "Low Stock",
+        description: `Only ${quantity} units left`,
+      };
+    } else {
+      return {
+        color: "bg-red-100 text-red-800",
+        text: "Out of Stock",
+        description: "Currently unavailable",
+      };
     }
   };
+
+  const stockStatus = getStockStatus(product.quantity);
 
   const handleAddToCart = () => {
     toast({
@@ -44,15 +58,8 @@ export default function ProductInfo({ product }: ProductInfoProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <div className="flex items-center gap-4">
-          <div>
-            <h4 className="text-sm text-muted-foreground">
-              {product.brand.brand_name}
-            </h4>
-            <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-          </div>
-        </div>
         <h1 className="text-3xl font-bold">{product.name}</h1>
+        <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
         <div className="flex items-center gap-4">
           <div className="flex items-center">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -83,23 +90,29 @@ export default function ProductInfo({ product }: ProductInfoProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={getStatusColor(product.status)}>
-            {product.status.replace("_", " ")}
-          </Badge>
-          {product.quantity > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {product.quantity} units available
-            </span>
-          )}
+          <span className="text-sm text-muted-foreground">
+            {product.quantity}
+          </span>
+          <Badge className={stockStatus.color}>{stockStatus.text}</Badge>
+          <span className="text-sm text-muted-foreground">
+            {stockStatus.description}
+          </span>
         </div>
       </div>
 
       {product.tags && product.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {product.tags.map((tag: any) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
+          {product.tags.map((tag: string) => (
+            <Link
+              key={tag}
+              href={`/products/tags/${encodeURIComponent(tag)}`} // Encode the tag for the URL
+              passHref>
+              <Badge
+                variant="outline"
+                className="cursor-pointer hover:bg-gray-100">
+                {tag}
+              </Badge>
+            </Link>
           ))}
         </div>
       )}
@@ -131,7 +144,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
             className="flex-1"
             size="lg"
             onClick={handleAddToCart}
-            disabled={product.status === "pending"}>
+            disabled={product.quantity === 0 || product.status === "pending"}>
             Add to cart
           </Button>
           <Button
@@ -139,7 +152,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
             size="lg"
             variant="secondary"
             onClick={handleBuyNow}
-            disabled={product.status === "approved"}>
+            disabled={product.quantity === 0 || product.status === "approved"}>
             Buy it now
           </Button>
         </div>
@@ -159,11 +172,6 @@ export default function ProductInfo({ product }: ProductInfoProps) {
             Share
           </Button>
         </div>
-      </div>
-
-      <div className="text-sm text-muted-foreground">
-        <p>Added on {product.created_at}</p>
-        {product.updatedAt && <p>Last updated {product.updatedAt}</p>}
       </div>
     </div>
   );

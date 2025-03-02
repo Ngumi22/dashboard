@@ -81,15 +81,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Initialize your database (if needed)
   await initialize();
-
-  prefetchData();
+  const dehydratedState = await prefetchData();
 
   return (
     <html lang="en">
       <body suppressHydrationWarning={true}>
-        <ClientSideWrapper>
+        <ClientSideWrapper dehydratedState={dehydratedState}>
           <NewNavbar />
           {children}
           <Footer />

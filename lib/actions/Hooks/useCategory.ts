@@ -7,7 +7,10 @@ import {
   fetchProductByCategory,
   ProductCategory,
 } from "../Product/fetchByCategory";
-import { getUniqueCategories } from "../Category/fetch";
+import {
+  fetchCategoryWithSubCat,
+  getUniqueCategories,
+} from "../Category/fetch";
 import {
   fetchProductsBySubCategory,
   fetchSubCategories,
@@ -37,6 +40,7 @@ export function useFetchProductsBySubCategory(
     ...options, // Spread the options to override defaults
   });
 }
+
 export function useFetchSubCategories(categoryName: string) {
   return useQuery({
     queryKey: ["subCategories", categoryName],
@@ -74,6 +78,16 @@ export function useCategoriesQuery() {
   return useQuery({
     queryKey: ["categoryData"],
     queryFn: () => getUniqueCategories(),
+    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
+    gcTime: 10 * MINUTE,
+    placeholderData: keepPreviousData, // Keep previous data while fetching new data
+  });
+}
+// Hook to fetch categories
+export function useFetchCategoryWithSubCategory() {
+  return useQuery({
+    queryKey: ["categoryDataWithSub"],
+    queryFn: () => fetchCategoryWithSubCat(),
     staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
     gcTime: 10 * MINUTE,
     placeholderData: keepPreviousData, // Keep previous data while fetching new data

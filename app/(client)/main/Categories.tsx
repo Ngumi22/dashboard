@@ -2,21 +2,13 @@
 
 import Link from "next/link";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
-import { useStore } from "@/app/store";
 import Base64Image from "@/components/Data-Table/base64-image";
-import { useEffect, useState } from "react";
+import { useCategoriesQuery } from "@/lib/actions/Hooks/useCategory";
 
 const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 
 export default function Categories() {
-  const fetchUniqueCategoriesWithSubs = useStore(
-    (state) => state.fetchUniqueCategoriesWithSubs
-  );
-  const categories = useStore((state) => state.categories);
-
-  useEffect(() => {
-    fetchUniqueCategoriesWithSubs(); // Fetch initial page
-  }, [fetchUniqueCategoriesWithSubs]);
+  const { data: categories = [] } = useCategoriesQuery();
 
   const filteredCategories = categories.filter(
     (category) => category.parent_category_id === null
@@ -45,7 +37,7 @@ export default function Categories() {
               src={
                 typeof category.category_image === "string"
                   ? category.category_image
-                  : ""
+                  : "/placeholder.svg"
               }
               alt={category.category_name}
               width={100}

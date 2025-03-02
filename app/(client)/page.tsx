@@ -16,7 +16,7 @@ export default function Page() {
     <div className="mt-[10rem] lg:mt-[12rem] bg-muted/30">
       <HeroSection />
       {/* Main Content */}
-      <div className="bg-[#F5F5F7] pt-2 md:container space-y-8">
+      <div className="pt-2 md:container space-y-8">
         <Service />
         <DiscountedOffers />
         <Banners

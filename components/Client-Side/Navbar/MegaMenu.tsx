@@ -9,7 +9,6 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { SelectSeparator } from "@/components/ui/select";
-import { useStore } from "@/app/store";
 import { useEffect } from "react";
 import Base64Image from "@/components/Data-Table/base64-image";
 import {
@@ -20,6 +19,9 @@ import {
   Truck,
 } from "lucide-react";
 import { generateSlug } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCategoryWithSubCat } from "@/lib/actions/Category/fetch";
+import { useFetchCategoryWithSubCategory } from "@/lib/actions/Hooks/useCategory";
 
 export interface Category {
   category_id: number;
@@ -31,29 +33,30 @@ export interface Category {
 }
 
 export default function MegaMenu() {
-  const fetchUniqueCategoriesWithSubs = useStore(
-    (state) => state.fetchUniqueCategoriesWithSubs
-  );
-  const categoriesData = useStore((state) => state.categories);
+  const {
+    data: categoriesData,
+    isLoading,
+    isError,
+  } = useFetchCategoryWithSubCategory();
 
-  useEffect(() => {
-    fetchUniqueCategoriesWithSubs(); // Fetch initial categories
-  }, [fetchUniqueCategoriesWithSubs]);
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error fetching categories</div>;
 
   // Generate slugs for categories
-  const categoriesWithSlugs = categoriesData.map((category) => ({
-    ...category,
-    category_slug: generateSlug(category.category_name),
-  }));
+  const categoriesWithSlugs =
+    categoriesData?.map((category) => ({
+      ...category,
+      category_slug: generateSlug(category.category_name),
+    })) || [];
 
   // Filter main categories (categories with no parent)
-  const mainCategories = categoriesData.filter(
+  const mainCategories = categoriesWithSlugs.filter(
     (category) => category.parent_category_id === null
   );
 
   // For each main category, filter out its subcategories
   const subcategories = (parentCategoryId: number) => {
-    return categoriesData.filter(
+    return categoriesWithSlugs.filter(
       (category) => category.parent_category_id === parentCategoryId
     );
   };
@@ -62,7 +65,9 @@ export default function MegaMenu() {
     <NavigationMenu className="md:flex items-center justify-center container hidden mx-auto flex-2">
       <div className="flex items-center gap-2">
         <Sparkles />
-        <Link href="/special-offers">Special Offers</Link>
+        <Link href="/special-offers" className="p-2 text-sm font-medium">
+          Special Offers
+        </Link>
       </div>
       <NavigationMenuList className="">
         {mainCategories.map((category) => (

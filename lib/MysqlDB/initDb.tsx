@@ -2,6 +2,7 @@ import mysql from "mysql2/promise";
 
 let slowQueryThreshold = 1000; // in ms, adjust as needed
 
+// Global variables to track the pool and connections
 let pool: mysql.Pool | null = null;
 let activeConnections = 0;
 let totalConnectionsCreated = 0;
@@ -38,48 +39,41 @@ async function ensureDatabaseExists(): Promise<void> {
 }
 
 /**
- * Initializes the database connection pool.
+ * Initializes the database connection pool (singleton pattern).
  */
 export async function initDbConnection(): Promise<mysql.Pool> {
   if (!pool) {
-    await ensureDatabaseExists(); // Ensure the database exists before initializing the pool
-
     pool = mysql.createPool({
       host: process.env.AWS_HOST,
       user: process.env.AWS_USER,
       password: process.env.AWS_PASSWORD,
       database: process.env.AWS_NAME,
-      waitForConnections: true,
-      connectionLimit: 10, // Reduced for serverless environments
-      queueLimit: 0,
-      connectTimeout: 5000,
-      idleTimeout: 30000,
+      waitForConnections: true, // Allow queuing when the pool is full
+      connectionLimit: 10, // Adjust based on your needs
+      queueLimit: 100, // Maximum number of queued requests
+      connectTimeout: 5000, // Timeout for acquiring a connection
+      idleTimeout: 30000, // Close idle connections after 30 seconds
       enableKeepAlive: true,
-      // ssl: {
-      //   rejectUnauthorized: true,
-      // },
     });
 
     console.log("Database pool initialized successfully.");
 
-    // Track total connections created
-    pool.on("connection", (conn) => {
-      totalConnectionsCreated++;
-      conn.query(`SET time_zone = '+00:00'`); // UTC time
+    // Monitor the connection pool
+    pool.on("enqueue", () => {
+      console.warn("Connection pool is full. Requests are being queued.");
     });
 
-    // Track active connections
-    pool.on("acquire", () => {
-      activeConnections++;
+    pool.on("release", (connection) => {
+      console.log("Connection released back to the pool.");
     });
 
-    pool.on("release", () => {
-      activeConnections--;
+    pool.on("acquire", (connection) => {
+      console.log("Connection acquired from the pool.");
     });
   }
+
   return pool;
 }
-
 /**
  * Gets a connection from the pool.
  */
@@ -92,13 +86,17 @@ export async function getConnection(): Promise<mysql.PoolConnection> {
     throw new Error("Database pool is not initialized");
   }
 
-  return pool!.getConnection();
+  return pool.getConnection();
 }
 
 /**
  * Executes a query and logs performance.
  */
 export async function query(sql: string, params: any[] = []): Promise<any> {
+  if (!pool) {
+    await initDbConnection();
+  }
+
   const connection = await pool!.getConnection();
   try {
     const start = performance.now();
@@ -106,7 +104,6 @@ export async function query(sql: string, params: any[] = []): Promise<any> {
     const duration = performance.now() - start;
 
     // Log query performance
-    // console.log(`Query executed in ${duration.toFixed(2)} ms`);
     if (duration > slowQueryThreshold) {
       console.warn(
         `Slow query detected: ${sql}, duration: ${duration.toFixed(2)} ms`
@@ -119,5 +116,16 @@ export async function query(sql: string, params: any[] = []): Promise<any> {
     throw error;
   } finally {
     connection.release();
+  }
+}
+
+/**
+ * Closes the database pool (for cleanup).
+ */
+export async function closePool(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = null;
+    console.log("Database pool closed.");
   }
 }

@@ -10,22 +10,27 @@ import { ReactNode } from "react";
 import Loading from "@/app/(client)/loading";
 import { getQueryClient } from "./get-query-client";
 import { useBrandsQuery } from "@/lib/actions/Hooks/useBrand";
-import { useCategoriesQuery } from "@/lib/actions/Hooks/useCategory";
+import {
+  useCategoriesQuery,
+  useFetchCategoryWithSubCategory,
+} from "@/lib/actions/Hooks/useCategory";
 import { useProductsQuery } from "@/lib/actions/Hooks/useProducts";
 import { useBannersQuery } from "@/lib/actions/Hooks/useBanner";
 
 interface ClientSideWrapperProps {
   children: ReactNode;
+  dehydratedState: any;
 }
 
 export default function ClientSideWrapper({
   children,
+  dehydratedState,
 }: ClientSideWrapperProps) {
   const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HydrationBoundary state={dehydrate(queryClient)}>
+      <HydrationBoundary state={dehydratedState}>
         <DataFetchingWrapper>{children}</DataFetchingWrapper>
       </HydrationBoundary>
     </QueryClientProvider>
@@ -37,13 +42,15 @@ function DataFetchingWrapper({ children }: { children: ReactNode }) {
   const categoriesQuery = useCategoriesQuery();
   const productsQuery = useProductsQuery(1, {});
   const bannersQuery = useBannersQuery();
+  const categoriesWithSubQuery = useFetchCategoryWithSubCategory();
 
   // Handle errors
   if (
     brandsQuery.isError ||
     categoriesQuery.isError ||
     productsQuery.isError ||
-    bannersQuery.isError
+    bannersQuery.isError ||
+    categoriesWithSubQuery.isError
   ) {
     return <div>Error loading data. Please try again later.</div>;
   }
@@ -53,7 +60,8 @@ function DataFetchingWrapper({ children }: { children: ReactNode }) {
     brandsQuery.isLoading ||
     categoriesQuery.isLoading ||
     productsQuery.isLoading ||
-    bannersQuery.isLoading;
+    bannersQuery.isLoading ||
+    categoriesWithSubQuery.isLoading;
 
   if (isLoading) {
     return <Loading />;
