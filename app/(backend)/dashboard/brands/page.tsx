@@ -22,6 +22,7 @@ const includedKeys: (keyof Brand)[] = ["brand_id", "brand_name", "brand_image"];
 import { useRouter, useParams } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
+import { deleteBrandAction } from "@/lib/actions/Brand/delete";
 
 const columnRenderers = {
   brand_image: (brand: Brand) => (
@@ -46,10 +47,6 @@ export default function BrandPage() {
     {}
   );
   const [sortKey, setSortKey] = useState<keyof Brand>("brand_name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
@@ -60,24 +57,11 @@ export default function BrandPage() {
 
   const rowActions: RowAction<any>[] = [
     {
-      label: "View",
-      icon: Eye,
-      onClick: (brand) => {
-        router.push(`/dashboard/brands/${brand.brand_id}/brand`);
-      },
-    },
-    {
-      label: "Edit",
-      icon: Edit,
-      onClick: (brand) => {
-        // Navigate to the edit page
-        router.push(`/dashboard/brands/${brand.brand_id}/edit`);
-      },
-    },
-    {
       label: "Delete",
       icon: Trash,
-      onClick: async (brand) => {},
+      onClick: async (brand) => {
+        deleteBrandAction(brand.brand_id);
+      },
     },
   ];
 
@@ -151,7 +135,7 @@ export default function BrandPage() {
   };
 
   const handleAddNew = () => {
-    router.push("/dashboard/brand/create");
+    router.push("/dashboard/brands");
   };
 
   const handleClearFilter = (key: string, value: string) => {

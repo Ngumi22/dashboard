@@ -138,7 +138,7 @@ export default function ProductCard({
         </div>
       </div>
 
-      <div className="relative bg-white p-4">
+      <div className="relative bg-white p-2">
         <h3 className="font-bold text-gray-900 mb-1 truncate">{name}</h3>
 
         <div className="flex items-center justify-between mb-4">

@@ -9,7 +9,7 @@ function makeQueryClient() {
         gcTime: 60 * 60 * 1000, // 1 hour
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
-        refetchOnMount: false,
+        refetchOnMount: false, // Disable re-fetching on mount
       },
     },
   });

@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import "../globals.css";
-import Loading from "./loading";
-import { Suspense } from "react";
 import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
 import { initialize } from "@/lib/MysqlDB/initialize";
-import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
-import Footer from "@/components/Client-Side/Footer/footer";
 import { prefetchData } from "@/lib/actions/serverSideFetching";
 
 export const metadata: Metadata = {
@@ -88,9 +84,7 @@ export default async function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning={true}>
         <ClientSideWrapper dehydratedState={dehydratedState}>
-          <NewNavbar />
           {children}
-          <Footer />
         </ClientSideWrapper>
         <ToastContainer position="bottom-left" />
       </body>

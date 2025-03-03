@@ -16,6 +16,8 @@ import {
 } from "@/lib/actions/Hooks/useCategory";
 import { useProductsQuery } from "@/lib/actions/Hooks/useProducts";
 import { useBannersQuery } from "@/lib/actions/Hooks/useBanner";
+import NewNavbar from "./Navbar/Navbar";
+import Footer from "./Footer/footer";
 
 interface ClientSideWrapperProps {
   children: ReactNode;
@@ -28,6 +30,8 @@ export default function ClientSideWrapper({
 }: ClientSideWrapperProps) {
   const queryClient = getQueryClient();
 
+  // console.log("Dehydrated State in ClientSideWrapper:", dehydratedState);
+
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={dehydratedState}>
@@ -37,7 +41,9 @@ export default function ClientSideWrapper({
   );
 }
 
-function DataFetchingWrapper({ children }: { children: ReactNode }) {
+import { memo } from "react";
+
+const DataFetchingWrapper = memo(({ children }: { children: ReactNode }) => {
   const brandsQuery = useBrandsQuery();
   const categoriesQuery = useCategoriesQuery();
   const productsQuery = useProductsQuery(1, {});
@@ -67,5 +73,13 @@ function DataFetchingWrapper({ children }: { children: ReactNode }) {
     return <Loading />;
   }
 
-  return <section className="mt-[9.5rem] lg:mt-[11.5rem]">{children}</section>;
-}
+  return (
+    <section className="mt-[9.5rem] lg:mt-[11.5rem]">
+      <NewNavbar />
+      {children}
+      <Footer />
+    </section>
+  );
+});
+
+DataFetchingWrapper.displayName = "DataFetchingWrapper"; // Add display name for debugging

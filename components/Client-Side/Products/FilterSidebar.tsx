@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,6 +62,18 @@ const allFilters = [
   },
 ];
 
+const useDebounce = (callback: (...args: any[]) => void, delay: number) => {
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+
+  return useCallback(
+    (...args: any[]) => {
+      if (timer) clearTimeout(timer);
+      setTimer(setTimeout(() => callback(...args), delay));
+    },
+    [callback, delay, timer]
+  );
+};
+
 export default function FilterSidebar() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,6 +85,14 @@ export default function FilterSidebar() {
     "category",
     "brand",
   ]);
+
+  const debouncedUpdateUrl = useDebounce((values: number[]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("minPrice", values[0].toString());
+    params.set("maxPrice", values[1].toString());
+    setActiveFilters((prev) => [...new Set([...prev, "price"])]);
+    router.push(`/products?${params.toString()}`);
+  }, 300);
 
   useEffect(() => {
     const minPrice = searchParams.get("minPrice");
@@ -94,55 +114,63 @@ export default function FilterSidebar() {
     }
   }, [searchParams, activeFilters]);
 
-  const visibleFilters = showAllFilters ? allFilters : allFilters.slice(0, 6);
+  const visibleFilters = useMemo(
+    () => (showAllFilters ? allFilters : allFilters.slice(0, 6)),
+    [showAllFilters]
+  );
 
-  const updateFilters = (filterId: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const currentValues = params.getAll(filterId);
+  const updateFilters = useCallback(
+    (filterId: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const currentValues = params.getAll(filterId);
 
-    if (currentValues.includes(value)) {
-      params.delete(filterId, value);
-      setActiveFilters((prev) => prev.filter((f) => f !== filterId));
-    } else {
-      params.append(filterId, value);
-      setActiveFilters((prev) => [...new Set([...prev, filterId])]);
-    }
+      if (currentValues.includes(value)) {
+        params.delete(filterId, value);
+        setActiveFilters((prev) => prev.filter((f) => f !== filterId));
+      } else {
+        params.append(filterId, value);
+        setActiveFilters((prev) => [...new Set([...prev, filterId])]);
+      }
 
-    router.push(`/products?${params.toString()}`);
-  };
+      router.push(`/products?${params.toString()}`);
+    },
+    [router, searchParams]
+  );
 
-  const updatePriceRange = (values: number[]) => {
-    setPriceRange(values);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("minPrice", values[0].toString());
-    params.set("maxPrice", values[1].toString());
-    setActiveFilters((prev) => [...new Set([...prev, "price"])]);
-    router.push(`/products?${params.toString()}`);
-  };
+  const updatePriceRange = useCallback(
+    (values: number[]) => {
+      setPriceRange(values);
+      debouncedUpdateUrl(values);
+    },
+    [debouncedUpdateUrl]
+  );
 
-  const handlePriceInputChange = (index: number, value: string) => {
-    const newValue = Number.parseInt(value);
-    if (!isNaN(newValue)) {
-      const newPriceRange = [...priceRange];
-      newPriceRange[index] = newValue;
-      updatePriceRange(newPriceRange);
-    }
-  };
+  const handlePriceInputChange = useCallback(
+    (index: number, value: string) => {
+      const newValue = Number.parseInt(value);
+      if (!isNaN(newValue)) {
+        const newPriceRange = [...priceRange];
+        newPriceRange[index] = newValue;
+        updatePriceRange(newPriceRange);
+      }
+    },
+    [priceRange, updatePriceRange]
+  );
 
-  const toggleFilter = (filterId: string) => {
+  const toggleFilter = useCallback((filterId: string) => {
     setOpenFilters((prev) =>
       prev.includes(filterId)
         ? prev.filter((id) => id !== filterId)
         : [...prev, filterId]
     );
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     router.push("/products");
     setPriceRange([0, 2000]);
     setActiveFilters([]);
     setOpenFilters(["price", "category", "brand"]);
-  };
+  }, [router]);
 
   return (
     <Card className="w-full md:w-64 border border-gray-200 max-h-[calc(100vh-2rem)] overflow-auto">
@@ -166,6 +194,8 @@ export default function FilterSidebar() {
                       value={priceRange}
                       onValueChange={updatePriceRange}
                       className="mt-2"
+                      minStepsBetweenThumbs={1}
+                      aria-label="Price range"
                     />
                     <div className="flex items-center space-x-1">
                       <Label htmlFor="minPrice">Min:</Label>

@@ -40,6 +40,10 @@ export async function prefetchData() {
       queryFn: ({ queryKey }) => fetchProductsByTag(queryKey[1] as string),
     }),
   ]);
-
+  //const dehydratedState = dehydrate(queryClient);
+  // console.log(
+  //   "Full Dehydrated State:",
+  //   JSON.stringify(dehydratedState, null, 2)
+  // ); // Log the full state
   return dehydrate(queryClient);
 }

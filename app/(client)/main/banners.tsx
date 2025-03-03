@@ -35,22 +35,6 @@ function Banners({
     return maxBanners > 0 ? banners.slice(0, maxBanners) : banners;
   }, [banners, maxBanners]);
 
-  // Fallback UI for error state
-  if (isError) {
-    return (
-      <div className="text-center text-red-500">
-        Failed to load banners. Please try again later.
-      </div>
-    );
-  }
-
-  // Fallback UI for no banners
-  if (!isLoading && (!slicedBanners || slicedBanners.length === 0)) {
-    return (
-      <div className="text-center text-gray-500">No banners available.</div>
-    );
-  }
-
   // Loading skeletons
   if (isLoading) {
     return (

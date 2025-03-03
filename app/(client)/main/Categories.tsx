@@ -10,14 +10,10 @@ const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 export default function Categories() {
   const { data: categories = [] } = useCategoriesQuery();
 
-  const filteredCategories = categories.filter(
-    (category) => category.parent_category_id === null
-  );
-
   return (
     <ScrollableSection
       title="Featured Categories"
-      items={filteredCategories.map((category) => ({
+      items={categories.map((category) => ({
         id: category.category_id,
         content: (
           <div

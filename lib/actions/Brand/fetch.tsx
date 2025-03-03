@@ -1,6 +1,6 @@
 "use server";
 
-import { cache, CacheUtil } from "@/lib/cache"; // Import CacheUtil
+import { cache } from "@/lib/cache"; // Import CacheUtil
 import { Brand } from "./brandType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
