@@ -54,6 +54,26 @@ export interface Product {
   updatedAt?: string;
 }
 
+export interface SearchParams {
+  search?: string;
+  name?: string;
+  brand?: string;
+  category?: string;
+  status?: string;
+  quantity?: number;
+  tags?: string[]; // Changed to an array to support multiple tags
+  minPrice?: number;
+  maxPrice?: number;
+  minDiscount?: number;
+  maxDiscount?: number;
+  minRating?: number;
+  maxRating?: number;
+  specifications?: {
+    [specification_name: string]: string; // Allows filtering by multiple specifications dynamically
+  };
+  type?: "brand" | "category" | "default";
+}
+
 // ProductRow extends RowDataPacket for direct MySQL query compatibility
 export interface ProductRow extends RowDataPacket, ImageFields {
   product_id: string;
@@ -101,25 +121,6 @@ export interface ProductResponse {
   };
   tags?: string[];
   created_at: string;
-}
-
-// Define `SearchParams` interface with more explicit typing for query handling.
-export interface SearchParams {
-  productId?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minDiscount?: number;
-  maxDiscount?: number;
-  name?: string;
-  brand?: string;
-  category?: string;
-  status?: string;
-  quantity?: number;
-  tags?: string;
-  type?: "brand" | "category" | "default";
-  minRating?: number;
-  maxRating?: number;
-  created_at?: string;
 }
 
 export async function mapProductRow(row: ProductRow): Promise<Product> {

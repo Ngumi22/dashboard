@@ -76,6 +76,7 @@ export default function ProductCard({
   discount,
   quantity,
   created_at,
+  specifications,
 }: ProductCardProps) {
   const addItemToCart =
     useCartStore((state) => state.addItemToCart) || (() => {});
@@ -93,6 +94,7 @@ export default function ProductCard({
       description,
       quantity,
       created_at,
+      specifications,
     };
     addItemToCart(product);
   };
@@ -140,6 +142,13 @@ export default function ProductCard({
 
       <div className="relative bg-white p-2">
         <h3 className="font-bold text-gray-900 mb-1 truncate">{name}</h3>
+        <div className="font-bold text-gray-900 mb-1 truncate">
+          {specifications?.map((spec) => (
+            <div key={spec.specification_id}>
+              {spec.specification_name}: {spec.specification_value}
+            </div>
+          ))}
+        </div>
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-baseline gap-2">

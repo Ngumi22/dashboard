@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { Button } from "@/components/ui/button";
 import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
+import ElectronicsBanner from "@/components/Client-Side/Hero/banner";
 
 interface BannerProps {
   contextName: string; // Context for fetching banners

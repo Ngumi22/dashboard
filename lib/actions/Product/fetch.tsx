@@ -200,46 +200,72 @@ function buildFilterConditions(filter: SearchParams) {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
 
-  if (filter.name)
-    conditions.push("p.product_name LIKE ?"), params.push(`%${filter.name}%`);
-  if (filter.minPrice)
-    conditions.push("p.product_price >= ?"), params.push(filter.minPrice);
-  if (filter.maxPrice)
-    conditions.push("p.product_price <= ?"), params.push(filter.maxPrice);
-  if (filter.minDiscount)
-    conditions.push("p.product_discount >= ?"), params.push(filter.minDiscount);
-  if (filter.maxDiscount)
-    conditions.push("p.product_discount <= ?"), params.push(filter.maxDiscount);
-  if (filter.brand)
-    conditions.push("b.brand_name = ?"), params.push(filter.brand);
-  if (filter.category)
-    conditions.push("p.category_id = ?"), params.push(filter.category);
-  if (filter.status !== undefined)
-    conditions.push("p.product_status = ?"), params.push(filter.status);
-  if (filter.quantity)
-    conditions.push("p.product_quantity >= ?"), params.push(filter.quantity);
-  if (filter.created_at)
-    conditions.push("p.created_at >= ?"), params.push(filter.created_at);
+  if (filter.name) {
+    conditions.push("p.product_name LIKE ?");
+    params.push(`%${filter.name}%`);
+  }
+  if (filter.minPrice) {
+    conditions.push("p.product_price >= ?");
+    params.push(filter.minPrice);
+  }
+  if (filter.maxPrice) {
+    conditions.push("p.product_price <= ?");
+    params.push(filter.maxPrice);
+  }
+  if (filter.minDiscount) {
+    conditions.push("p.product_discount >= ?");
+    params.push(filter.minDiscount);
+  }
+  if (filter.maxDiscount) {
+    conditions.push("p.product_discount <= ?");
+    params.push(filter.maxDiscount);
+  }
+  if (filter.brand) {
+    conditions.push("b.brand_name = ?");
+    params.push(filter.brand);
+  }
+  if (filter.category) {
+    conditions.push("p.category_id = ?");
+    params.push(filter.category);
+  }
+  if (filter.status !== undefined) {
+    conditions.push("p.product_status = ?");
+    params.push(filter.status);
+  }
+  if (filter.quantity) {
+    conditions.push("p.product_quantity >= ?");
+    params.push(filter.quantity);
+  }
   if (filter.minRating) {
-    conditions.push("COALESCE(ROUND(AVG(pr.rating), 1) >= ?");
+    conditions.push("COALESCE(ROUND(AVG(pr.rating), 1), 0) >= ?");
     params.push(filter.minRating);
   }
   if (filter.maxRating) {
-    conditions.push("COALESCE(ROUND(AVG(pr.rating), 1) <= ?");
+    conditions.push("COALESCE(ROUND(AVG(pr.rating), 1), 0) <= ?");
     params.push(filter.maxRating);
   }
-  if (filter.tags) {
-    const tags = filter.tags.split(",");
-    conditions.push(`(${tags.map(() => "t.tag_name = ?").join(" OR ")})`);
-    params.push(...tags);
+
+  // Handle filtering by tags (supports multiple tags)
+  if (filter.tags && filter.tags.length > 0) {
+    const tagConditions = filter.tags.map(() => "t.tag_name = ?").join(" OR ");
+    conditions.push(`(${tagConditions})`);
+    params.push(...filter.tags);
   }
 
-  // Default condition to ensure valid SQL even if no filters exist
-  if (conditions.length === 0) {
-    conditions.push("1 = 1");
+  // Handle filtering by specifications
+  if (filter.specifications) {
+    Object.entries(filter.specifications).forEach(([specName, specValue]) => {
+      conditions.push(
+        "EXISTS (SELECT 1 FROM product_specifications ps INNER JOIN specifications spec ON ps.specification_id = spec.specification_id WHERE ps.product_id = p.product_id AND spec.specification_name = ? AND ps.value = ?)"
+      );
+      params.push(specName, specValue);
+    });
   }
 
-  return { whereClause: conditions.join(" AND "), queryParams: params };
+  return {
+    whereClause: conditions.length > 0 ? conditions.join(" AND ") : "1",
+    queryParams: params,
+  };
 }
 
 export async function fetchProductById(product_id: number): Promise<Product> {
@@ -400,6 +426,137 @@ export async function fetchProductByName(productName: string) {
     } catch (error) {
       console.error("Error fetching product name:", error);
       throw error;
+    }
+  });
+}
+
+// server action to fetch products and filter options
+export async function fetchProductsAndFilters(
+  currentPage: number,
+  filter: SearchParams
+): Promise<{
+  products: Product[];
+  filters: {
+    categories: { id: string; name: string }[];
+    brands: { id: string; name: string }[];
+    specifications: { id: string; name: string; values: string[] }[];
+    tags: string[];
+    minPrice: number;
+    maxPrice: number;
+  };
+  errorMessage?: string;
+}> {
+  const limit =
+    DBQUERYLIMITS[filter.type as keyof typeof DBQUERYLIMITS] ||
+    DBQUERYLIMITS.default;
+  const offset = (currentPage - 1) * limit;
+  const cacheKey = `products_${currentPage}_${limit}_${offset}_${JSON.stringify(
+    filter
+  )}`;
+
+  // Check if the result is already in the cache
+  if (cache.has(cacheKey)) {
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() < cachedData.expiry) {
+      return cachedData.value;
+    }
+    cache.delete(cacheKey); // Invalidate expired cache
+  }
+
+  return dbOperation(async (connection) => {
+    try {
+      const { whereClause, queryParams } = buildFilterConditions(filter);
+      const query = `
+      SELECT
+          p.product_id AS id,
+          p.product_name AS name,
+          p.product_sku AS sku,
+          p.product_price AS price,
+          p.product_discount AS discount,
+          p.product_quantity AS quantity,
+          p.product_status AS status,
+          p.product_description AS description,
+          p.category_id,
+          DATE_FORMAT(p.created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at,
+          b.brand_id,
+          b.brand_name,
+          b.brand_image,
+          COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
+          MAX(pi.main_image) AS main_image,
+          COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags,
+          COALESCE(GROUP_CONCAT(DISTINCT CONCAT(spec.specification_id, ':', spec.specification_name, ':', ps.value, ':', p.category_id) ORDER BY spec.specification_name SEPARATOR '|'), '') AS specifications
+      FROM products p
+      LEFT JOIN product_images pi ON p.product_id = pi.product_id
+      LEFT JOIN brands b ON p.brand_id = b.brand_id
+      LEFT JOIN product_tags pt ON p.product_id = pt.product_id
+      LEFT JOIN tags t ON pt.tag_id = t.tag_id
+      LEFT JOIN product_specifications ps ON p.product_id = ps.product_id
+      LEFT JOIN specifications spec ON ps.specification_id = spec.specification_id
+      LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
+      WHERE ${whereClause}
+      GROUP BY p.product_id
+      ORDER BY p.product_id ASC
+      LIMIT ? OFFSET ?`;
+
+      queryParams.push(limit, offset);
+      const [rows] = await connection.query(query, queryParams);
+
+      // Fetch filter options
+      const [categories] = await connection.query(
+        "SELECT category_id AS id, category_name AS name FROM categories"
+      );
+      const [brands] = await connection.query(
+        "SELECT brand_id AS id, brand_name AS name FROM brands"
+      );
+      const [specifications] = await connection.query(
+        "SELECT specification_id AS id, specification_name AS name, GROUP_CONCAT(DISTINCT value) AS values FROM specifications GROUP BY specification_id"
+      );
+      const [tags] = await connection.query(
+        "SELECT DISTINCT tag_name AS tag FROM tags"
+      );
+      const [priceRange] = await connection.query(
+        "SELECT MIN(product_price) AS minPrice, MAX(product_price) AS maxPrice FROM products"
+      );
+
+      const products: Product[] = await mapRowsToProducts(rows);
+
+      const result = {
+        products,
+        filters: {
+          categories,
+          brands,
+          specifications: specifications.map((spec: any) => ({
+            ...spec,
+            values: spec.values.split(","),
+          })),
+          tags: tags.map((tag: any) => tag.tag),
+          minPrice: priceRange[0].minPrice,
+          maxPrice: priceRange[0].maxPrice,
+        },
+      };
+
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: result,
+        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      });
+      return result;
+    } catch (error) {
+      console.error("Error fetching filtered products:", error);
+      return {
+        products: [],
+        filters: {
+          categories: [],
+          brands: [],
+          specifications: [],
+          tags: [],
+          minPrice: 0,
+          maxPrice: 0,
+        },
+        errorMessage: "Unable to load products.",
+      };
+    } finally {
+      connection.release();
     }
   });
 }

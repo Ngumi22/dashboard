@@ -2,14 +2,13 @@
 
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import ProductCard from "@/components/Product/ProductCards/product-card";
-
 import { useProducts } from "@/lib/actions/Hooks/useProducts";
 
 export default function NewProducts() {
-  const { data, isLoading, error } = useProducts(1); // Fetch products for page 1
+  const { data: newproducts } = useProducts(1); // Fetch products for page 1
 
   // Ensure categoryProducts has products before mapping
-  const products = data?.products || [];
+  const products = newproducts?.products || [];
 
   return (
     <ScrollableSection

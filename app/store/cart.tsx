@@ -7,11 +7,20 @@ export type MinimalProduct = {
   name: string;
   description: string;
   price: number;
-  main_image: string;
-  ratings: number;
   discount: number;
   quantity: number;
+  main_image: string;
+  ratings: number;
   created_at?: string;
+  category_name?: string;
+  brand_name?: string;
+  specifications?: {
+    specification_id: string;
+    specification_name: string;
+    specification_value: string;
+    category_id: string;
+  }[];
+  tags?: string[];
 };
 
 // Define the cart item type

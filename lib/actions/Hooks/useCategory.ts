@@ -18,6 +18,17 @@ import {
 
 const MINUTE = 1000 * 60;
 
+// Hook to fetch categories
+export function useCategoriesQuery() {
+  return useQuery({
+    queryKey: ["categoryData"],
+    queryFn: () => getUniqueCategories(),
+    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
+    gcTime: 10 * MINUTE,
+    placeholderData: keepPreviousData, // Keep previous data while fetching new data
+  });
+}
+
 export function useFetchProductsBySubCategory(
   subCategoryName: string,
   options?: UseQueryOptions<any, Error> // Add optional options parameter
@@ -73,16 +84,6 @@ export function useCategoryProductQuery(categoryName: string) {
   });
 }
 
-// Hook to fetch categories
-export function useCategoriesQuery() {
-  return useQuery({
-    queryKey: ["categoryData"],
-    queryFn: () => getUniqueCategories(),
-    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-    gcTime: 10 * MINUTE,
-    placeholderData: keepPreviousData, // Keep previous data while fetching new data
-  });
-}
 // Hook to fetch categories
 export function useFetchCategoryWithSubCategory() {
   return useQuery({
