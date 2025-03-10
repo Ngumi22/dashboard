@@ -121,11 +121,16 @@ export function ProductFilters({
   useEffect(() => {
     const updatedSpecs: Partial<SearchParams> = {};
     Object.entries(debouncedSpecifications).forEach(([key, values]) => {
-      updatedSpecs[key] = values.length > 0 ? values : undefined;
+      // Only add if there are selected values.
+      if (values.length > 0) {
+        // Format each value as "key:value".
+        updatedSpecs[`spec_${key}`] = values.map((val) => `${key}:${val}`);
+      } else {
+        updatedSpecs[`spec_${key}`] = undefined;
+      }
     });
     setFilters(updatedSpecs);
   }, [debouncedSpecifications, setFilters]);
-
   // Handle price range changes
   const handlePriceChange = (min: number, max: number) => {
     setLocalPriceFilter({ min, max });
@@ -184,6 +189,7 @@ export function ProductFilters({
       brand: undefined,
       tags: undefined,
       search: undefined,
+      sort: undefined,
     };
 
     // Clear specifications from URL

@@ -21,9 +21,11 @@ export async function fetchProductsAndFilters(filter: SearchParams): Promise<{
 }> {
   const limit = Number(filter.perPage) || DBQUERYLIMITS.default;
   const offset = ((filter.page ?? 1) - 1) * limit;
-  const cacheKey = `products_${filter.page}_${limit}_${offset}_${JSON.stringify(
-    filter
-  )}`;
+  const cacheKey = `products_${filter.page}_${limit}_${offset}_${
+    filter.sort
+  }_${JSON.stringify(filter)}`;
+
+  const sortClause = getSortClause(filter.sort || "newest");
 
   if (cache.has(cacheKey)) {
     const cachedData = cache.get(cacheKey);
@@ -114,7 +116,7 @@ export async function fetchProductsAndFilters(filter: SearchParams): Promise<{
         LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
         WHERE ${whereClause}
         GROUP BY p.product_id
-        ORDER BY ${getSortClause(filter.sort)}
+        ORDER BY ${sortClause}
         LIMIT ? OFFSET ?`;
       queryParams.push(limit, offset);
       const [rows] = await connection.query(query, queryParams);
@@ -244,6 +246,7 @@ async function mapRowsToProducts(rows: any[]): Promise<Product[]> {
     })
   );
 }
+
 function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -297,16 +300,29 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     conditions.push("COALESCE(ROUND(AVG(pr.rating), 1), 0) <= ?");
     params.push(filter.maxRating);
   }
-
-  if (filter.specifications) {
-    filter.specifications.forEach((spec) => {
-      const [specName, specValue] = spec.split(":");
-      conditions.push(
-        "EXISTS (SELECT 1 FROM product_specifications ps INNER JOIN specifications spec ON ps.specification_id = spec.specification_id WHERE ps.product_id = p.product_id AND spec.specification_name = ? AND ps.value = ?)"
-      );
-      params.push(specName, specValue);
+  Object.entries(filter)
+    .filter(([key]) => key.startsWith("spec_"))
+    .forEach(([_, value]) => {
+      // Replace `key` with `_`
+      if (value) {
+        const specs = Array.isArray(value) ? value : [value];
+        specs.forEach((spec) => {
+          const [specName, specValue] = String(spec).split(":");
+          conditions.push(
+            `EXISTS (
+            SELECT 1
+            FROM product_specifications ps
+            INNER JOIN specifications spec
+              ON ps.specification_id = spec.specification_id
+            WHERE ps.product_id = p.product_id
+              AND LOWER(spec.specification_name) = ?
+              AND LOWER(ps.value) = ?
+          )`
+          );
+          params.push(specName.toLowerCase(), specValue.toLowerCase());
+        });
+      }
     });
-  }
 
   const whereClause =
     conditions.length > 0
@@ -321,19 +337,20 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
   return { whereClause, queryParams: params };
 }
 
-function getSortClause(sort?: string): string {
+function getSortClause(sort?: string) {
   switch (sort) {
-    case "newest":
-      return "p.created_at DESC"; // Sort by creation date (newest first)
     case "price-asc":
-      return "p.product_price ASC"; // Sort by price (low to high)
+      return "p.product_price ASC";
     case "price-desc":
-      return "p.product_price DESC"; // Sort by price (high to low)
+      return "p.product_price DESC";
     case "name-asc":
-      return "p.product_name ASC"; // Sort by name (A to Z)
+      return "p.product_name ASC";
     case "name-desc":
-      return "p.product_name DESC"; // Sort by name (Z to A)
+      return "p.product_name DESC";
+    case "popularity":
+      return "ratings DESC"; // Assuming 'ratings' imply popularity
+    case "newest":
     default:
-      return "p.created_at DESC"; // Default sorting (newest first)
+      return "p.created_at DESC";
   }
 }

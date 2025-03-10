@@ -59,7 +59,7 @@ export function SortBar({
   };
 
   return (
-    <div className="container border border-gray-400 round p-2 flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mt-9">
+    <div className="container border border-gray-400 rounded-md p-2 flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mt-9">
       <div className="text-sm text-muted-foreground">
         Showing{" "}
         <span className="font-medium text-foreground">{totalProducts}</span> of{" "}
