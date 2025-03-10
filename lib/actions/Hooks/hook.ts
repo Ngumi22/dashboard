@@ -14,8 +14,8 @@ export function useCustomQuery<TData, TError = Error>(
   return useQuery<TData, TError>({
     queryKey,
     queryFn,
-    staleTime: 10 * MINUTE, // Default stale time
-    gcTime: 20 * MINUTE, // Default garbage collection time
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Default placeholder data
     ...options, // Allow overriding defaults
   });

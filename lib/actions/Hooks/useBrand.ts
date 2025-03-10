@@ -12,8 +12,8 @@ export function useBrandProductsQuery(brandName: string) {
       const data = await fetchProductByBrand(brandName); // Fetch products for the brand
       return data; // Return the ProductBrand object
     },
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
     enabled: Boolean(brandName),
   });
@@ -23,8 +23,8 @@ export function useBrandsQuery() {
   return useQuery({
     queryKey: ["brandData"],
     queryFn: () => getUniqueBrands(),
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 10 * MINUTE,
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
 }

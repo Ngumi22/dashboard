@@ -10,7 +10,7 @@ let totalConnectionsCreated = 0;
 /**
  * Ensures the database exists. If it doesn't, creates it.
  */
-async function ensureDatabaseExists(): Promise<void> {
+export async function ensureDatabaseExists(): Promise<void> {
   const { AWS_HOST, AWS_USER, AWS_PASSWORD, AWS_NAME } = process.env;
 
   if (!AWS_NAME) {

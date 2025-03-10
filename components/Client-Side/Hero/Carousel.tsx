@@ -4,67 +4,87 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import CarouselSlide from "./Carousel-Slide";
 import { useCarouselsQuery } from "@/lib/actions/Hooks/useCarousel";
+import { useDebounce } from "@/lib/hooks/use-debounce";
+// If you want to use debounce (optional), you can import it from lodash
+// import debounce from "lodash/debounce";
 
 export default function Carousel() {
+  // The hook will instantly return prefetched data (if available)
   const { data, isLoading } = useCarouselsQuery();
   const carousels = data || [];
 
-  const [activeIndex, setActiveIndex] = useState(carousels.length);
+  // Manage active index state and animation flag
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Extend the carousel list to allow infinite scrolling
   const extendedProducts = useMemo(
     () => [...carousels, ...carousels, ...carousels],
     [carousels]
   );
 
+  // Set activeIndex once carousels are loaded and activeIndex is still 0
   useEffect(() => {
-    if (carousels.length > 0) {
+    if (carousels.length > 0 && activeIndex === 0) {
       setActiveIndex(carousels.length);
     }
-  }, [carousels]);
+  }, [carousels, activeIndex]);
 
+  // Handle slide changes (next/prev) with boundary logic
   const handleSlideChange = useCallback(
     (direction: "next" | "prev") => {
       if (isAnimating) return;
       setIsAnimating(true);
 
       setActiveIndex((prev) => {
+        const maxIndex = carousels.length * 2;
+        const minIndex = carousels.length;
         let newIndex = direction === "next" ? prev + 1 : prev - 1;
 
-        if (newIndex >= carousels.length * 2) {
-          newIndex = carousels.length;
-        } else if (newIndex < carousels.length) {
-          newIndex = carousels.length * 2 - 1;
-        }
-
+        if (newIndex >= maxIndex) return minIndex;
+        if (newIndex < minIndex) return maxIndex - 1;
         return newIndex;
       });
     },
     [carousels.length, isAnimating]
   );
 
+  // (Optional) Debounced version to prevent rapid clicks (uncomment if needed)
+  // const debouncedSlideChange = useCallback(
+  //   useDebounce(
+  //     (direction: "next" | "prev") => handleSlideChange(direction),
+  //     300
+  //   ),
+  //   [handleSlideChange]
+  // );
+
   const nextSlide = useCallback(() => {
     handleSlideChange("next");
+    // If using debounce: debouncedSlideChange("next");
   }, [handleSlideChange]);
 
   const prevSlide = useCallback(() => {
     handleSlideChange("prev");
+    // If using debounce: debouncedSlideChange("prev");
   }, [handleSlideChange]);
 
   const handleTransitionEnd = useCallback(() => {
     setIsAnimating(false);
   }, []);
 
+  // Auto play logic: Only set interval if data is available and not already set
   useEffect(() => {
-    if (carousels.length > 0) {
+    if (!carousels.length) return;
+
+    if (!autoPlayRef.current) {
       autoPlayRef.current = setInterval(nextSlide, 7000);
     }
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
-  }, [nextSlide, carousels.length]);
+  }, [carousels.length, nextSlide]);
 
   const pauseAutoPlay = useCallback(() => {
     if (autoPlayRef.current) {
@@ -79,7 +99,7 @@ export default function Carousel() {
     }
   }, [nextSlide, carousels.length]);
 
-  // **Touch & Mouse Events for Swipe Support**
+  // Touch and mouse events for swipe support
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const isDragging = useRef(false);
@@ -92,11 +112,15 @@ export default function Carousel() {
     touchEndX.current = e.touches[0].clientX;
   };
 
-  const handleTouchEnd = () => {
-    const deltaX = touchEndX.current - touchStartX.current;
+  // Helper to determine swipe end action
+  const handleSwipeEnd = (deltaX: number) => {
     if (Math.abs(deltaX) > 50) {
       deltaX < 0 ? nextSlide() : prevSlide();
     }
+  };
+
+  const handleTouchEnd = () => {
+    handleSwipeEnd(touchEndX.current - touchStartX.current);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -112,13 +136,11 @@ export default function Carousel() {
   const handleMouseUp = () => {
     if (!isDragging.current) return;
     isDragging.current = false;
-    const deltaX = touchEndX.current - touchStartX.current;
-    if (Math.abs(deltaX) > 50) {
-      deltaX < 0 ? nextSlide() : prevSlide();
-    }
+    handleSwipeEnd(touchEndX.current - touchStartX.current);
   };
 
-  if (isLoading) {
+  // Conditional rendering for better UX: Show placeholder if loading or no data
+  if (isLoading || !carousels.length) {
     return (
       <div className="relative w-full h-52 md:h-96 overflow-hidden bg-gray-200 animate-pulse"></div>
     );

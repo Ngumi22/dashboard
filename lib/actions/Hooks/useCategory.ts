@@ -23,8 +23,8 @@ export function useCategoriesQuery() {
   return useQuery({
     queryKey: ["categoryData"],
     queryFn: () => getUniqueCategories(),
-    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-    gcTime: 10 * MINUTE,
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
 }
@@ -43,8 +43,8 @@ export function useFetchProductsBySubCategory(
       }
       return data;
     },
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
     enabled: Boolean(subCategoryName), // Run only if subCategoryName is present
     retry: false, // Disable retries to immediately show errors
@@ -62,8 +62,8 @@ export function useFetchSubCategories(categoryName: string) {
       }
       return data;
     },
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
     retry: false, // Disable retries to immediately show errors
   });
@@ -77,8 +77,8 @@ export function useCategoryProductQuery(categoryName: string) {
       const data = await fetchProductByCategory(categoryName); // Fetch products for the category
       return data; // Return the ProductCategory object
     },
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
     enabled: Boolean(categoryName),
   });
@@ -89,8 +89,8 @@ export function useFetchCategoryWithSubCategory() {
   return useQuery({
     queryKey: ["categoryDataWithSub"],
     queryFn: () => fetchCategoryWithSubCat(),
-    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-    gcTime: 10 * MINUTE,
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
 }

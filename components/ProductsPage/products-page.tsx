@@ -15,6 +15,8 @@ import { useProductFilters } from "@/lib/hooks/use-product-filters";
 import { fetchProductsAndFilters } from "@/lib/actions/Product/fetchByFilters";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 
+const MINUTE = 1000 * 60;
+
 export default function ProductsPage({
   searchParams,
 }: {
@@ -30,8 +32,8 @@ export default function ProductsPage({
     queryKey: ["products", debouncedFilters],
     queryFn: () => fetchProductsAndFilters(debouncedFilters),
     placeholderData: keepPreviousData,
-    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-    gcTime: 10 * 60 * 1000,
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
   });
 
   if (error) return <div>An error occurred: {(error as Error).message}</div>;

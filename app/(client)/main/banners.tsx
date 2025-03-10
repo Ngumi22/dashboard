@@ -1,42 +1,46 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { Button } from "@/components/ui/button";
 import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
-import ElectronicsBanner from "@/components/Client-Side/Hero/banner";
 
 interface BannerProps {
-  contextName: string; // Context for fetching banners
-  gridCols?: string; // Custom grid columns (e.g., "grid-cols-1 md:grid-cols-3")
-  gap?: string; // Custom gap (e.g., "gap-2 md:gap-4")
-  height?: string; // Custom height (e.g., "h-32 md:h-44")
-  maxBanners?: number; // Maximum number of banners to display
-  className?: string; // Additional custom class names
+  contextName: string;
+  gridCols?: string;
+  gap?: string;
+  height?: string;
+  maxBanners?: number;
+  className?: string;
 }
 
 function Banners({
   contextName,
-  gridCols = "grid-cols-1 md:grid-cols-3", // Default grid columns
-  gap = "gap-2 md:gap-4", // Default gap
-  height = "h-32 md:h-44", // Default height
-  maxBanners = 0, // Default maximum number of banners
-  className = "", // Additional custom class names
+  gridCols = "grid-cols-1 md:grid-cols-3",
+  gap = "gap-2 md:gap-4",
+  height = "h-32 md:h-44",
+  maxBanners = 0,
+  className = "",
 }: BannerProps) {
-  const {
-    data: banners,
-    isLoading,
-    isError,
-  } = useBannersQueryContext(contextName);
+  // This hook will instantly return prefetched data if available.
+  const { data: banners, isLoading } = useBannersQueryContext(contextName);
 
-  // Memoize the sliced banners to avoid recalculating on every render
   const slicedBanners = useMemo(() => {
     if (!banners) return [];
     return maxBanners > 0 ? banners.slice(0, maxBanners) : banners;
   }, [banners, maxBanners]);
 
-  // Loading skeletons
+  // Pre-calculate styles for optimization.
+  const bannerStyles = useMemo(
+    () =>
+      slicedBanners.map((banner) => ({
+        backgroundColor: banner.background_color,
+        color: banner.text_color,
+      })),
+    [slicedBanners]
+  );
+
   if (isLoading) {
     return (
       <ul className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>
@@ -58,18 +62,20 @@ function Banners({
 
   return (
     <ul className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>
-      {slicedBanners.map((banner) => (
+      {slicedBanners.map((banner, index) => (
         <li
           key={banner.banner_id}
-          style={{ backgroundColor: banner.background_color }}
+          style={{ backgroundColor: bannerStyles[index].backgroundColor }}
           className="min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md">
           <div className="grid">
             <h1
               className="text-xl lg:text-2xl font-semibold"
-              style={{ color: banner.text_color }}>
+              style={{ color: bannerStyles[index].color }}>
               {banner.title}
             </h1>
-            <p className="line-clamp-1" style={{ color: banner.text_color }}>
+            <p
+              className="line-clamp-1"
+              style={{ color: bannerStyles[index].color }}>
               {banner.description}
             </p>
 
@@ -77,7 +83,6 @@ function Banners({
               <Link href={String(banner.link)}>Buy Now</Link>
             </Button>
           </div>
-          {/* Fixed aspect ratio container for the image */}
           <Base64Image
             src={typeof banner.image === "string" ? banner.image : undefined}
             alt={banner.title}

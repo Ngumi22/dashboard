@@ -19,12 +19,14 @@ export default async function Page({
   const queryClient = getQueryClient();
   const parsedParams = parseSearchParams(searchParams);
 
+  const MINUTE = 1000 * 60;
+
   await Promise.all([
     queryClient.prefetchQuery({
       queryKey: ["products", parsedParams],
       queryFn: () => fetchProductsAndFilters(parsedParams),
-      staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-      gcTime: 10 * 60 * 1000,
+      staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+      gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     }),
     queryClient.prefetchQuery({
       queryKey: [
@@ -36,8 +38,8 @@ export default async function Page({
           ...parsedParams,
           page: (parsedParams.page || 1) + 1,
         }),
-      staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-      gcTime: 10 * 60 * 1000,
+      staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+      gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     }),
     queryClient.prefetchQuery({
       queryKey: [
@@ -49,8 +51,8 @@ export default async function Page({
           ...parsedParams,
           page: (parsedParams.page || 1) + 2,
         }),
-      staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-      gcTime: 10 * 60 * 1000,
+      staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+      gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     }),
   ]);
 

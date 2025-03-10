@@ -18,10 +18,11 @@ import { useProductsQuery } from "@/lib/actions/Hooks/useProducts";
 import { useBannersQuery } from "@/lib/actions/Hooks/useBanner";
 import NewNavbar from "./Navbar/Navbar";
 import Footer from "./Footer/footer";
+import { memo } from "react";
 
 interface ClientSideWrapperProps {
   children: ReactNode;
-  dehydratedState: any;
+  dehydratedState: unknown;
 }
 
 export default function ClientSideWrapper({
@@ -29,8 +30,6 @@ export default function ClientSideWrapper({
   dehydratedState,
 }: ClientSideWrapperProps) {
   const queryClient = getQueryClient();
-
-  // console.log("Dehydrated State in ClientSideWrapper:", dehydratedState);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -41,8 +40,6 @@ export default function ClientSideWrapper({
   );
 }
 
-import { memo } from "react";
-
 const DataFetchingWrapper = memo(({ children }: { children: ReactNode }) => {
   const brandsQuery = useBrandsQuery();
   const categoriesQuery = useCategoriesQuery();
@@ -50,27 +47,35 @@ const DataFetchingWrapper = memo(({ children }: { children: ReactNode }) => {
   const bannersQuery = useBannersQuery();
   const categoriesWithSubQuery = useFetchCategoryWithSubCategory();
 
-  // Handle errors
-  if (
+  const isLoading =
+    brandsQuery.isFetching ||
+    categoriesQuery.isFetching ||
+    productsQuery.isFetching ||
+    bannersQuery.isFetching ||
+    categoriesWithSubQuery.isFetching;
+
+  const isError =
     brandsQuery.isError ||
     categoriesQuery.isError ||
     productsQuery.isError ||
     bannersQuery.isError ||
-    categoriesWithSubQuery.isError
-  ) {
-    return <div>Error loading data. Please try again later.</div>;
+    categoriesWithSubQuery.isError;
+
+  const isSuccess =
+    brandsQuery.isSuccess &&
+    categoriesQuery.isSuccess &&
+    productsQuery.isSuccess &&
+    bannersQuery.isSuccess &&
+    categoriesWithSubQuery.isSuccess;
+
+  // Show loading until all queries are fully resolved
+  if (isLoading || !isSuccess) {
+    return <Loading />;
   }
 
-  // Check loading state
-  const isLoading =
-    brandsQuery.isLoading ||
-    categoriesQuery.isLoading ||
-    productsQuery.isLoading ||
-    bannersQuery.isLoading ||
-    categoriesWithSubQuery.isLoading;
-
-  if (isLoading) {
-    return <Loading />;
+  // Show error message if any query fails
+  if (isError) {
+    return <div>Error loading data. Please try again later.</div>;
   }
 
   return (
@@ -82,4 +87,4 @@ const DataFetchingWrapper = memo(({ children }: { children: ReactNode }) => {
   );
 });
 
-DataFetchingWrapper.displayName = "DataFetchingWrapper"; // Add display name for debugging
+DataFetchingWrapper.displayName = "DataFetchingWrapper";

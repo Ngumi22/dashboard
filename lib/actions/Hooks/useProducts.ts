@@ -13,8 +13,8 @@ export function useProductsQuery(
     queryFn: async () =>
       (await fetchProducts(currentPage, filter)) || { products: [] },
     placeholderData: keepPreviousData,
-    staleTime: 10 * 60 * 1000, // Data is fresh for 10 minutes
-    gcTime: 10 * MINUTE,
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
   });
 }
 
@@ -23,8 +23,8 @@ export function useProductByIdQuery(productId: number) {
   return useQuery({
     queryKey: ["product", productId],
     queryFn: () => fetchProductById(productId),
-    staleTime: 1000 * MINUTE, // 30 minutes
-    gcTime: 1000 * MINUTE, // 1 hour
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     enabled: !!productId, // Only run if productId is defined
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
@@ -34,8 +34,8 @@ export function useProducts(currentPage: number) {
   return useQuery({
     queryKey: ["products", currentPage, {}], // Unique cache key
     queryFn: () => fetchProducts(currentPage, {}),
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
 }

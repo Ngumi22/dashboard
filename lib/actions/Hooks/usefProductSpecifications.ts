@@ -8,8 +8,8 @@ export function useProductSpecifications(product_id: number) {
   return useQuery({
     queryKey: ["Specifications", product_id],
     queryFn: () => getProductSpecifications(product_id),
-    staleTime: 10 * MINUTE, // Data is fresh for 10 minutes
-    gcTime: 20 * MINUTE, // Garbage collection time is 20 minutes
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
     enabled: !!product_id, // Only run if product_id is defined
     placeholderData: keepPreviousData, // Keep previous data while fetching new data
   });
