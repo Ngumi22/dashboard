@@ -14,6 +14,7 @@ import { Pagination } from "./pagination";
 import { useProductFilters } from "@/lib/hooks/use-product-filters";
 import { fetchProductsAndFilters } from "@/lib/actions/Product/fetchByFilters";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import Loading from "@/app/(client)/loading";
 
 const MINUTE = 1000 * 60;
 
@@ -62,7 +63,7 @@ export default function ProductsPage({
         />
         <div className="flex flex-col gap-6">
           {isFetching ? (
-            <ProductsPageSkeleton />
+            <Loading />
           ) : (
             <ProductGrid products={products} gridLayout={gridLayout} />
           )}

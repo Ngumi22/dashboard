@@ -2,26 +2,32 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import Base64Image from "@/components/Data-Table/base64-image";
 import { Button } from "@/components/ui/button";
 import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
+import Image from "next/image";
 
 interface BannerProps {
   contextName: string;
+  gridFlow?: string;
   gridCols?: string;
   gap?: string;
   height?: string;
   maxBanners?: number;
   className?: string;
+  paddingX?: string;
+  paddingY?: string;
 }
 
 function Banners({
   contextName,
-  gridCols = "grid-cols-1 md:grid-cols-3",
-  gap = "gap-2 md:gap-4",
-  height = "h-32 md:h-44",
+  gridFlow = "",
+  gridCols = "",
+  gap = "",
+  height = "",
   maxBanners = 0,
   className = "",
+  paddingX = "",
+  paddingY = "",
 }: BannerProps) {
   // This hook will instantly return prefetched data if available.
   const { data: banners, isLoading } = useBannersQueryContext(contextName);
@@ -61,34 +67,38 @@ function Banners({
   }
 
   return (
-    <ul className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>
+    <ul
+      className={`flex md:grid ${gridFlow} ${gridCols} ${gap} ${height} ${className}`}>
       {slicedBanners.map((banner, index) => (
         <li
           key={banner.banner_id}
           style={{ backgroundColor: bannerStyles[index].backgroundColor }}
-          className="min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md">
-          <div className="grid">
+          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md ${paddingX} ${paddingY}`}>
+          <div className="grid grid-flow-row gap-2 md:gap-4">
             <h1
-              className="text-xl lg:text-2xl font-semibold"
+              className="text-md lg:text-lg font-semibold"
               style={{ color: bannerStyles[index].color }}>
               {banner.title}
             </h1>
             <p
-              className="line-clamp-1"
+              className="z-10 w-full"
               style={{ color: bannerStyles[index].color }}>
               {banner.description}
             </p>
 
-            <Button className="text-xs size-18">
+            <Button className="text-xs size-18 mt-auto  md:text-sm w-fit px-3 md:px-4 py-1.5 md:py-2 h-auto transition-all hover:scale-105">
               <Link href={String(banner.link)}>Buy Now</Link>
             </Button>
           </div>
-          <Base64Image
-            src={typeof banner.image === "string" ? banner.image : undefined}
-            alt={banner.title}
-            width={80}
-            height={80}
-          />
+          <div className="my-auto">
+            <Image
+              src={`data:image/jpeg;base64,${banner.image}`}
+              alt={banner.title}
+              width={80}
+              height={80}
+              className="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain transition-transform hover:scale-105 hover:rotate-3"
+            />
+          </div>
         </li>
       ))}
     </ul>

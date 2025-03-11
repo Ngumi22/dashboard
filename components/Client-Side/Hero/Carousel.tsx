@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  ArrowBigUp,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import CarouselSlide from "./Carousel-Slide";
 import { useCarouselsQuery } from "@/lib/actions/Hooks/useCarousel";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -148,7 +154,7 @@ export default function Carousel() {
 
   return (
     <div
-      className="relative w-full h-52 md:h-96 overflow-hidden"
+      className="md:max-w-3xl w-full relative h-52 md:h-96 overflow-hidden"
       onMouseEnter={pauseAutoPlay}
       onMouseLeave={resumeAutoPlay}
       onTouchStart={handleTouchStart}
@@ -179,15 +185,15 @@ export default function Carousel() {
       <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 z-20">
         <button
           onClick={prevSlide}
-          className="bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors"
+          className="bg-black/30 hover:bg-black/50 text-white rounded-full p-1 transition-colors"
           aria-label="Previous slide">
-          <ChevronUp className="h-6 w-6" />
+          <ArrowUp className="h-6 w-6" />
         </button>
         <button
           onClick={nextSlide}
-          className="bg-black/30 hover:bg-black/50 text-white rounded-full p-2 transition-colors"
+          className="bg-black/30 hover:bg-black/50 text-white rounded-full p-1 transition-colors"
           aria-label="Next slide">
-          <ChevronDown className="h-6 w-6" />
+          <ArrowDown className="h-6 w-6" />
         </button>
       </div>
 

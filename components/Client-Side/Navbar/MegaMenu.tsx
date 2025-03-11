@@ -9,8 +9,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { SelectSeparator } from "@/components/ui/select";
-import { useEffect } from "react";
-import Base64Image from "@/components/Data-Table/base64-image";
+import Image from "next/image";
 import {
   CalendarHeart,
   ReplaceAll,
@@ -19,8 +18,6 @@ import {
   Truck,
 } from "lucide-react";
 import { generateSlug } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { fetchCategoryWithSubCat } from "@/lib/actions/Category/fetch";
 import { useFetchCategoryWithSubCategory } from "@/lib/actions/Hooks/useCategory";
 
 export interface Category {
@@ -62,14 +59,14 @@ export default function MegaMenu() {
   };
 
   return (
-    <NavigationMenu className="md:flex items-center justify-center container hidden mx-auto flex-2">
-      <div className="flex items-center gap-2">
+    <NavigationMenu className="">
+      <div className="hidden md:flex items-center gap-2">
         <Sparkles />
         <Link href="/special-offers" className="p-2 text-sm font-medium">
           Special Offers
         </Link>
       </div>
-      <NavigationMenuList className="">
+      <NavigationMenuList className="grid grid-flow-row md:grid-flow-col">
         {mainCategories.map((category) => (
           <NavigationMenuItem key={category.category_id}>
             {/* Main Category Link */}
@@ -79,9 +76,9 @@ export default function MegaMenu() {
               </NavigationMenuTrigger>
             </Link>
             <NavigationMenuContent>
-              <div className="flex items-center justify-start gap-2 shadow-lg p-4 h-72">
-                <div className="flex flex-col items-center w-1/5 bg-gray-100 p-4 h-full">
-                  <h2 className="font-bold underline text-xl text-gray-900">
+              <div className="hidden md:flex flex-col md:flex-row items-center justify-start gap-2 shadow-lg md:p-4 h-auto md:h-72 overflow-scroll">
+                <div className="flex flex-col items-center w-full md:w-1/5 bg-gray-100 md:p-4 h-full">
+                  <h2 className="font-bold underline md:text-xl text-gray-900">
                     Good to know
                   </h2>
                   <ul className="flex flex-col justify-between space-y-4 h-full my-4 text-sm">
@@ -104,32 +101,34 @@ export default function MegaMenu() {
                   </ul>
                 </div>
                 <SelectSeparator />
-                <div className="pr-8 w-4/5">
+                <div className="md:pr-8 w-full md:w-4/5">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-lg text-gray-900">
                       Categories
                     </p>
                     <Link
-                      href={`/category/${category.category_id}`}
+                      href="/categories"
                       className="text-sm text-gray-900 font-bold underline underline-offset-1">
                       See all
                     </Link>
                   </div>
-                  <div className="flex items-center justify-start gap-4 overflow-scroll scrollbar snap-mandatory my-2">
+                  <div className="flex flex-wrap md:flex-nowrap items-center justify-start gap-4 overflow-scroll scrollbar snap-mandatory my-2">
                     {/* Render subcategories for this main category */}
                     {subcategories(category.category_id).length > 0 ? (
                       subcategories(category.category_id).map((subItem) => (
                         <Link
+                          prefetch={true}
                           key={subItem.category_id}
                           href={`/category/${category.category_id}/${subItem.category_id}`}
-                          className="group block aspect-square space-y-5  my-auto items-center h-56">
-                          <Base64Image
-                            src={subItem.category_image || "/placeholder.svg"}
+                          className="group block aspect-square space-y-5 my-auto items-center h-[14rem]">
+                          <Image
+                            src={`data:image/jpeg;base64,${subItem.category_image}`}
                             alt={subItem.category_name}
                             width={150}
                             height={150}
+                            className="w-full h-40 object-contain bg-inherit"
                           />
-                          <h3 className="text-sm font-medium text-gray-900">
+                          <h3 className="text-sm font-medium text-gray-900 mx-auto">
                             {subItem.category_name}
                           </h3>
                         </Link>

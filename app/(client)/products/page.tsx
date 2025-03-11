@@ -10,6 +10,7 @@ import { getQueryClient } from "@/components/Client-Side/get-query-client";
 import { ProductsPageSkeleton } from "@/components/ProductsPage/skeletons";
 import { parseSearchParams } from "@/lib/actions/Product/search-params";
 import { fetchProductsAndFilters } from "@/lib/actions/Product/fetchByFilters";
+import Loading from "../loading";
 
 export default async function Page({
   searchParams,
@@ -58,7 +59,7 @@ export default async function Page({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <Suspense fallback={<ProductsPageSkeleton />}>
+      <Suspense fallback={<Loading />}>
         <ProductsPage searchParams={searchParams} />
       </Suspense>
     </HydrationBoundary>

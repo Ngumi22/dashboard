@@ -13,7 +13,7 @@ const services = [
     id: 1,
     title: "Free Shipping",
     icon: ShapesIcon,
-    description: "From all orders over $100",
+    description: "From all orders over Ksh 80k",
   },
   {
     id: 2,
@@ -50,7 +50,7 @@ export default function Service() {
         content: (
           <div
             key={service.id}
-            className="flex-shrink-0 h-28 flex items-center justify-between gap-5 bg-white shadow-md px-4 py-2 rounded-md">
+            className="flex-shrink-0 h-32 flex items-center justify-between gap-5 bg-white shadow-md px-4 py-2 rounded-md">
             <service.icon className="h-10 w-10 flex-shrink-0" />
             <div>
               <h3 className="text-md font-semibold">{service.title}</h3>
@@ -59,8 +59,8 @@ export default function Service() {
           </div>
         ),
       }))}
-      className="mb-8"
-      itemClassName="flex flex-col overflow-x-auto space-x-2 pb-4 snap-x"
+      className=""
+      itemClassName="flex flex-col overflow-x-auto space-x-2 snap-x"
     />
   );
 }

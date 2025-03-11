@@ -21,7 +21,7 @@ export default function HomeBlogSection() {
       date: "May 15, 2024",
       author: "Alex Johnson",
       category: "Smart Home",
-      image: "/placeholder.jpg",
+      image: "/blog.jpg",
       slug: "future-of-smart-home-technology",
     },
     {
@@ -32,7 +32,7 @@ export default function HomeBlogSection() {
       date: "May 10, 2024",
       author: "Sarah Chen",
       category: "Audio",
-      image: "/placeholder.jpg",
+      image: "/blog.jpg",
       slug: "top-5-wireless-earbuds-2024",
     },
     {
@@ -43,7 +43,7 @@ export default function HomeBlogSection() {
       date: "May 5, 2024",
       author: "Marcus Williams",
       category: "Gaming",
-      image: "/placeholder.jpg",
+      image: "/blog.jpg",
       slug: "choose-right-gaming-monitor",
     },
   ];
@@ -71,7 +71,7 @@ export default function HomeBlogSection() {
           <Card key={post.id} className="flex flex-col h-full">
             <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
               <Image
-                src={post.image || "/placeholder.svg"}
+                src={post.image || "/blog.jpg"}
                 alt={post.title}
                 fill
                 className="object-cover"

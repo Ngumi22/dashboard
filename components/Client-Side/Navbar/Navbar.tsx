@@ -51,7 +51,7 @@ export default function NewNavbar() {
       />
 
       {/* MegaMenu - Always visible */}
-      <div className="w-full">
+      <div className="hidden md:flex w-full">
         <MegaMenu />
       </div>
 

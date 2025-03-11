@@ -41,9 +41,11 @@ export default function Cart() {
     <Popover>
       <PopoverTrigger asChild>
         <div className="cursor-pointer flex items-center justify-center space-x-2 rounded-none text-white">
-          <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
-          <p className="flex gap-x-2 text=xs md:text-md">
-            {cartTotalQuantity}
+          <ShoppingCart className="h-6 w-6" />
+          <p className="flex gap-x-2 text=xs md:text-md ">
+            <span className="flex text-center items-center">
+              {cartTotalQuantity}
+            </span>
             <span className="hidden md:flex text-center items-center text-xs">
               Items
             </span>

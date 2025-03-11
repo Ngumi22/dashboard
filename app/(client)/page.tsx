@@ -13,10 +13,10 @@ import HomeBlogSection from "./main/home-blog";
 
 export default function Page() {
   return (
-    <div className="mt-[10rem] lg:mt-[12rem] bg-muted/30">
+    <div className="mt-[10rem] lg:mt-[12rem] bg-muted/40">
       <HeroSection />
       {/* Main Content */}
-      <div className="pt-2 md:container space-y-8">
+      <div className="pt-2 md:container space-y-5">
         <Service />
         <DiscountedOffers />
         <Banners
@@ -25,6 +25,8 @@ export default function Page() {
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}
+          paddingX="px-8"
+          paddingY="py-4"
         />
         <NewProducts />
         <Banners
@@ -33,6 +35,8 @@ export default function Page() {
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}
+          paddingX="px-8"
+          paddingY="py-4"
         />
         <SubCategoryProducts categoryName="Laptops" />
         <SubCategoryProducts categoryName="Desktop Computers" />
@@ -42,6 +46,8 @@ export default function Page() {
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}
+          paddingX="px-8"
+          paddingY="py-4"
         />
         <Categories />
         <SubCategoryProducts categoryName="SmartPhones" />
@@ -51,6 +57,8 @@ export default function Page() {
           gap="gap-4 md:gap-6"
           height="h-40 md:h-44"
           maxBanners={3}
+          paddingX="px-8"
+          paddingY="py-4"
         />
         <ShopByBrand />
         <SubCategoryProducts categoryName="Smartwatches" />
