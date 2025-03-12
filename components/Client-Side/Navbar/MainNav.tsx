@@ -1,11 +1,11 @@
 "use client";
 
 import { Heart, BarChart2, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import React from "react";
 import Logo from "../navigation/logo";
 import SearchComponent from "../navigation/search";
-import Cart from "../navigation/cart";
+import dynamic from "next/dynamic";
+const Cart = dynamic(() => import("../navigation/cart"), { ssr: false });
 
 interface MainNavProps {
   isMobileMenuOpen: boolean;

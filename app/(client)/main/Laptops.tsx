@@ -28,7 +28,6 @@ export default function SubCategoryProducts({
     data: subCategoryProducts,
     isLoading: isProductsLoading,
     error: productsError,
-    isFetching: isProductsFetching,
   } = useFetchProductsBySubCategory(subCategoryName);
 
   // Set the default subcategory when subCategories are loaded
@@ -87,7 +86,7 @@ export default function SubCategoryProducts({
   // Show loading state while data is being fetched
   if (isSubCategoriesLoading || isProductsLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-flow-col gap-4">
         {Array.from({ length: 4 }).map((_, index) => (
           <ProductCardSkeleton key={index} />
         ))}
