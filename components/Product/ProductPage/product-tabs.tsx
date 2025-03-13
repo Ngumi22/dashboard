@@ -20,10 +20,9 @@ interface ProductTabsProps {
 export default function ProductTabs({ product }: ProductTabsProps) {
   return (
     <Tabs defaultValue="description" className="mt-12">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="description">Description</TabsTrigger>
         <TabsTrigger value="specifications">Specifications</TabsTrigger>
-
         <TabsTrigger value="reviews">Reviews</TabsTrigger>
       </TabsList>
       <TabsContent value="description" className="mt-6">

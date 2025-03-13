@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Heart, MinusCircle, PlusCircle, Share2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Product } from "@/lib/actions/Product/productTypes";
 import { useState } from "react";
@@ -44,16 +43,12 @@ export default function ProductInfo({ product }: ProductInfoProps) {
 
   const stockStatus = getStockStatus(product.quantity);
 
-  const handleAddToCart = () => {
-    toast({
-      title: "Added to cart",
-      description: `${quantity} ${product.name} added to your cart`,
-    });
-  };
+  const handleAddToCart = () => {};
 
-  const handleBuyNow = () => {
-    // Implement checkout logic
-  };
+  const handleBuyNow = () => {};
+
+  const handleAddToWishlist = () => {};
+  const handleAddToComapare = () => {};
 
   return (
     <div className="space-y-6">
@@ -65,36 +60,35 @@ export default function ProductInfo({ product }: ProductInfoProps) {
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
-                className={`h-5 w-5 ${
+                className={`h-4 w-4 ${
                   i < product.ratings ? "fill-primary" : "fill-muted"
                 }`}
               />
             ))}
           </div>
-          <Badge variant="secondary">
+          <span className="text-sm">
             {product.ratings} ({product.ratings} reviews)
-          </Badge>
+          </span>
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center gap-4">
-          <span className="text-3xl font-bold text-primary">${finalPrice}</span>
+          <span className="text-3xl font-bold text-primary">
+            Ksh {finalPrice}
+          </span>
           {product.discount > 0 && (
             <>
               <span className="text-xl text-muted-foreground line-through">
-                ${product.price}
+                Ksh {product.price}
               </span>
-              <Badge variant="destructive">-{product.discount}%</Badge>
+              <span className="text-sm">-{product.discount}%</span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            {product.quantity}
-          </span>
-          <Badge className={stockStatus.color}>{stockStatus.text}</Badge>
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 p-2">
+          <span className={stockStatus.color}>{stockStatus.text}</span>
+          <span className="text-sm text-muted-foreground ">
             {stockStatus.description}
           </span>
         </div>
@@ -102,16 +96,13 @@ export default function ProductInfo({ product }: ProductInfoProps) {
 
       {product.tags && product.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
+          <p>Tags: </p>
           {product.tags.map((tag: string) => (
             <Link
               key={tag}
               href={`/products/tags/${encodeURIComponent(tag)}`} // Encode the tag for the URL
               passHref>
-              <Badge
-                variant="outline"
-                className="cursor-pointer hover:bg-gray-100">
-                {tag}
-              </Badge>
+              {tag}
             </Link>
           ))}
         </div>
@@ -161,15 +152,18 @@ export default function ProductInfo({ product }: ProductInfoProps) {
           <Button
             variant="outline"
             className="flex-1"
-            onClick={() => setIsWishlisted(!isWishlisted)}>
+            onClick={handleAddToWishlist}>
             <Heart
               className={`mr-2 h-4 w-4 ${isWishlisted ? "fill-red-500" : ""}`}
             />
             {isWishlisted ? "Wishlisted" : "Add to wishlist"}
           </Button>
-          <Button variant="outline" className="flex-1">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handleAddToComapare}>
             <Share2 className="mr-2 h-4 w-4" />
-            Share
+            Compare
           </Button>
         </div>
       </div>

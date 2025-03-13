@@ -28,7 +28,7 @@ export default async function ProductPage({
             variant="ghost"
             asChild
             className="gap-2 pl-2 hover:bg-transparent">
-            <Link href="/products">
+            <Link href="/products" prefetch={true}>
               <ChevronLeft className="h-4 w-4" />
               Back to Products
             </Link>
@@ -42,9 +42,10 @@ export default async function ProductPage({
           />
           <ProductInfo product={product} />
         </div>
+        <ProductTabs product={product} />
 
         <CustomersAlsoBought currentProductId={product.id.toString()} />
-        <ProductTabs product={product} />
+
         <RecentlyViewed currentProductId={product.id.toString()} />
       </div>
     </div>

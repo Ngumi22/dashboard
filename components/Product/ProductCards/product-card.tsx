@@ -1,6 +1,8 @@
 "use client";
 
 import { type MinimalProduct, useCartStore } from "@/app/store/cart";
+import { useCompareStore } from "@/app/store/compare";
+import { useWishStore } from "@/app/store/wishlist";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Heart, Share2, Star } from "lucide-react";
@@ -81,6 +83,11 @@ export default function ProductCard({
   const addItemToCart =
     useCartStore((state) => state.addItemToCart) || (() => {});
 
+  const addItemToWish =
+    useWishStore((state) => state.addItemToWish) || (() => {});
+  const addItemToCompare =
+    useCompareStore((state) => state.addItemToCompare) || (() => {});
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -97,6 +104,42 @@ export default function ProductCard({
       specifications,
     };
     addItemToCart(product);
+  };
+
+  const handleAddToWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const product = {
+      id,
+      name,
+      price,
+      main_image,
+      ratings,
+      discount,
+      description,
+      quantity,
+      created_at,
+      specifications,
+    };
+    addItemToWish(product);
+  };
+
+  const handleAddToComapare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const product = {
+      id,
+      name,
+      price,
+      main_image,
+      ratings,
+      discount,
+      description,
+      quantity,
+      created_at,
+      specifications,
+    };
+    addItemToCompare(product);
   };
 
   const isOnSale = discount && discount > 0;
@@ -187,10 +230,18 @@ export default function ProductCard({
       </div>
 
       <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <Button size="icon" variant="secondary" className="rounded-full">
+        <Button
+          size="icon"
+          variant="secondary"
+          className="rounded-full"
+          onClick={handleAddToWishlist}>
           <Heart className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="secondary" className="rounded-full">
+        <Button
+          size="icon"
+          variant="secondary"
+          className="rounded-full"
+          onClick={handleAddToComapare}>
           <Share2 className="h-4 w-4" />
         </Button>
         <Button size="icon" variant="secondary" className="rounded-full">

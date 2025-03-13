@@ -6,6 +6,13 @@ import Logo from "../navigation/logo";
 import SearchComponent from "../navigation/search";
 import dynamic from "next/dynamic";
 const Cart = dynamic(() => import("../navigation/cart"), { ssr: false });
+const WishList = dynamic(() => import("../navigation/wishlist"), {
+  ssr: false,
+});
+
+const Compare = dynamic(() => import("../navigation/compare"), {
+  ssr: false,
+});
 
 interface MainNavProps {
   isMobileMenuOpen: boolean;
@@ -39,7 +46,8 @@ export default function MainNav({
         {/* Right Section: Icons and Cart */}
         <div className="flex items-center gap-x-6">
           {/* Compare Button */}
-          <BarChart2 className="h-6 w-6 text-white cursor-pointer" />
+
+          <WishList />
 
           {/* Favorites Button */}
           <Heart className="h-6 w-6 text-white cursor-pointer" />
