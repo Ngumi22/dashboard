@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Eye, Heart, Share2, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type React from "react";
 import { useMemo } from "react";
 
 interface ProductCardProps extends MinimalProduct {
   orientation?: "vertical" | "horizontal";
 }
 
-const formatCurrency = (value: number, currency = "Ksh") => {
+export const formatCurrency = (value: number, currency = "Ksh") => {
   return `${currency} ${value.toFixed(2)}`;
 };
 
@@ -43,10 +42,8 @@ const RatingStars = ({ rating }: { rating: number | null | undefined }) => {
           />
         );
       })}
-      <span className="text-xs font-medium text-gray-600">
-        {isNaN(numericRating)
-          ? "Not yet rated"
-          : `${numericRating.toFixed(1)}/5`}
+      <span className="text-xs font-bold text-gray-600">
+        {isNaN(numericRating) ? "Not yet rated" : `${numericRating.toFixed(1)}`}
       </span>
     </div>
   );
@@ -68,7 +65,7 @@ const isNewProduct = (created_at: string, daysThreshold = 30) => {
   return diffInDays <= daysThreshold;
 };
 
-export default function ProductCard({
+const ProductCard = ({
   id,
   name,
   description,
@@ -77,69 +74,62 @@ export default function ProductCard({
   ratings,
   discount,
   quantity,
+  brand_name,
   created_at,
   specifications,
-}: ProductCardProps) {
-  const addItemToCart =
-    useCartStore((state) => state.addItemToCart) || (() => {});
+}: ProductCardProps) => {
+  const addItemToCart = useCartStore((state) => state.addItemToCart);
+  const addItemToWish = useWishStore((state) => state.addItemToWish);
+  const removeItemFromWish = useWishStore((state) => state.removeItemFromWish);
+  const wishlist = useWishStore((state) => state.wishItems);
 
-  const addItemToWish =
-    useWishStore((state) => state.addItemToWish) || (() => {});
-  const addItemToCompare =
-    useCompareStore((state) => state.addItemToCompare) || (() => {});
+  const addItemToCompare = useCompareStore((state) => state.addItemToCompare);
+  const removeItemFromCompare = useCompareStore(
+    (state) => state.removeItemFromCompare
+  );
+  const compareList = useCompareStore((state) => state.compareItems);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const isInWishlist = wishlist.some((item) => item.id === id);
+  const isInCompare = compareList.some((item) => item.id === id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const product = {
-      id,
-      name,
-      price,
-      main_image,
-      ratings,
-      discount,
-      description,
-      quantity,
-      created_at,
-      specifications,
-    };
-    addItemToCart(product);
+    isInWishlist
+      ? removeItemFromWish(id)
+      : addItemToWish({
+          id,
+          name,
+          price,
+          main_image,
+          ratings,
+          discount,
+          description,
+          quantity,
+          brand_name,
+          created_at,
+          specifications,
+        });
   };
 
-  const handleAddToWishlist = (e: React.MouseEvent) => {
+  const handleCompareToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const product = {
-      id,
-      name,
-      price,
-      main_image,
-      ratings,
-      discount,
-      description,
-      quantity,
-      created_at,
-      specifications,
-    };
-    addItemToWish(product);
-  };
-
-  const handleAddToComapare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const product = {
-      id,
-      name,
-      price,
-      main_image,
-      ratings,
-      discount,
-      description,
-      quantity,
-      created_at,
-      specifications,
-    };
-    addItemToCompare(product);
+    isInCompare
+      ? removeItemFromCompare(id)
+      : addItemToCompare({
+          id,
+          name,
+          price,
+          main_image,
+          ratings,
+          discount,
+          description,
+          quantity,
+          brand_name,
+          created_at,
+          specifications,
+        });
   };
 
   const isOnSale = discount && discount > 0;
@@ -153,7 +143,7 @@ export default function ProductCard({
     <Link
       href={`/products/${id}`}
       className="group relative block overflow-hidden  w-[50vw] md:w-[33.33vw] lg:w-[25vw] xl:w-[20vw] transition-transform duration-300 ease-in-out hover:scale-105">
-      <div className="relative aspect-square w-full rounded-lg bg-gray-200 object-cover group-hover:opacity-75 xl:aspect-7/8">
+      <div className="relative aspect-square w-full rounded-lg bg-gray-200 object-cover group-hover:opacity-75">
         <Image
           src={`data:image/jpeg;base64,${main_image}`}
           alt={name}
@@ -161,7 +151,7 @@ export default function ProductCard({
           objectFit="cover"
           className="transition-transform duration-300 group-hover:scale-105 aspect-3/2"
         />
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300" />
+
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {isNew && (
             <Badge
@@ -185,25 +175,10 @@ export default function ProductCard({
 
       <div className="relative bg-white p-2">
         <h3 className="font-bold text-gray-900 mb-1 truncate">{name}</h3>
-        <div className="font-bold text-gray-900 mb-1 truncate">
-          {specifications?.map((spec) => (
-            <div key={spec.specification_id}>
-              {spec.specification_name}: {spec.specification_value}
-            </div>
-          ))}
-        </div>
-
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-bold text-gray-900">
-              {formatCurrency(discountedPrice)}
-            </span>
-            {isOnSale && (
-              <span className="text-sm font-medium text-gray-400 line-through">
-                {formatCurrency(price)}
-              </span>
-            )}
-          </div>
+          <span className="text-sm font-bold text-gray-900">
+            {formatCurrency(discountedPrice)}
+          </span>
           {quantity > 0 ? (
             <Badge
               variant="outline"
@@ -221,7 +196,21 @@ export default function ProductCard({
 
         <div className="flex items-center justify-between">
           <Button
-            onClick={handleAddToCart}
+            onClick={(e) => {
+              e.preventDefault();
+              addItemToCart({
+                id,
+                name,
+                price,
+                main_image,
+                ratings,
+                discount,
+                description,
+                quantity,
+                created_at,
+                specifications,
+              });
+            }}
             disabled={quantity === 0}
             className="w-full bg-gray-900 text-white hover:bg-yellow-500 transition-colors duration-300">
             Add to Cart
@@ -234,15 +223,23 @@ export default function ProductCard({
           size="icon"
           variant="secondary"
           className="rounded-full"
-          onClick={handleAddToWishlist}>
-          <Heart className="h-4 w-4" />
+          onClick={handleWishlistToggle}>
+          <Heart
+            className={`h-4 w-4 ${
+              isInWishlist ? "text-blue-500 fill-current" : ""
+            }`}
+          />
         </Button>
         <Button
           size="icon"
           variant="secondary"
           className="rounded-full"
-          onClick={handleAddToComapare}>
-          <Share2 className="h-4 w-4" />
+          onClick={handleCompareToggle}>
+          <Share2
+            className={`h-4 w-4 ${
+              isInCompare ? "text-blue-500 fill-current" : ""
+            }`}
+          />
         </Button>
         <Button size="icon" variant="secondary" className="rounded-full">
           <Eye className="h-4 w-4" />
@@ -250,7 +247,9 @@ export default function ProductCard({
       </div>
     </Link>
   );
-}
+};
+
+export default ProductCard;
 
 export const ProductCardSkeleton = () => {
   return (

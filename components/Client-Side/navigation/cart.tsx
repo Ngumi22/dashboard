@@ -12,12 +12,20 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 const formatCurrency = (value: number, currency = "Ksh") => {
   return `${currency} ${value.toFixed(2)}`;
 };
 
 export default function Cart() {
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure this runs only on the client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const cartItems = useCartStore((state) => state.cartItems);
   const increaseQuantity = useCartStore((state) => state.increaseItemQuantity);
   const decreaseQuantity = useCartStore((state) => state.decreaseItemQuantity);
@@ -40,29 +48,24 @@ export default function Cart() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="cursor-pointer flex items-center justify-center space-x-2 rounded-none text-white">
+        <div className="relative cursor-pointer flex items-center justify-center space-x-2 text-white">
           <ShoppingCart className="h-6 w-6" />
-          <p className="flex gap-x-2 text=xs md:text-md ">
-            <span className="flex text-center items-center">
-              {cartTotalQuantity}
-            </span>
-            <span className="hidden md:flex text-center items-center text-xs">
-              Items
-            </span>
-          </p>
+          <span className="absolute -top-2 -right-3 flex items-center justify-center font-bold text-center text-xs bg-white text-gray-900 h-5 w-5 rounded-full">
+            {isClient ? cartTotalQuantity : 0}
+          </span>
         </div>
       </PopoverTrigger>
+
       <PopoverContent className="w-96">
         <ScrollArea className="rounded-md p-4">
-          {cartItems?.length === 0 ? (
+          {!isClient ? (
+            <p>Loading...</p> // Placeholder during SSR
+          ) : cartItems?.length === 0 ? (
             <div className="text-center">
               <p className="font-semibold my-4">Your Cart is empty</p>
               <Link className="flex justify-center gap-2 items-center" href="/">
-                <p className="flex justify-center gap-2 items-center">
-                  {" "}
-                  <ArrowLeft />
-                  Start Shopping
-                </p>
+                <ArrowLeft />
+                <span>Start Shopping</span>
               </Link>
             </div>
           ) : (
@@ -96,6 +99,7 @@ export default function Cart() {
                   <p>Ksh {cartItem.price * cartItem.quantity}</p>
                 </div>
               ))}
+
               <div className="subtotal flex justify-between items-center gap-x-4 my-4">
                 <p className="font-bold text-2xl">Subtotal:</p>
                 <p className="font-bold text-xl">

@@ -79,7 +79,7 @@ const ScrollableSection: React.FC<ScrollableSectionProps> = ({
   return (
     <div className={`w-full ${className}`}>
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+        <h2 className="text-2xl font-bold mb-4">{title}</h2>
         {isScrollable && (
           <div className="flex space-x-2 py-2">
             <button

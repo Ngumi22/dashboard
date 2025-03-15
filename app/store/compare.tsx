@@ -34,9 +34,6 @@ export type CompareStoreState = {
   addItemToCompare: (product: MinimalProduct) => void;
   removeItemFromCompare: (id: number) => void;
   clearCompare: () => void;
-  increaseItemQuantity: (id: number) => void;
-  decreaseItemQuantity: (id: number) => void;
-  getTotalCost: () => number;
   getTotalQuantity: () => number;
 };
 
@@ -109,45 +106,6 @@ export const useCompareStore = create<CompareStoreState>()(
       clearCompare: () => {
         set({ compareItems: [] });
         showToast("Comparelist cleared.");
-      },
-
-      // Increase the quantity of a product
-      increaseItemQuantity: (id: number) => {
-        set((state) => {
-          const updatedCompareItems = state.compareItems.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-          );
-          showToast("Increased quantity!");
-          return { compareItems: updatedCompareItems };
-        });
-      },
-
-      // Decrease the quantity of a product, removing it if quantity drops to 0
-      decreaseItemQuantity: (id: number) => {
-        set((state) => {
-          const updatedCompareItems = state.compareItems
-            .map((item) =>
-              item.id === id && item.quantity > 1
-                ? { ...item, quantity: item.quantity - 1 }
-                : item
-            )
-            .filter((item) => item.quantity > 0);
-
-          if (updatedCompareItems.length !== state.compareItems.length) {
-            showToast("Item removed from compare.");
-          }
-
-          return { compareItems: updatedCompareItems };
-        });
-      },
-
-      // Get the total cost of items in the compare
-      getTotalCost: () => {
-        const { compareItems } = get();
-        return compareItems.reduce(
-          (total, item) => total + item.price * item.quantity,
-          0
-        );
       },
 
       // Get the total quantity of items in the compare

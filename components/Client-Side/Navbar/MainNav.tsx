@@ -1,18 +1,12 @@
 "use client";
 
-import { Heart, BarChart2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import React from "react";
 import Logo from "../navigation/logo";
 import SearchComponent from "../navigation/search";
-import dynamic from "next/dynamic";
-const Cart = dynamic(() => import("../navigation/cart"), { ssr: false });
-const WishList = dynamic(() => import("../navigation/wishlist"), {
-  ssr: false,
-});
-
-const Compare = dynamic(() => import("../navigation/compare"), {
-  ssr: false,
-});
+import WishList from "../navigation/wishlist";
+import Compare from "../navigation/compare";
+import Cart from "../navigation/cart";
 
 interface MainNavProps {
   isMobileMenuOpen: boolean;
@@ -44,13 +38,12 @@ export default function MainNav({
         </div>
 
         {/* Right Section: Icons and Cart */}
-        <div className="flex items-center gap-x-6">
+        <div className="flex items-center justify-between gap-x-10">
           {/* Compare Button */}
 
           <WishList />
 
-          {/* Favorites Button */}
-          <Heart className="h-6 w-6 text-white cursor-pointer" />
+          <Compare />
 
           {/* Cart */}
           <Cart />

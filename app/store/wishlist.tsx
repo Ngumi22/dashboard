@@ -34,9 +34,6 @@ export type WishStoreState = {
   addItemToWish: (product: MinimalProduct) => void;
   removeItemFromWish: (id: number) => void;
   clearWish: () => void;
-  increaseItemQuantity: (id: number) => void;
-  decreaseItemQuantity: (id: number) => void;
-  getTotalCost: () => number;
   getTotalQuantity: () => number;
 };
 
@@ -71,15 +68,10 @@ export const useWishStore = create<WishStoreState>()(
             (item) => item.id === product.id
           );
 
-          // If the product already exists in the wish, increase its quantity
+          // If the product already exists, show a toast and skip adding
           if (existingItem) {
-            const updatedWishItems = state.wishItems.map((item) =>
-              item.id === product.id
-                ? { ...item, quantity: item.quantity + 1 }
-                : item
-            );
-            showToast(`Added 1 more ${product.name} to your wishlist!`);
-            return { wishItems: updatedWishItems };
+            showToast(`${product.name} is already in your wishlist!`, "error");
+            return state;
           }
 
           // If it's a new product, add it to the wish
@@ -109,45 +101,6 @@ export const useWishStore = create<WishStoreState>()(
       clearWish: () => {
         set({ wishItems: [] });
         showToast("Wishlist cleared.");
-      },
-
-      // Increase the quantity of a product
-      increaseItemQuantity: (id: number) => {
-        set((state) => {
-          const updatedWishItems = state.wishItems.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-          );
-          showToast("Increased quantity!");
-          return { wishItems: updatedWishItems };
-        });
-      },
-
-      // Decrease the quantity of a product, removing it if quantity drops to 0
-      decreaseItemQuantity: (id: number) => {
-        set((state) => {
-          const updatedWishItems = state.wishItems
-            .map((item) =>
-              item.id === id && item.quantity > 1
-                ? { ...item, quantity: item.quantity - 1 }
-                : item
-            )
-            .filter((item) => item.quantity > 0);
-
-          if (updatedWishItems.length !== state.wishItems.length) {
-            showToast("Item removed from wish.");
-          }
-
-          return { wishItems: updatedWishItems };
-        });
-      },
-
-      // Get the total cost of items in the wish
-      getTotalCost: () => {
-        const { wishItems } = get();
-        return wishItems.reduce(
-          (total, item) => total + item.price * item.quantity,
-          0
-        );
       },
 
       // Get the total quantity of items in the wish
