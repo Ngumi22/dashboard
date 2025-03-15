@@ -2,7 +2,12 @@
 
 import type React from "react";
 import { useRef, useEffect, useCallback, useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ArrowRight,
+} from "lucide-react";
 import { MinimalProduct } from "@/lib/definitions";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 
 interface Tab {
   id: string;
@@ -146,7 +152,17 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
 
   return (
     <div className={`mx-auto py-8 ${className}`}>
-      <h2 className="text-2xl font-bold mb-4">{title}</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold mb-4">{title}</h2>
+        <Link
+          href={"/products"}
+          prefetch={true}
+          className="text-md flex gap-2 items-center text-sm">
+          <Button>
+            Shop All <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
       <div className="relative mb-4">
         <div className="flex justify-between items-center">
           <div

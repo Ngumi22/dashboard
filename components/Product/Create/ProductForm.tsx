@@ -18,7 +18,10 @@ import Image from "next/image";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { onSubmitAction } from "@/lib/actions/Product/add";
-import { getUniqueCategories } from "@/lib/actions/Category/fetch";
+import {
+  fetchCategoryWithSubCat,
+  getUniqueCategories,
+} from "@/lib/actions/Category/fetch";
 import AddSpecifications from "./AddSpecs";
 import AddSuppliers from "./AddSuppliers";
 import { getUniqueBrands } from "@/lib/actions/Brand/fetch";
@@ -67,7 +70,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       try {
         setIsLoading(true);
         const fetchedBrands = await getUniqueBrands();
-        const fetchedCategories = await getUniqueCategories();
+        const fetchedCategories = await fetchCategoryWithSubCat();
         setExistingBrands(fetchedBrands || []);
         setCategories(
           fetchedCategories.map((category) => ({

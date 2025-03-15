@@ -18,7 +18,7 @@ export default function ProductSearch() {
   useEffect(() => {
     setFilters({ name: debouncedSearch });
     console.log("debouncedSearch", debouncedSearch);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, setFilters]);
 
   const clearSearch = () => {
     setLocalSearch("");

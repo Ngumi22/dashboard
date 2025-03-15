@@ -47,25 +47,29 @@ export default function Wishlist() {
               ratings={item.ratings}
             />
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              variant="default"
+              size="lg"
+              className="h-8 w-8 text-white hover:text-destructive"
               onClick={() => handleRemoveFromWish(item.id)}>
               <X className="h-4 w-4" />
-              <span className="sr-only">Clear</span>
+              <span className="">Remove</span>
             </Button>
           </div>
         ))}
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-        onClick={() => handleClearWish()}>
-        <X className="h-4 w-4" />
-        <span className="sr-only">Clear</span>
-      </Button>
+      {wishTotalQuantity == 0 ? (
+        ""
+      ) : (
+        <Button
+          variant="destructive"
+          size="lg"
+          className="text-white"
+          onClick={() => handleClearWish()}>
+          <X className="h-4 w-4 mr-4" />
+          <span className="">Clear Wishlist</span>
+        </Button>
+      )}
     </section>
   );
 }
