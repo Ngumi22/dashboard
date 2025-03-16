@@ -142,16 +142,18 @@ const ProductCard = ({
   return (
     <Link
       href={`/products/${id}`}
-      className="group relative block overflow-hidden  w-[50vw] md:w-[33.33vw] lg:w-[25vw] xl:w-[20vw] transition-transform duration-300 ease-in-out hover:scale-105">
-      <div className="relative aspect-square w-full rounded-lg bg-gray-200 object-cover group-hover:opacity-75">
-        <Image
-          src={`data:image/jpeg;base64,${main_image}`}
-          alt={name}
-          layout="fill"
-          objectFit="cover"
-          className="transition-transform duration-300 group-hover:scale-105 aspect-3/2"
-        />
-
+      className="group relative block overflow-hidden md:max-w-72 transition-transform duration-300 ease-in-out">
+      <div className="relative aspect-square w-full rounded-lg bg-white/70 object-cover group-hover:opacity-75">
+        <div className="flex h-full justify-center items-center p-2">
+          <Image
+            src={`data:image/jpeg;base64,${main_image}`}
+            alt={name}
+            height={200}
+            width={200}
+            objectFit="contain"
+            className="transition-transform duration-300 group-hover:scale-105 aspect-3/2 bg-gray-200 rounded-lg"
+          />
+        </div>
         <div className="absolute top-4 left-4 flex flex-col gap-2">
           {isNew && (
             <Badge

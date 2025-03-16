@@ -1,7 +1,4 @@
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Product } from "@/lib/actions/Product/search-params";
-import Base64Image from "../Data-Table/base64-image";
 import ProductCard from "../Product/ProductCards/product-card";
 
 interface ProductGridProps {

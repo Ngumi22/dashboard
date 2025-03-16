@@ -1,6 +1,5 @@
 "use server";
 
-import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { NewProductSchema } from "@/lib/ProductSchema";
 import { fileToBuffer } from "@/lib/utils";
 import { z } from "zod";
@@ -14,7 +13,7 @@ class CustomError extends Error {
   }
 }
 
-export async function addBrand(data: FormData) {
+export async function addBrand(data: FormData, connection?: any) {
   const brandData = {
     brand_id: data.get("brand_id"),
     brand_name: data.get("brand_name"),
@@ -28,21 +27,19 @@ export async function addBrand(data: FormData) {
         throw new CustomError("Invalid brand_id provided", 400);
       }
 
-      return dbOperation(async (connection) => {
-        const [existingBrand] = await connection.query(
-          "SELECT brand_id FROM brands WHERE brand_id = ?",
-          [brandId]
-        );
+      const [existingBrand] = await connection.query(
+        "SELECT brand_id FROM brands WHERE brand_id = ?",
+        [brandId]
+      );
 
-        if (existingBrand.length === 0) {
-          throw new CustomError("Brand does not exist", 404);
-        }
+      if (existingBrand.length === 0) {
+        throw new CustomError("Brand does not exist", 404);
+      }
 
-        return {
-          success: true,
-          brandId: brandId,
-        };
-      });
+      return {
+        success: true,
+        brandId: brandId,
+      };
     }
 
     if (!brandData.brand_name || !brandData.brand_image) {
@@ -58,29 +55,27 @@ export async function addBrand(data: FormData) {
 
     const brandImageBuffer = await fileToBuffer(brandData.brand_image as File);
 
-    return dbOperation(async (connection) => {
-      const [existingBrand] = await connection.query(
-        "SELECT brand_id FROM brands WHERE brand_name = ?",
-        [validatedData.brand_name]
-      );
+    const [existingBrand] = await connection.query(
+      "SELECT brand_id FROM brands WHERE brand_name = ?",
+      [validatedData.brand_name]
+    );
 
-      if (existingBrand.length > 0) {
-        return {
-          success: true,
-          brandId: existingBrand[0].brand_id,
-        };
-      }
-
-      const [result] = await connection.query(
-        "INSERT INTO brands (brand_name, brand_image) VALUES (?, ?)",
-        [validatedData.brand_name, brandImageBuffer]
-      );
-
+    if (existingBrand.length > 0) {
       return {
         success: true,
-        brandId: result.insertId,
+        brandId: existingBrand[0].brand_id,
       };
-    });
+    }
+
+    const [result] = await connection.query(
+      "INSERT INTO brands (brand_name, brand_image) VALUES (?, ?)",
+      [validatedData.brand_name, brandImageBuffer]
+    );
+
+    return {
+      success: true,
+      brandId: result.insertId,
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errorMessages = error.errors.map((err) => err.message).join(", ");

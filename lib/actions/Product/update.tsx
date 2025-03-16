@@ -2,9 +2,9 @@
 
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { fileToBuffer } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
+import { fileTypeFromBuffer } from "file-type";
 
 export interface ProductUpdateData {
   product_id: number;
@@ -35,6 +35,12 @@ export interface ProductUpdateData {
     isNew?: boolean;
   }[];
 }
+
+/**
+ * Converts an image (File, base64 string, or Buffer) to a Buffer.
+ * Validates the image format before processing.
+ */
+
 async function toBuffer(
   image: File | string | null | undefined
 ): Promise<Buffer | null> {
@@ -42,17 +48,50 @@ async function toBuffer(
     return null; // Return null for invalid or empty inputs
   }
 
-  if (typeof image === "string") {
-    // If it's a base64 string, convert it to a Buffer
-    return Buffer.from(image, "base64");
-  } else if (image instanceof File) {
-    // If it's a file, convert it to a Buffer
-    const arrayBuffer = await image.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } else {
-    return null; // Return null for invalid inputs
+  try {
+    let buffer: Buffer;
+
+    if (typeof image === "string") {
+      // If it's a base64 string, remove the prefix and convert it to a Buffer
+      const base64String = image.replace(/^data:image\/\w+;base64,/, "");
+      buffer = Buffer.from(base64String, "base64");
+    } else if (image instanceof File) {
+      // If it's a file, convert it to a Buffer
+      const arrayBuffer = await image.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } else {
+      throw new Error("Invalid input type");
+    }
+
+    // Convert Buffer to Uint8Array for file-type validation
+    const uint8Array = new Uint8Array(buffer);
+
+    // Validate the image format using file-type
+    const type = await fileTypeFromBuffer(uint8Array);
+    if (!type || !type.mime.startsWith("image/")) {
+      throw new Error("Unsupported image format");
+    }
+
+    // Validate the image format using sharp
+    const metadata = await sharp(buffer).metadata();
+    if (!metadata.format) {
+      throw new Error("Unsupported image format");
+    }
+
+    console.log("Detected MIME type:", type);
+
+    console.log("Image metadata:", metadata);
+
+    return buffer;
+  } catch (error) {
+    console.error("Error converting image to buffer:", {
+      error,
+      input: image,
+    });
+    throw new Error("Invalid or unsupported image format");
   }
 }
+
 export const updateProductAction = async (
   productId: string,
   formData: FormData
@@ -71,6 +110,16 @@ export const updateProductAction = async (
       );
       const existingProduct = productRows[0];
       if (!existingProduct) throw new Error("Product not found");
+
+      // Fetch existing images
+      const [existingImages]: any = await connection.query(
+        "SELECT main_image, thumbnail_image1, thumbnail_image2, thumbnail_image3, thumbnail_image4, thumbnail_image5 FROM product_images WHERE product_id = ?",
+        [productId]
+      );
+
+      if (!existingImages.length) throw new Error("Product images not found");
+
+      const currentImages = existingImages[0];
 
       // Prepare update data
       const updateFields: Partial<ProductUpdateData> = {};
@@ -100,38 +149,32 @@ export const updateProductAction = async (
         }
       });
 
-      // Fetch existing images
-      const [existingImages]: any = await connection.query(
-        "SELECT main_image, thumbnail_image1, thumbnail_image2, thumbnail_image3, thumbnail_image4, thumbnail_image5 FROM product_images WHERE product_id = ?",
-        [productId]
-      );
-
-      if (!existingImages.length) throw new Error("Product images not found");
-
-      const currentImages = existingImages[0];
-
-      // Convert image inputs
-      const convertToBuffer = async (image: File | string | null) => {
-        if (!image) return null;
-        if (typeof image === "string") return Buffer.from(image, "base64");
-        if (image instanceof File)
-          return Buffer.from(await image.arrayBuffer());
-        return null;
-      };
-
-      // Process main image
+      // Process main image if changed
       const mainImageInput = formData.get("main_image");
-      const mainImageBuffer =
-        (await convertToBuffer(mainImageInput as File | string)) ??
-        currentImages.main_image;
+      let mainImageBuffer: Buffer | null = null;
 
-      // Process thumbnails
+      if (mainImageInput) {
+        try {
+          mainImageBuffer = await toBuffer(mainImageInput as File | string);
+        } catch (error) {
+          console.warn("Skipping invalid main image:", error);
+        }
+      }
+
+      // Process thumbnails if changed
       const thumbnails = formData.getAll("thumbnails") as (File | string)[];
       const thumbnailBuffers = await Promise.all(
-        thumbnails.map((img) => convertToBuffer(img))
+        thumbnails.map(async (img) => {
+          try {
+            return await toBuffer(img);
+          } catch (error) {
+            console.warn("Skipping invalid thumbnail:", error);
+            return null;
+          }
+        })
       );
 
-      // Retain existing thumbnails if new ones are missing
+      // Prepare final images (only update changed images)
       const finalThumbnails = [
         thumbnailBuffers[0] ?? currentImages.thumbnail_image1,
         thumbnailBuffers[1] ?? currentImages.thumbnail_image2,
@@ -140,23 +183,27 @@ export const updateProductAction = async (
         thumbnailBuffers[4] ?? currentImages.thumbnail_image5,
       ];
 
-      // Ensure no null images exist
-      if (!mainImageBuffer || finalThumbnails.includes(null)) {
-        throw new Error("Main image and all five thumbnails must be present");
+      // Update product_images table only if images have changed
+      if (
+        mainImageBuffer ||
+        thumbnailBuffers.some((buffer) => buffer !== null)
+      ) {
+        await connection.query(
+          `UPDATE product_images SET
+            main_image = ?,
+            thumbnail_image1 = ?,
+            thumbnail_image2 = ?,
+            thumbnail_image3 = ?,
+            thumbnail_image4 = ?,
+            thumbnail_image5 = ?
+          WHERE product_id = ?`,
+          [
+            mainImageBuffer ?? currentImages.main_image,
+            ...finalThumbnails,
+            productId,
+          ]
+        );
       }
-
-      // Update query
-      await connection.query(
-        `UPDATE product_images SET
-          main_image = ?,
-          thumbnail_image1 = ?,
-          thumbnail_image2 = ?,
-          thumbnail_image3 = ?,
-          thumbnail_image4 = ?,
-          thumbnail_image5 = ?
-        WHERE product_id = ?`,
-        [mainImageBuffer, ...finalThumbnails, productId]
-      );
 
       // Update product details if necessary
       if (Object.keys(updateFields).length > 0) {
@@ -171,82 +218,6 @@ export const updateProductAction = async (
           `UPDATE products SET ${updateColumns} WHERE product_id = ?`,
           updateValues
         );
-      }
-
-      // Handle suppliers
-      const suppliers = JSON.parse(
-        formData.get("suppliers")?.toString() || "[]"
-      );
-
-      if (suppliers.length > 0) {
-        await connection.query(
-          "DELETE FROM product_suppliers WHERE product_id = ?",
-          [productId]
-        );
-
-        const newSupplierIds: number[] = [];
-        for (const supplier of suppliers.filter((s: any) => s.isNew)) {
-          const [result]: any = await connection.query(
-            "INSERT INTO suppliers (supplier_name, supplier_email, supplier_phone_number, supplier_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE supplier_name = VALUES(supplier_name), supplier_email = VALUES(supplier_email), supplier_phone_number = VALUES(supplier_phone_number), supplier_location = VALUES(supplier_location)",
-            [
-              supplier.supplier_name,
-              supplier.supplier_email,
-              supplier.supplier_phone_number,
-              supplier.supplier_location,
-            ]
-          );
-          newSupplierIds.push(result.insertId);
-        }
-
-        // Insert product-supplier relationships
-        const allSupplierIds = [
-          ...suppliers
-            .filter((s: any) => !s.isNew)
-            .map((s: any) => s.supplier_id!),
-          ...newSupplierIds,
-        ];
-
-        if (allSupplierIds.length > 0) {
-          await connection.query(
-            "INSERT INTO product_suppliers (product_id, supplier_id) VALUES ?",
-            [allSupplierIds.map((id) => [productId, id])]
-          );
-        }
-      }
-
-      // Handle tags
-      const tags = JSON.parse(formData.get("tags")?.toString() || "[]");
-
-      if (tags.length > 0) {
-        await connection.query(
-          "DELETE FROM product_tags WHERE product_id = ?",
-          [productId]
-        );
-
-        const tagIds: number[] = [];
-        for (const tagName of tags) {
-          const [existingTag]: any = await connection.query(
-            "SELECT tag_id FROM tags WHERE tag_name = ?",
-            [tagName]
-          );
-
-          if (existingTag.length === 0) {
-            const [insertResult]: any = await connection.query(
-              "INSERT INTO tags (tag_name) VALUES (?)",
-              [tagName]
-            );
-            tagIds.push(insertResult.insertId);
-          } else {
-            tagIds.push(existingTag[0].tag_id);
-          }
-        }
-
-        if (tagIds.length > 0) {
-          await connection.query(
-            "INSERT INTO product_tags (product_id, tag_id) VALUES ?",
-            [tagIds.map((tagId) => [productId, tagId])]
-          );
-        }
       }
 
       // Commit transaction
