@@ -4,7 +4,6 @@ import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
-import { fileTypeFromBuffer } from "file-type";
 
 export interface ProductUpdateData {
   product_id: number;
@@ -60,26 +59,18 @@ async function toBuffer(
       const arrayBuffer = await image.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
     } else {
-      throw new Error("Invalid input type");
+      console.warn("Invalid input type for image:", image);
+      return null;
     }
 
-    // Convert Buffer to Uint8Array for file-type validation
-    const uint8Array = new Uint8Array(buffer);
-
-    // Validate the image format using file-type
-    const type = await fileTypeFromBuffer(uint8Array);
-    if (!type || !type.mime.startsWith("image/")) {
-      throw new Error("Unsupported image format");
-    }
-
-    // Validate the image format using sharp
+    // Use sharp to validate and process the image
     const metadata = await sharp(buffer).metadata();
     if (!metadata.format) {
-      throw new Error("Unsupported image format");
+      console.warn("Unsupported image format:", metadata);
+      return null;
     }
 
-    console.log("Detected MIME type:", type);
-
+    console.log("Detected image format:", metadata.format);
     console.log("Image metadata:", metadata);
 
     return buffer;
@@ -88,7 +79,7 @@ async function toBuffer(
       error,
       input: image,
     });
-    throw new Error("Invalid or unsupported image format");
+    return null; // Return null instead of throwing an error
   }
 }
 
@@ -117,9 +108,24 @@ export const updateProductAction = async (
         [productId]
       );
 
-      if (!existingImages.length) throw new Error("Product images not found");
+      let currentImages: any = {
+        main_image: null,
+        thumbnail_image1: null,
+        thumbnail_image2: null,
+        thumbnail_image3: null,
+        thumbnail_image4: null,
+        thumbnail_image5: null,
+      };
 
-      const currentImages = existingImages[0];
+      if (existingImages.length) {
+        currentImages = existingImages[0];
+      } else {
+        // Insert a new record if no images exist for this product
+        await connection.query(
+          "INSERT INTO product_images (product_id) VALUES (?)",
+          [productId]
+        );
+      }
 
       // Prepare update data
       const updateFields: Partial<ProductUpdateData> = {};
@@ -154,23 +160,14 @@ export const updateProductAction = async (
       let mainImageBuffer: Buffer | null = null;
 
       if (mainImageInput) {
-        try {
-          mainImageBuffer = await toBuffer(mainImageInput as File | string);
-        } catch (error) {
-          console.warn("Skipping invalid main image:", error);
-        }
+        mainImageBuffer = await toBuffer(mainImageInput as File | string);
       }
 
       // Process thumbnails if changed
       const thumbnails = formData.getAll("thumbnails") as (File | string)[];
       const thumbnailBuffers = await Promise.all(
         thumbnails.map(async (img) => {
-          try {
-            return await toBuffer(img);
-          } catch (error) {
-            console.warn("Skipping invalid thumbnail:", error);
-            return null;
-          }
+          return await toBuffer(img);
         })
       );
 
@@ -182,6 +179,7 @@ export const updateProductAction = async (
         thumbnailBuffers[3] ?? currentImages.thumbnail_image4,
         thumbnailBuffers[4] ?? currentImages.thumbnail_image5,
       ];
+      console.log(finalThumbnails);
 
       // Update product_images table only if images have changed
       if (
