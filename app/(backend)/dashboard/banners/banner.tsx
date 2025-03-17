@@ -22,7 +22,11 @@ import Image from "next/image";
 import { createBanner } from "@/lib/actions/Banners/post";
 import { bannerSchema } from "@/lib/ZodSchemas/bannerschema";
 import { fetchUsageContexts } from "@/lib/actions/Banners/fetch";
-import { Banner } from "@/lib/actions/Banners/bannerType";
+import { Banner as OriginalBanner } from "@/lib/actions/Banners/bannerType";
+
+interface Banner extends Omit<OriginalBanner, "image"> {
+  image?: string | File;
+}
 import { updateBannerAction } from "@/lib/actions/Banners/update";
 
 export interface UsageContext {

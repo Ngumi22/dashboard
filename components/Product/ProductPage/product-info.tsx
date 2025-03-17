@@ -3,34 +3,115 @@
 import * as React from "react";
 import { Heart, MinusCircle, PlusCircle, Share2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
-import { Product } from "@/lib/actions/Product/productTypes";
 import { useState } from "react";
-import Link from "next/link"; // Import the Link component
+import Link from "next/link";
+import { MinimalProduct, useCartStore } from "@/app/store/cart";
+import { useWishStore } from "@/app/store/wishlist";
+import { useCompareStore } from "@/app/store/compare";
 
-interface ProductInfoProps {
-  product: Product;
-}
+export default function ProductInfo({
+  id,
+  sku,
+  name,
+  description,
+  price,
+  main_image,
+  ratings,
+  discount,
+  brand_name,
+  created_at,
+  specifications,
+  tags,
+  quantity: stockQuantity, // Rename to stockQuantity for clarity
+}: MinimalProduct) {
+  const addItemToCart = useCartStore((state) => state.addItemToCart);
+  const addItemToWish = useWishStore((state) => state.addItemToWish);
+  const removeItemFromWish = useWishStore((state) => state.removeItemFromWish);
+  const wishlist = useWishStore((state) => state.wishItems);
+  const increaseQuantity = useCartStore((state) => state.increaseItemQuantity);
+  const decreaseQuantity = useCartStore((state) => state.decreaseItemQuantity);
 
-export default function ProductInfo({ product }: ProductInfoProps) {
-  const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [cartQuantity, setCartQuantity] = useState(1); // Track cart quantity separately
 
-  const finalPrice = product.price - (product.price * product.discount) / 100;
+  const handleIncreaseCartQuantity = (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e.preventDefault();
+    setCartQuantity((prev) => prev + 1);
+  };
 
-  // Determine status color and text based on product quantity
-  const getStockStatus = (quantity: number) => {
-    if (quantity > 10) {
+  const handleDecreaseCartQuantity = (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e.preventDefault();
+    setCartQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  };
+
+  const addItemToCompare = useCompareStore((state) => state.addItemToCompare);
+  const removeItemFromCompare = useCompareStore(
+    (state) => state.removeItemFromCompare
+  );
+  const compareList = useCompareStore((state) => state.compareItems);
+  const cartTotalQuantity = useCartStore((state) => state.getTotalQuantity());
+
+  const isInWishlist = wishlist.some((item) => item.id === id);
+  const isInCompare = compareList.some((item) => item.id === id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isInWishlist
+      ? removeItemFromWish(id)
+      : addItemToWish({
+          id,
+          name,
+          price,
+          main_image,
+          ratings,
+          discount,
+          description,
+          quantity: stockQuantity, // Use stockQuantity for wishlist
+          brand_name,
+          created_at,
+          specifications,
+        });
+  };
+
+  const handleCompareToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isInCompare
+      ? removeItemFromCompare(id)
+      : addItemToCompare({
+          id,
+          name,
+          price,
+          main_image,
+          ratings,
+          discount,
+          description,
+          quantity: stockQuantity, // Use stockQuantity for compare
+          brand_name,
+          created_at,
+          specifications,
+        });
+  };
+
+  const finalPrice = price - (price * discount) / 100;
+
+  // Determine status color and text based on product stock quantity
+  const getStockStatus = (stockQuantity: number) => {
+    if (stockQuantity > 10) {
       return {
         color: "bg-green-100 text-green-800",
         text: "In Stock",
-        description: `${quantity} units available`,
+        description: `${stockQuantity} units available`,
       };
-    } else if (quantity > 0) {
+    } else if (stockQuantity > 0) {
       return {
         color: "bg-yellow-100 text-yellow-800",
         text: "Low Stock",
-        description: `Only ${quantity} units left`,
+        description: `Only ${stockQuantity} units left`,
       };
     } else {
       return {
@@ -41,33 +122,26 @@ export default function ProductInfo({ product }: ProductInfoProps) {
     }
   };
 
-  const stockStatus = getStockStatus(product.quantity);
-
-  const handleAddToCart = () => {};
-
-  const handleBuyNow = () => {};
-
-  const handleAddToWishlist = () => {};
-  const handleAddToComapare = () => {};
+  const stockStatus = getStockStatus(stockQuantity);
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{product.name}</h1>
-        <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+        <h1 className="text-3xl font-bold">{name}</h1>
+        <p className="text-xs text-muted-foreground">SKU: {sku}</p>
         <div className="flex items-center gap-4">
           <div className="flex items-center">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
                 className={`h-4 w-4 ${
-                  i < product.ratings ? "fill-primary" : "fill-muted"
+                  i < ratings ? "fill-primary" : "fill-muted"
                 }`}
               />
             ))}
           </div>
           <span className="text-sm">
-            {product.ratings} ({product.ratings} reviews)
+            {ratings} ({ratings} reviews)
           </span>
         </div>
       </div>
@@ -77,12 +151,12 @@ export default function ProductInfo({ product }: ProductInfoProps) {
           <span className="text-3xl font-bold text-primary">
             Ksh {finalPrice}
           </span>
-          {product.discount > 0 && (
+          {discount > 0 && (
             <>
               <span className="text-xl text-muted-foreground line-through">
-                Ksh {product.price}
+                Ksh {price}
               </span>
-              <span className="text-sm">-{product.discount}%</span>
+              <span className="text-sm">-{discount}%</span>
             </>
           )}
         </div>
@@ -94,13 +168,13 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         </div>
       </div>
 
-      {product.tags && product.tags.length > 0 && (
+      {tags && tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <p>Tags: </p>
-          {product.tags.map((tag: string) => (
+          {tags.map((tag: string) => (
             <Link
               key={tag}
-              href={`/products/tags/${encodeURIComponent(tag)}`} // Encode the tag for the URL
+              href={`/products/tags/${encodeURIComponent(tag)}`}
               passHref>
               {tag}
             </Link>
@@ -113,18 +187,19 @@ export default function ProductInfo({ product }: ProductInfoProps) {
           <label className="text-sm font-medium">Quantity</label>
           <div className="mt-2 flex items-center gap-2">
             <Button
-              variant="outline"
+              onClick={handleDecreaseCartQuantity}
               size="icon"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}>
+              disabled={cartQuantity <= 1}>
               <MinusCircle className="h-4 w-4" />
             </Button>
-            <span className="w-12 text-center">{quantity}</span>
+            <span className="w-12 text-center">{cartQuantity}</span>
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setQuantity(quantity + 1)}
-              disabled={quantity >= product.quantity}>
+              onClick={handleIncreaseCartQuantity}
+              disabled={cartQuantity >= stockQuantity}>
+              {" "}
+              {/* Disable if cartQuantity exceeds stockQuantity */}
               <PlusCircle className="h-4 w-4" />
             </Button>
           </div>
@@ -134,16 +209,44 @@ export default function ProductInfo({ product }: ProductInfoProps) {
           <Button
             className="flex-1"
             size="lg"
-            onClick={handleAddToCart}
-            disabled={product.quantity === 0 || product.status === "pending"}>
+            onClick={(e) => {
+              e.preventDefault();
+              addItemToCart({
+                id,
+                name,
+                price,
+                main_image,
+                ratings,
+                discount,
+                description,
+                quantity: cartQuantity, // Pass cartQuantity to the cart
+                created_at,
+                specifications,
+              });
+            }}
+            disabled={stockQuantity === 0}>
             Add to cart
           </Button>
           <Button
             className="flex-1"
             size="lg"
             variant="secondary"
-            onClick={handleBuyNow}
-            disabled={product.quantity === 0 || product.status === "approved"}>
+            onClick={(e) => {
+              e.preventDefault();
+              addItemToCart({
+                id,
+                name,
+                price,
+                main_image,
+                ratings,
+                discount,
+                description,
+                quantity: cartQuantity, // Pass cartQuantity to the cart
+                created_at,
+                specifications,
+              });
+            }}
+            disabled={stockQuantity === 0}>
             Buy it now
           </Button>
         </div>
@@ -152,16 +255,16 @@ export default function ProductInfo({ product }: ProductInfoProps) {
           <Button
             variant="outline"
             className="flex-1"
-            onClick={handleAddToWishlist}>
+            onClick={handleWishlistToggle}>
             <Heart
-              className={`mr-2 h-4 w-4 ${isWishlisted ? "fill-red-500" : ""}`}
+              className={`mr-2 h-4 w-4 ${isInWishlist ? "fill-red-500" : ""}`}
             />
-            {isWishlisted ? "Wishlisted" : "Add to wishlist"}
+            {isInWishlist ? "Wishlisted" : "Add to wishlist"}
           </Button>
           <Button
             variant="outline"
             className="flex-1"
-            onClick={handleAddToComapare}>
+            onClick={handleCompareToggle}>
             <Share2 className="mr-2 h-4 w-4" />
             Compare
           </Button>

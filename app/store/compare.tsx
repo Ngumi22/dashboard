@@ -96,7 +96,7 @@ export const useCompareStore = create<CompareStoreState>()(
             (item) => item.id !== id
           );
           if (updatedCompareItems.length !== state.compareItems.length) {
-            showToast("Item removed from comparelist.");
+            showToast("Item removed from comparelist.", "error");
           }
           return { compareItems: updatedCompareItems };
         });
@@ -105,7 +105,7 @@ export const useCompareStore = create<CompareStoreState>()(
       // Clear the entire compare
       clearCompare: () => {
         set({ compareItems: [] });
-        showToast("Comparelist cleared.");
+        showToast("Comparelist cleared.", "error");
       },
 
       // Get the total quantity of items in the compare

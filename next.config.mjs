@@ -2,6 +2,7 @@
 const nextConfig = {
     images: {
         domains: ['images.unsplash.com', "fastly.picsum.photos", "loremflickr.com"],
+        formats: ['image/webp'],
     },
 }
 

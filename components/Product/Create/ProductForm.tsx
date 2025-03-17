@@ -18,10 +18,7 @@ import Image from "next/image";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { onSubmitAction } from "@/lib/actions/Product/add";
-import {
-  fetchCategoryWithSubCat,
-  getUniqueCategories,
-} from "@/lib/actions/Category/fetch";
+import { fetchCategoryWithSubCat } from "@/lib/actions/Category/fetch";
 import AddSpecifications from "./AddSpecs";
 import AddSuppliers from "./AddSuppliers";
 import { getUniqueBrands } from "@/lib/actions/Brand/fetch";
@@ -277,6 +274,10 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     // for (const [key, value] of formData.entries()) {
     //   console.log(`${key}:`, value);
     // }
+
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
 
     try {
       let result;
@@ -534,7 +535,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                   <Image
                     src={
                       typeof product.main_image === "string"
-                        ? `data:image/webp;base64,${product.main_image}`
+                        ? product.main_image
                         : URL.createObjectURL(product.main_image)
                     }
                     alt="Main Image Preview"
@@ -569,7 +570,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                   const thumbnailSrc =
                     thumbnail instanceof File
                       ? URL.createObjectURL(thumbnail) // Preview newly inserted files
-                      : `data:image/webp;base64,${thumbnail}`; // Display base64-encoded images
+                      : thumbnail; // Display base64-encoded images
 
                   return (
                     <div key={index} className="relative">

@@ -39,6 +39,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useStore } from "@/app/store";
 import { fetchProductById } from "@/lib/actions/Product/fetch";
 import { Product } from "@/lib/actions/Product/productTypes";
+import Base64Image from "@/components/Data-Table/base64-image";
 
 export default function ProductPage() {
   const fetchUniqueCategoriesWithSubs = useStore(
@@ -142,12 +143,11 @@ export default function ProductPage() {
                 <div>
                   <div>
                     {product.main_image && (
-                      <Image
-                        src={`data:image/jpeg;base64,${product.main_image}`}
+                      <Base64Image
+                        src={product.main_image}
                         alt="Main Image"
                         width={400}
                         height={400}
-                        className="rounded-lg object-cover"
                       />
                     )}
                   </div>
@@ -158,7 +158,7 @@ export default function ProductPage() {
                       .map((thumbnail, index) => (
                         <Image
                           key={index}
-                          src={`data:image/webp;base64,${thumbnail}`}
+                          src={thumbnail}
                           alt={`Thumbnail ${index + 1}`}
                           width={50}
                           height={50}

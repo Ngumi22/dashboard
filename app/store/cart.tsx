@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 
 export type MinimalProduct = {
   id: number;
+  sku?: string;
   name: string;
   description: string;
   price: number;
@@ -71,23 +72,25 @@ export const useCartStore = create<CartStoreState>()(
             (item) => item.id === product.id
           );
 
-          // If the product already exists in the cart, increase its quantity
+          // If the product already exists in the cart, increase its quantity by the passed quantity
           if (existingItem) {
             const updatedCartItems = state.cartItems.map((item) =>
               item.id === product.id
-                ? { ...item, quantity: item.quantity + 1 }
+                ? { ...item, quantity: item.quantity + product.quantity }
                 : item
             );
-            showToast(`Added 1 more ${product.name} to your cart!`);
+            showToast(
+              `Added ${product.quantity} more ${product.name} to your cart!`
+            );
             return { cartItems: updatedCartItems };
           }
 
-          // If it's a new product, add it to the cart
+          // If it's a new product, add it to the cart with the passed quantity
           const updatedCartItems = [
             ...state.cartItems,
-            { ...product, quantity: 1 },
+            { ...product, quantity: product.quantity },
           ];
-          showToast(`Added ${product.name} to your cart!`);
+          showToast(`Added ${product.quantity} ${product.name} to your cart!`);
           return { cartItems: updatedCartItems };
         });
       },

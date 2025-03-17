@@ -29,7 +29,7 @@ export default function CarouselSlide({
             isActive && isAnimating ? "animate-slide-in-bottom" : ""
           }`}>
           <Image
-            src={`data:image/jpeg;base64,${carousel.image}`}
+            src={carousel.image}
             alt={`${carousel.title} ${carousel.short_description}`}
             width={500}
             height={500}

@@ -7,14 +7,18 @@ import ProductInfo from "@/components/Product/ProductPage/product-info";
 import CustomersAlsoBought from "@/components/Product/ProductPage/customers-also-bought";
 import ProductTabs from "@/components/Product/ProductPage/product-tabs";
 import RecentlyViewed from "@/components/Product/ProductPage/recently-viewed";
-import { fetchProductById } from "@/lib/actions/Product/fetch";
+import { fetchProductByName } from "@/lib/actions/Product/fetchByName";
 
 export default async function ProductPage({
   params,
 }: {
-  params: { id: string };
+  params: { name: string };
 }) {
-  const product = await fetchProductById(Number.parseInt(params.id));
+  // Decode the name parameter
+  const decodedName = decodeURIComponent(params.name);
+  console.log("Decoded name:", decodedName); // Debugging
+
+  const product = await fetchProductByName(decodedName);
 
   if (!product) {
     notFound();
@@ -22,8 +26,8 @@ export default async function ProductPage({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container px-4 py-8 mx-auto">
-        <div className="mb-8">
+      <div className="container p-4 mx-auto">
+        <div className="mb-4">
           <Button
             variant="ghost"
             asChild
@@ -35,12 +39,21 @@ export default async function ProductPage({
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <ProductGallery
             mainImage={product.main_image}
             thumbnails={product.thumbnails}
           />
-          <ProductInfo product={product} />
+          <ProductInfo
+            id={product.id}
+            name={product.name}
+            price={product.price}
+            description={product.description}
+            discount={product.discount}
+            quantity={product.quantity}
+            main_image={product.main_image}
+            ratings={product.ratings}
+          />
         </div>
         <ProductTabs product={product} />
 

@@ -139,14 +139,16 @@ const ProductCard = ({
     return price * (1 - (discount || 0) / 100);
   }, [price, discount]);
 
+  const productUrl = name ? `/products/${encodeURIComponent(name)}` : "#";
+
   return (
     <Link
-      href={`/products/${id}`}
+      href={productUrl}
       className="group relative block overflow-hidden md:max-w-72 transition-transform duration-300 ease-in-out">
       <div className="relative aspect-square w-full rounded-lg bg-white/70 object-cover group-hover:opacity-75">
         <div className="flex h-full justify-center items-center p-2">
           <Image
-            src={`data:image/jpeg;base64,${main_image}`}
+            src={main_image}
             alt={name}
             height={200}
             width={200}

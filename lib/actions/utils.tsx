@@ -7,10 +7,11 @@ export async function compressAndEncodeBase64(
 
   try {
     const compressedBuffer = await sharp(buffer)
-      .webp({ quality: 100 }) // Convert to WebP with 70% quality
+      .webp({ quality: 100 })
       .toBuffer();
 
-    return compressedBuffer.toString("base64");
+    // Explicitly add the data URL prefix
+    return `data:image/webp;base64,${compressedBuffer.toString("base64")}`;
   } catch (error) {
     console.error("Image compression error:", error);
     return null;

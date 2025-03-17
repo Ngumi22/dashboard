@@ -68,7 +68,7 @@ export default function ProductPage() {
           {product.main_image && (
             <Image
               className="w-full"
-              src={`data:image/jpeg;base64,${product.main_image}`}
+              src={product.main_image}
               alt="Main Image"
               height={100}
               width={100}
@@ -81,7 +81,7 @@ export default function ProductPage() {
               .map((thumbnail, index) => (
                 <Image
                   key={index}
-                  src={`data:image/webp;base64,${thumbnail}`}
+                  src={thumbnail}
                   alt={`Thumbnail ${index + 1}`}
                   width={50}
                   height={50}

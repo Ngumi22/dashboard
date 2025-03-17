@@ -122,7 +122,7 @@ export default function MegaMenu() {
                           href={`/category/${category.category_id}/${subItem.category_id}`}
                           className="group block aspect-square space-y-5 my-auto items-center h-[14rem]">
                           <Image
-                            src={`data:image/jpeg;base64,${subItem.category_image}`}
+                            src={subItem.category_image || "/placeholder.jpg"}
                             alt={subItem.category_name}
                             width={150}
                             height={150}

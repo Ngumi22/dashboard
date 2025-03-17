@@ -3,7 +3,7 @@ export interface Banner {
   title: string;
   description?: string;
   link?: string;
-  image?: string | File | null;
+  image?: string;
   text_color: string;
   background_color: string;
   usage_context_id: string | number;

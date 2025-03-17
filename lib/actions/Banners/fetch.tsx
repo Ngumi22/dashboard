@@ -115,7 +115,7 @@ export async function fetchBannerById(
     }
 
     const banner = rows[0];
-    const processedBanner: Banner = {
+    const processedBanner: any = {
       banner_id: banner.banner_id,
       title: banner.title,
       description: banner.description,

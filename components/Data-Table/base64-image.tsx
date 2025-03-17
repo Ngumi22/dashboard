@@ -14,7 +14,15 @@ const Base64Image: React.FC<Base64ImageProps> = ({
   width,
   height,
 }) => {
-  if (!src) {
+  let imageSrc: string | null = null;
+
+  if (src instanceof Buffer) {
+    imageSrc = src.toString("base64");
+  } else if (typeof src === "string") {
+    imageSrc = src;
+  }
+
+  if (!imageSrc) {
     return (
       <div
         style={{
@@ -34,11 +42,11 @@ const Base64Image: React.FC<Base64ImageProps> = ({
 
   return (
     <Image
-      src={`data:image/jpeg;base64,${src}`} // Ensure src matches the correct format
+      src={imageSrc}
       alt={alt}
       width={width}
       height={height}
-      style={{ objectFit: "cover", borderRadius: "4px" }} // Optional styling
+      style={{ objectFit: "cover", borderRadius: "4px" }}
     />
   );
 };

@@ -195,7 +195,7 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                     className="flex items-center justify-between py-4 border-b">
                     <div className="flex items-center gap-4">
                       <Image
-                        src={`data:image/jpeg;base64,${item.main_image}`}
+                        src={item.main_image}
                         alt={item.name}
                         width={80}
                         height={80}

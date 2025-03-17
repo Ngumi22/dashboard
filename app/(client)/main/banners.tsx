@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
 import Image from "next/image";
+import Base64Image from "@/components/Data-Table/base64-image";
 
 interface BannerProps {
   contextName: string;
@@ -91,12 +92,11 @@ function Banners({
             </Button>
           </div>
           <div className="my-auto">
-            <Image
-              src={`data:image/jpeg;base64,${banner.image}`}
+            <Base64Image
+              src={banner.image}
               alt={banner.title}
-              width={80}
-              height={80}
-              className="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 object-contain transition-transform hover:scale-105 hover:rotate-3"
+              width={200}
+              height={200}
             />
           </div>
         </li>

@@ -112,39 +112,11 @@ export default function ProductGallery({
   };
 
   return (
-    <div className="flex gap-4 w-full">
-      {/* Thumbnails */}
-      <div className="grid grid-cols-1 gap-2 w-16 h-96 ">
-        {allImages.map((image, index) => (
-          <motion.button
-            key={index}
-            onClick={() => {
-              setDirection(index > currentIndex ? 1 : -1);
-              setCurrentImage(image);
-            }}
-            initial="inactive"
-            animate={currentImage === image ? "active" : "inactive"}
-            whileHover="hover"
-            variants={thumbnailVariants}
-            className={cn(
-              "relative object-contain overflow-hidden rounded-md bg-muted w-full",
-              currentImage === image && "ring-2 ring-primary"
-            )}>
-            <Image
-              src={`data:image/jpeg;base64,${image}`}
-              alt={`Product thumbnail ${index + 1}`}
-              height={60}
-              width={60}
-              className="object-contain h-14 w-auto"
-            />
-          </motion.button>
-        ))}
-      </div>
-
+    <div className="space-y-5">
       {/* Main Image */}
       <div
         className={cn(
-          "relative aspect-square overflow-hidden w-full group h-96 bg-gray-200 p-2",
+          "relative aspect-square overflow-hidden w-96 group rounded-lg h-80 bg-gray-200 p-4",
           isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"
         )}
         onClick={() => openDialog(currentIndex)}
@@ -163,7 +135,7 @@ export default function ProductGallery({
             }}
             className="absolute inset-0">
             <Image
-              src={`data:image/jpeg;base64,${currentImage}`}
+              src={currentImage}
               alt="Product image"
               fill
               className={cn(
@@ -208,7 +180,34 @@ export default function ProductGallery({
           <span className="sr-only">Zoom image</span>
         </Button>
       </div>
+      {/* Thumbnails */}
 
+      <div className="grid grid-cols-6 gap-2 w-96">
+        {allImages.map((image, index) => (
+          <motion.button
+            key={index}
+            onClick={() => {
+              setDirection(index > currentIndex ? 1 : -1);
+              setCurrentImage(image);
+            }}
+            initial="inactive"
+            animate={currentImage === image ? "active" : "inactive"}
+            whileHover="hover"
+            variants={thumbnailVariants}
+            className={cn(
+              "relative object-contain overflow-hidden rounded-md bg-muted w-full",
+              currentImage === image && "ring-2 ring-primary"
+            )}>
+            <Image
+              src={image}
+              alt={`Product thumbnail ${index + 1}`}
+              height={60}
+              width={60}
+              className="object-contain h-auto w-auto"
+            />
+          </motion.button>
+        ))}
+      </div>
       {/* Dialog for fullscreen gallery */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-7xl w-full h-[90vh] p-0 border-none bg-transparent">
@@ -233,7 +232,7 @@ export default function ProductGallery({
                   }}
                   className="absolute inset-0 flex items-center justify-center">
                   <Image
-                    src={`data:image/jpeg;base64,${allImages[dialogIndex]}`}
+                    src={allImages[dialogIndex]}
                     alt={`Product image ${dialogIndex + 1}`}
                     fill
                     className="object-contain"

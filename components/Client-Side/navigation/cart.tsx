@@ -76,7 +76,7 @@ export default function Cart() {
                   key={cartItem.id}>
                   <Image
                     className="h-auto"
-                    src={`data:image/jpeg;base64,${cartItem.main_image}`}
+                    src={cartItem.main_image}
                     alt={cartItem.name}
                     height={80}
                     width={80}

@@ -91,7 +91,7 @@ export const useWishStore = create<WishStoreState>()(
             (item) => item.id !== id
           );
           if (updatedWishItems.length !== state.wishItems.length) {
-            showToast("Item removed from wishlist.");
+            showToast("Item removed from wishlist.", "error");
           }
           return { wishItems: updatedWishItems };
         });
@@ -100,7 +100,7 @@ export const useWishStore = create<WishStoreState>()(
       // Clear the entire wish
       clearWish: () => {
         set({ wishItems: [] });
-        showToast("Wishlist cleared.");
+        showToast("Wishlist cleared.", "error");
       },
 
       // Get the total quantity of items in the wish
