@@ -45,7 +45,7 @@ export function SortBar({
   // Get the label for the current sort option
   const currentSortLabel =
     sortOptions.find((option) => option.value === localSort)?.label || "Sort";
-  const [grid, setGrid] = useState(3);
+  const [grid, setGrid] = useState(4);
 
   // Handle sort change
   const handleSortChange = (value: string) => {

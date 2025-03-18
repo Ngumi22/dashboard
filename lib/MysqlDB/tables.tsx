@@ -1,5 +1,4 @@
 import { query } from "./initDb";
-
 export async function dbsetupTables() {
   try {
     // Create the database if it doesn't exist

@@ -13,7 +13,7 @@ import HomeBlogSection from "./main/home-blog";
 
 export default function Page() {
   return (
-    <div className="mt-[10rem] lg:mt-[12rem] bg-muted/40">
+    <div className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80">
       <HeroSection />
       {/* Main Content */}
       <div className="pt-2 md:container space-y-5">
@@ -22,43 +22,43 @@ export default function Page() {
         <Banners
           contextName="Hero"
           gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
-          gap="gap-4 md:gap-6"
-          height="h-40 md:h-44"
+          gap="gap-2 md:gap-4"
+          height="h-30 md:h-40"
           maxBanners={3}
-          paddingX="px-8"
-          paddingY="py-4"
+          paddingX="px-3 md:px-8"
+          paddingY="py-2 md:py-4"
         />
         <NewProducts />
         <Banners
           contextName="Hero"
           gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
-          gap="gap-4 md:gap-6"
-          height="h-40 md:h-44"
+          gap="gap-2 md:gap-4"
+          height="h-30 md:h-40"
           maxBanners={3}
-          paddingX="px-8"
-          paddingY="py-4"
+          paddingX="px-3 md:px-8"
+          paddingY="py-2 md:py-4"
         />
         <SubCategoryProducts categoryName="Laptops" />
         <SubCategoryProducts categoryName="Desktop Computers" />
         <Banners
           contextName="Hero"
           gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
-          gap="gap-4 md:gap-6"
-          height="h-40 md:h-44"
+          gap="gap-2 md:gap-4"
+          height="h-30 md:h-40"
           maxBanners={3}
-          paddingX="px-8"
-          paddingY="py-4"
+          paddingX="px-3 md:px-8"
+          paddingY="py-2 md:py-4"
         />
         <Categories />
         <SubCategoryProducts categoryName="SmartPhones" />
         <Banners
           contextName="Hero"
           gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
-          gap="gap-4 md:gap-6"
-          height="h-40 md:h-44"
+          gap="gap-2 md:gap-4"
+          height="h-30 md:h-40"
           maxBanners={3}
-          paddingX="px-8"
-          paddingY="py-4"
+          paddingX="px-3 md:px-8"
+          paddingY="py-2 md:py-4"
         />
         <ShopByBrand />
         <SubCategoryProducts categoryName="Smartwatches" />

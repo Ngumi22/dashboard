@@ -9,6 +9,7 @@ import {
 import CarouselSlide from "./Carousel-Slide";
 import { useCarouselsQuery } from "@/lib/actions/Hooks/useCarousel";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { Button } from "@/components/ui/button";
 
 export default function Carousel() {
   const { data, isLoading } = useCarouselsQuery();
@@ -160,18 +161,16 @@ export default function Carousel() {
       </div>
 
       <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col gap-2 z-20">
-        <button
+        <ArrowUp
+          className="cursor-pointer h-6 w-6 md:h-8 md:w-8 bg-black/30 hover:bg-black/50 text-white rounded-full p-1 transition-colors"
           onClick={prevSlide}
-          className="bg-black/30 hover:bg-black/50 text-white rounded-full p-1 transition-colors"
-          aria-label="Previous slide">
-          <ArrowUp className="h-6 w-6" />
-        </button>
-        <button
+          aria-label="Previous slide"
+        />
+        <ArrowDown
+          className="cursor-pointer h-6 w-6 md:h-8 md:w-8 bg-black/30 hover:bg-black/50 text-white rounded-full p-1 transition-colors"
           onClick={nextSlide}
-          className="bg-black/30 hover:bg-black/50 text-white rounded-full p-1 transition-colors"
-          aria-label="Next slide">
-          <ArrowDown className="h-6 w-6" />
-        </button>
+          aria-label="Next slide"
+        />
       </div>
 
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
@@ -182,7 +181,7 @@ export default function Carousel() {
               setActiveIndex(index + carousels.length);
               setIsAnimating(true);
             }}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+            className={`w-2 md:w-3 h-2 md:h-3 rounded-full transition-all duration-300 ${
               (activeIndex - carousels.length) % carousels.length === index
                 ? "bg-white scale-125"
                 : "bg-white/50 hover:bg-white/70"

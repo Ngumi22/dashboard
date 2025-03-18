@@ -75,6 +75,11 @@ export function ProductFilters({
       : []
   );
 
+  // Local state for names
+  const [localNames, setLocalNames] = useState<string>(
+    currentFilters.name || ""
+  );
+
   // Local state for specifications
   const [localSpecifications, setLocalSpecifications] = useState<
     Record<string, string[]>
@@ -95,6 +100,7 @@ export function ProductFilters({
   const debouncedPriceFilter = useDebounce(localPriceFilter, 300);
   const debouncedCategories = useDebounce(localCategories, 300);
   const debouncedBrands = useDebounce(localBrands, 300);
+  const debouncedNames = useDebounce(localNames, 300);
   const debouncedSpecifications = useDebounce(localSpecifications, 300);
 
   // Sync debounced states with URL
@@ -117,6 +123,12 @@ export function ProductFilters({
       brand: debouncedBrands.length > 0 ? debouncedBrands : undefined,
     });
   }, [debouncedBrands, setFilters]);
+
+  useEffect(() => {
+    setFilters({
+      name: debouncedNames.length > 0 ? debouncedNames : undefined,
+    });
+  }, [debouncedNames, setFilters]);
 
   useEffect(() => {
     const updatedSpecs: Partial<SearchParams> = {};
@@ -171,6 +183,7 @@ export function ProductFilters({
       max: null, // Reset to null to indicate no filters
     });
     setLocalCategories([]);
+    setLocalNames("");
     setLocalBrands([]);
     setLocalSpecifications(
       Object.fromEntries(
@@ -190,6 +203,7 @@ export function ProductFilters({
       tags: undefined,
       search: undefined,
       sort: undefined,
+      name: undefined,
     };
 
     // Clear specifications from URL

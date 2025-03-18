@@ -7,6 +7,7 @@ import SearchComponent from "../navigation/search";
 import WishList from "../navigation/wishlist";
 import Compare from "../navigation/compare";
 import Cart from "../navigation/cart";
+import SearchInput from "../navigation/search-input";
 
 interface MainNavProps {
   isMobileMenuOpen: boolean;
@@ -18,9 +19,9 @@ export default function MainNav({
   setIsMobileMenuOpen,
 }: MainNavProps) {
   return (
-    <nav className="bg-[#151C25] py-2 lg:p-4 space-y-2">
+    <nav className="bg-[#151C25] py-2 lg:p-4 space-y-2 pr-2">
       {/* Top Row: Logo, Menu Button, and Icons */}
-      <div className="md:container flex items-center justify-between gap-4 md:px-4 pr-2">
+      <div className="md:container flex items-center justify-between gap-4 md:px-4 px-2">
         {/* Mobile Menu Button */}
 
         <Menu
@@ -34,7 +35,7 @@ export default function MainNav({
 
         {/* Middle Section: Search Bar (Hidden on Mobile) */}
         <div className="hidden md:flex flex-1">
-          <SearchComponent />
+          <SearchInput />
         </div>
 
         {/* Right Section: Icons and Cart */}
@@ -52,7 +53,7 @@ export default function MainNav({
 
       {/* Bottom Row: Search Bar (Visible on Mobile) */}
       <div className="md:hidden flex flex-1 mx-2">
-        <SearchComponent />
+        <SearchInput />
       </div>
     </nav>
   );

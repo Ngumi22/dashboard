@@ -7,7 +7,6 @@ import {
   parseSearchParams,
   SearchParams,
 } from "@/lib/actions/Product/search-params";
-import { ProductsPageSkeleton } from "./skeletons";
 import { ProductFilters } from "./product-filters";
 import { ProductGrid } from "./product-grid";
 import { Pagination } from "./pagination";
@@ -23,7 +22,7 @@ export default function ProductsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const [gridLayout, setGridLayout] = useState(3);
+  const [gridLayout, setGridLayout] = useState(4);
   const parsedParams = parseSearchParams(searchParams);
   const { setFilters, ...filters } = useProductFilters(parsedParams);
 
@@ -48,7 +47,7 @@ export default function ProductsPage({
   } = data;
 
   return (
-    <div className="md:container grid gap-6 my-8">
+    <div className="md:container grid gap-6 my-8 bg-muted/80">
       <SortBar
         totalProducts={totalProducts}
         totalAllProducts={totalProducts}

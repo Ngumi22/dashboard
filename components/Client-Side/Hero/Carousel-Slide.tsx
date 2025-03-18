@@ -21,7 +21,7 @@ export default function CarouselSlide({
   isAnimating: boolean;
 }) {
   return (
-    <div className="relative aspect-[16/9] bg-gradient-to-tr from-gray-900 to-gray-800 rounded overflow-hidden shadow-2xl w-full h-full lg:py-8">
+    <div className="relative aspect-[16/9] bg-gradient-to-tr from-gray-900 to-gray-800 md:rounded overflow-hidden shadow-2xl w-full h-full lg:py-8">
       {/* Carousel image positioned behind text */}
       <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1/2 h-full flex items-center justify-center z-0">
         <div
@@ -46,20 +46,20 @@ export default function CarouselSlide({
             className={`${
               isActive && isAnimating ? "animate-slide-in-top" : ""
             }`}>
-            <h2 className="text-sky-300 text-xl md:text-2xl font-medium mb-1">
+            <h2 className="text-sky-300 text-md md:text-2xl font-medium mb-1">
               {carousel.title}
             </h2>
-            <h1 className="text-white text-xl md:text-3xl lg:text-5xl font-bold mb-4 tracking-tight">
+            <h1 className="text-white text-md md:text-2xl lg:text-5xl font-bold mb-4 tracking-tight">
               {carousel.short_description}
               <span className="border-b-4 border-white pb-1 pr-10"></span>
             </h1>
-            <p className="text-gray-300 text-sm md:text-base max-w-md mb-4 md:mb-8">
+            <p className="text-gray-300 text-xs md:text-base max-w-md mb-4 md:mb-8">
               {carousel.description}
             </p>
             <div className="flex flex-col md:flex-row items-start gap-4">
               <Link
                 href={carousel.link}
-                className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 md:px-8 md:py-2 rounded-md transition-colors">
+                className="text-xs md:text-base bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 md:px-8 md:py-2 rounded-md transition-colors">
                 Buy Now
               </Link>
             </div>

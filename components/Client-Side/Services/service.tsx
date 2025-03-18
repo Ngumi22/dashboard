@@ -50,7 +50,7 @@ export default function Service() {
         content: (
           <div
             key={service.id}
-            className="flex-shrink-0 h-32 flex items-center justify-between gap-5 bg-white shadow-md px-4 py-2 rounded-md">
+            className="flex-shrink-0 h-20 md:h-32 flex items-center justify-between gap-2 md:gap-5 px-2 md:px-4 py-2 bg-white shadow-md rounded-md md:mb-2">
             <service.icon className="h-10 w-10 flex-shrink-0" />
             <div>
               <h3 className="text-md font-semibold">{service.title}</h3>

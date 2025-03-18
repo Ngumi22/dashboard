@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-toastify";
+import { shallow } from "zustand/shallow";
 
+// Define the MinimalProduct type
 export type MinimalProduct = {
   id: number;
   sku?: string;
@@ -24,7 +26,7 @@ export type MinimalProduct = {
   tags?: string[];
 };
 
-// Define the cart item type
+// Define the CartItem type
 type CartItem = MinimalProduct & {
   quantity: number;
 };
@@ -39,6 +41,7 @@ export type CartStoreState = {
   decreaseItemQuantity: (id: number) => void;
   getTotalCost: () => number;
   getTotalQuantity: () => number;
+  updateItemQuantity: (id: number, quantity: number) => void;
 };
 
 // Toast configuration for consistency
@@ -62,8 +65,8 @@ export const useCartStore = create<CartStoreState>()(
 
       // Add a product to the cart
       addItemToCart: (product: MinimalProduct) => {
-        if (!product || !product.id) {
-          showToast("Invalid product. Please try again.", "error");
+        if (!product || !product.id || product.quantity <= 0) {
+          showToast("Invalid product or quantity. Please try again.", "error");
           return;
         }
 
@@ -72,7 +75,7 @@ export const useCartStore = create<CartStoreState>()(
             (item) => item.id === product.id
           );
 
-          // If the product already exists in the cart, increase its quantity by the passed quantity
+          // If the product already exists in the cart, increase its quantity
           if (existingItem) {
             const updatedCartItems = state.cartItems.map((item) =>
               item.id === product.id
@@ -85,7 +88,7 @@ export const useCartStore = create<CartStoreState>()(
             return { cartItems: updatedCartItems };
           }
 
-          // If it's a new product, add it to the cart with the passed quantity
+          // If it's a new product, add it to the cart
           const updatedCartItems = [
             ...state.cartItems,
             { ...product, quantity: product.quantity },
@@ -158,9 +161,33 @@ export const useCartStore = create<CartStoreState>()(
         const { cartItems } = get();
         return cartItems.reduce((total, item) => total + item.quantity, 0);
       },
+
+      // Update the quantity of a specific item
+      updateItemQuantity: (id: number, quantity: number) => {
+        if (quantity <= 0) {
+          showToast("Quantity must be greater than 0.", "error");
+          return;
+        }
+
+        set((state) => ({
+          cartItems: state.cartItems.map((item) =>
+            item.id === id ? { ...item, quantity } : item
+          ),
+        }));
+      },
     }),
     {
       name: "cart-storage", // Name for localStorage persistence
     }
   )
 );
+
+// Memoized selectors to prevent unnecessary re-renders
+export const useTotalCost = () =>
+  useCartStore((state) => state.getTotalCost(), shallow);
+
+export const useTotalQuantity = () =>
+  useCartStore((state) => state.getTotalQuantity(), shallow);
+
+export const useCartItems = () =>
+  useCartStore((state) => state.cartItems, shallow);

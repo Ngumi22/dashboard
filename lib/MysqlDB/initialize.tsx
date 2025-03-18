@@ -4,9 +4,9 @@ import { dbsetupTables } from "./tables";
 let isInitialized = false; // Global flag to prevent redundant initialization
 
 /**
- * Initializes the database and ensures schema is up to date.
+ * Initializes the database and ensures the schema is up to date.
  */
-export async function initialize() {
+export async function initialize(): Promise<void> {
   if (isInitialized) {
     console.log("Database is already initialized.");
     return; // Prevent duplicate initialization
@@ -40,7 +40,9 @@ export async function initialize() {
         console.log(
           `Updating schema from version ${currentVersion} to ${newVersion}...`
         );
-        await dbsetupTables(); // Call your table setup logic here
+
+        // Apply schema updates
+        await dbsetupTables(); // Pass the connection to avoid acquiring a new one
 
         // Record the new version in schema_version
         await connection.query(
@@ -55,10 +57,10 @@ export async function initialize() {
       isInitialized = true; // Mark as initialized
     } finally {
       connection.release(); // Release the connection back to the pool
-      console.log("Connection released");
+      console.log("Connection released.");
     }
   } catch (error) {
     console.error("Database initialization failed:", error);
-    throw error;
+    throw error; // Re-throw the error for the caller to handle
   }
 }

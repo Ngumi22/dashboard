@@ -34,7 +34,7 @@ export function ProductGrid({ products, gridLayout }: ProductGridProps) {
 
   return (
     <div
-      className={`grid gap-6 ${gridCols[gridLayout as keyof typeof gridCols]}`}>
+      className={`grid gap-2 ${gridCols[gridLayout as keyof typeof gridCols]}`}>
       {products.map((product) => (
         <ProductCard
           key={product.id}

@@ -1,11 +1,11 @@
 "use client";
 
-import * as React from "react";
-import { Heart, MinusCircle, PlusCircle, Share2, Star } from "lucide-react";
+import type * as React from "react";
+import { Heart, Minus, Plus, Share2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Link from "next/link";
-import { MinimalProduct, useCartStore } from "@/app/store/cart";
+import { type MinimalProduct, useCartStore } from "@/app/store/cart";
 import { useWishStore } from "@/app/store/wishlist";
 import { useCompareStore } from "@/app/store/compare";
 
@@ -24,38 +24,53 @@ export default function ProductInfo({
   tags,
   quantity: stockQuantity, // Rename to stockQuantity for clarity
 }: MinimalProduct) {
-  const addItemToCart = useCartStore((state) => state.addItemToCart);
+  const [localQuantity, setLocalQuantity] = useState(1); // Local state for quantity
+
   const addItemToWish = useWishStore((state) => state.addItemToWish);
   const removeItemFromWish = useWishStore((state) => state.removeItemFromWish);
   const wishlist = useWishStore((state) => state.wishItems);
-  const increaseQuantity = useCartStore((state) => state.increaseItemQuantity);
-  const decreaseQuantity = useCartStore((state) => state.decreaseItemQuantity);
 
-  const [cartQuantity, setCartQuantity] = useState(1); // Track cart quantity separately
-
-  const handleIncreaseCartQuantity = (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    e.preventDefault();
-    setCartQuantity((prev) => prev + 1);
-  };
-
-  const handleDecreaseCartQuantity = (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    e.preventDefault();
-    setCartQuantity((prev) => (prev > 1 ? prev - 1 : 1));
-  };
+  const addItemToCart = useCartStore((state) => state.addItemToCart);
+  const cartItems = useCartStore((state) => state.cartItems);
 
   const addItemToCompare = useCompareStore((state) => state.addItemToCompare);
   const removeItemFromCompare = useCompareStore(
     (state) => state.removeItemFromCompare
   );
   const compareList = useCompareStore((state) => state.compareItems);
-  const cartTotalQuantity = useCartStore((state) => state.getTotalQuantity());
 
   const isInWishlist = wishlist.some((item) => item.id === id);
   const isInCompare = compareList.some((item) => item.id === id);
+
+  const handleIncreaseQuantity = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (localQuantity < stockQuantity) {
+      setLocalQuantity((prev) => prev + 1);
+    }
+  };
+
+  const handleDecreaseQuantity = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (localQuantity > 1) {
+      setLocalQuantity((prev) => prev - 1);
+    }
+  };
+
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    addItemToCart({
+      id,
+      name,
+      price,
+      main_image,
+      ratings,
+      discount,
+      description,
+      quantity: localQuantity, // Use localQuantity for cart
+      created_at,
+      specifications,
+    });
+  };
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -183,92 +198,60 @@ export default function ProductInfo({
       )}
 
       <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium">Quantity</label>
-          <div className="mt-2 flex items-center gap-2">
+        <div className="flex items-center gap-4 mb-4">
+          <span className="text-sm font-medium">Quantity:</span>
+          <div className="flex items-center border rounded">
             <Button
-              onClick={handleDecreaseCartQuantity}
+              variant="ghost"
               size="icon"
-              disabled={cartQuantity <= 1}>
-              <MinusCircle className="h-4 w-4" />
+              onClick={handleDecreaseQuantity}
+              disabled={localQuantity <= 1}
+              className="h-8 w-8">
+              <Minus className="h-3 w-3" />
             </Button>
-            <span className="w-12 text-center">{cartQuantity}</span>
+            <span className="w-8 text-center">{localQuantity}</span>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              onClick={handleIncreaseCartQuantity}
-              disabled={cartQuantity >= stockQuantity}>
-              {" "}
-              {/* Disable if cartQuantity exceeds stockQuantity */}
-              <PlusCircle className="h-4 w-4" />
+              onClick={handleIncreaseQuantity}
+              disabled={localQuantity >= stockQuantity}
+              className="h-8 w-8">
+              <Plus className="h-3 w-3" />
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
-            className="flex-1"
-            size="lg"
-            onClick={(e) => {
-              e.preventDefault();
-              addItemToCart({
-                id,
-                name,
-                price,
-                main_image,
-                ratings,
-                discount,
-                description,
-                quantity: cartQuantity, // Pass cartQuantity to the cart
-                created_at,
-                specifications,
-              });
-            }}
-            disabled={stockQuantity === 0}>
-            Add to cart
+            className="flex-1 bg-gray-900 hover:bg-yellow-500 transition-colors duration-300"
+            disabled={stockQuantity === 0}
+            onClick={handleAddToCart}>
+            Add to Cart
           </Button>
-          <Button
-            className="flex-1"
-            size="lg"
-            variant="secondary"
-            onClick={(e) => {
-              e.preventDefault();
-              addItemToCart({
-                id,
-                name,
-                price,
-                main_image,
-                ratings,
-                discount,
-                description,
-                quantity: cartQuantity, // Pass cartQuantity to the cart
-                created_at,
-                specifications,
-              });
-            }}
-            disabled={stockQuantity === 0}>
-            Buy it now
-          </Button>
-        </div>
-
-        <div className="flex gap-4">
           <Button
             variant="outline"
             className="flex-1"
             onClick={handleWishlistToggle}>
             <Heart
-              className={`mr-2 h-4 w-4 ${isInWishlist ? "fill-red-500" : ""}`}
+              className={`h-4 w-4 mr-2 ${
+                isInWishlist ? "text-blue-500 fill-current" : ""
+              }`}
             />
-            {isInWishlist ? "Wishlisted" : "Add to wishlist"}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={handleCompareToggle}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Compare
+            {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
           </Button>
         </div>
+
+        <Button
+          variant="outline"
+          className="flex-1 mt-2"
+          onClick={handleCompareToggle}>
+          <Share2
+            className={`h-4 w-4 mr-2 ${
+              isInCompare ? "text-blue-500 fill-current" : ""
+            }`}
+          />
+          {isInCompare ? "Remove from Compare" : "Add to Compare"}
+        </Button>
       </div>
     </div>
   );

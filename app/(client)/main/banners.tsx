@@ -74,7 +74,7 @@ function Banners({
         <li
           key={banner.banner_id}
           style={{ backgroundColor: bannerStyles[index].backgroundColor }}
-          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md ${paddingX} ${paddingY}`}>
+          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-1 md:p-2 md:rounded-md ${paddingX} ${paddingY}`}>
           <div className="grid grid-flow-row gap-2 md:gap-4">
             <h1
               className="text-md lg:text-lg font-semibold"
@@ -95,8 +95,8 @@ function Banners({
             <Base64Image
               src={banner.image}
               alt={banner.title}
-              width={200}
-              height={200}
+              width={120}
+              height={120}
             />
           </div>
         </li>

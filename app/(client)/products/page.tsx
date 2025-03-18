@@ -1,13 +1,8 @@
 // app/products/page.tsx
 import { Suspense } from "react";
-import {
-  dehydrate,
-  HydrationBoundary,
-  keepPreviousData,
-} from "@tanstack/react-query";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import ProductsPage from "@/components/ProductsPage/products-page";
 import { getQueryClient } from "@/components/Client-Side/get-query-client";
-import { ProductsPageSkeleton } from "@/components/ProductsPage/skeletons";
 import { parseSearchParams } from "@/lib/actions/Product/search-params";
 import { fetchProductsAndFilters } from "@/lib/actions/Product/fetchByFilters";
 import Loading from "../loading";
