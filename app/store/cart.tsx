@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-toastify";
-import { shallow } from "zustand/shallow";
 
 // Define the MinimalProduct type
 export type MinimalProduct = {
@@ -98,15 +97,18 @@ export const useCartStore = create<CartStoreState>()(
         });
       },
 
-      // Remove a product from the cart
       removeItemFromCart: (id: number) => {
         set((state) => {
+          const existingItem = state.cartItems.find((item) => item.id === id);
+          if (!existingItem) {
+            showToast("Item not found in cart.", "error");
+            return state;
+          }
+
           const updatedCartItems = state.cartItems.filter(
             (item) => item.id !== id
           );
-          if (updatedCartItems.length !== state.cartItems.length) {
-            showToast("Item removed from cart.");
-          }
+          showToast("Item removed from cart.");
           return { cartItems: updatedCartItems };
         });
       },
@@ -181,13 +183,3 @@ export const useCartStore = create<CartStoreState>()(
     }
   )
 );
-
-// Memoized selectors to prevent unnecessary re-renders
-export const useTotalCost = () =>
-  useCartStore((state) => state.getTotalCost(), shallow);
-
-export const useTotalQuantity = () =>
-  useCartStore((state) => state.getTotalQuantity(), shallow);
-
-export const useCartItems = () =>
-  useCartStore((state) => state.cartItems, shallow);
