@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-toastify";
+import { fetchProductById } from "@/lib/actions/Product/fetchById";
 
 // Define the MinimalProduct type
 export type MinimalProduct = {
@@ -41,7 +42,7 @@ export type CartStoreState = {
   getTotalCost: () => number;
   getTotalQuantity: () => number;
   updateItemQuantity: (id: number, quantity: number) => void;
-  validateCartItems: (validProductIds: number[]) => void; // New function
+  validateCartItems: () => void; // New function
 };
 
 // Toast configuration for consistency
@@ -179,13 +180,24 @@ export const useCartStore = create<CartStoreState>()(
         }));
       },
 
-      // Validate cart items against a list of valid product IDs
-      validateCartItems: (validProductIds: number[]) => {
-        set((state) => ({
-          cartItems: state.cartItems.filter((item) =>
-            validProductIds.includes(item.id)
-          ),
-        }));
+      validateCartItems: async () => {
+        const { cartItems } = get();
+        const validCartItems: CartItem[] = [];
+
+        for (const item of cartItems) {
+          try {
+            // Fetch the product by ID to check if it exists
+            const product = await fetchProductById(item.id);
+            if (product) {
+              validCartItems.push(item);
+            }
+          } catch (error) {
+            console.error(`Product with ID ${item.id} not found`, error);
+          }
+        }
+
+        // Update the cart with only valid items
+        set({ cartItems: validCartItems });
       },
     }),
     {

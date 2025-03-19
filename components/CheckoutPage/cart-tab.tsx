@@ -57,6 +57,18 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
   );
   const removeItemFromCart = useCartStore((state) => state.removeItemFromCart);
   const clearCart = useCartStore((state) => state.clearCart);
+  const validateCartItems = useCartStore((state) => state.validateCartItems);
+
+  // Validate cart items when the component mounts
+  useEffect(() => {
+    const validateCart = async () => {
+      setIsLoading(true);
+      await validateCartItems(); // Validate cart items
+      setIsLoading(false);
+    };
+
+    validateCart();
+  }, [validateCartItems]);
 
   // Load coupon from localStorage on mount
   useEffect(() => {

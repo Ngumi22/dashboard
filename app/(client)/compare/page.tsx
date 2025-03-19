@@ -32,7 +32,7 @@ export default function ProductComparison() {
   });
 
   const handleAddToCart = (product: MinimalProduct) => {
-    addItemToCart(product);
+    addItemToCart({ ...product, quantity: 1 }); // Add one product at a time
   };
 
   const handleRemoveFromCompare = (product: MinimalProduct) => {
@@ -78,7 +78,7 @@ export default function ProductComparison() {
             <th className="border border-gray-200 p-3 text-left">Product</th>
             {products?.map((product) => (
               <th
-                key={` header-${product.id}`}
+                key={`header-${product.id}`}
                 className="border border-gray-200 p-3 text-center relative">
                 <div className="flex flex-col items-center">
                   <Base64Image

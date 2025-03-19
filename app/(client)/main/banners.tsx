@@ -74,10 +74,10 @@ function Banners({
         <li
           key={banner.banner_id}
           style={{ backgroundColor: bannerStyles[index].backgroundColor }}
-          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-1 md:p-2 md:rounded-md ${paddingX} ${paddingY}`}>
-          <div className="grid grid-flow-row gap-2 md:gap-4">
+          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 md:rounded-md ${paddingX} ${paddingY}`}>
+          <div className="grid grid-flow-row gap-1 md:gap-4">
             <h1
-              className="text-md lg:text-lg font-semibold"
+              className="text-sm lg:text-lg font-semibold"
               style={{ color: bannerStyles[index].color }}>
               {banner.title}
             </h1>

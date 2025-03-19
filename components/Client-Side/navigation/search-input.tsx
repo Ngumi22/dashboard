@@ -140,7 +140,7 @@ export default function SearchInput() {
   return (
     <div
       ref={searchContainerRef}
-      className="relative w-full max-w-md"
+      className="relative w-full max-w-lg mx-auto"
       onKeyDown={handleKeyDown}>
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative h-10 w-full rounded-md border bg-background shadow-sm flex items-center">
@@ -149,8 +149,8 @@ export default function SearchInput() {
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
-            placeholder="Search products, specs, brands..."
-            className="flex-1 h-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground pr-2"
+            placeholder="Search products..."
+            className="flex-1 h-full bg-transparent px-3 md:px-6 py-2 text-sm outline-none placeholder:text-muted-foreground pr-2"
           />
           <Search className="mr-3 h-4 w-4 shrink-0 opacity-50" />
           {loading && (

@@ -20,26 +20,10 @@ const formatCurrency = (value: number, currency = "Ksh") => {
 
 export default function Cart() {
   const [isClient, setIsClient] = useState(false);
-  const [validProductIds, setValidProductIds] = useState<number[]>([]);
 
   // Ensure this runs only on the client
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  // Fetch valid product IDs from the database
-  useEffect(() => {
-    const fetchValidProductIds = async () => {
-      try {
-        const response = await fetch("/api/products/ids"); // Adjust the API endpoint as needed
-        const data = await response.json();
-        setValidProductIds(data.ids);
-      } catch (error) {
-        console.error("Failed to fetch valid product IDs", error);
-      }
-    };
-
-    fetchValidProductIds();
   }, []);
 
   const cartItems = useCartStore((state) => state.cartItems);
@@ -50,12 +34,12 @@ export default function Cart() {
   const cartTotalQuantity = useCartStore((state) => state.getTotalQuantity());
   const validateCartItems = useCartStore((state) => state.validateCartItems);
 
-  // Validate cart items whenever validProductIds change
+  // Validate cart items when the component mounts
   useEffect(() => {
-    if (validProductIds.length > 0) {
-      validateCartItems(validProductIds);
+    if (isClient) {
+      validateCartItems(); // ✅ No argument needed
     }
-  }, [validProductIds, validateCartItems]);
+  }, [isClient, validateCartItems]);
 
   const handleIncreaseCart = (id: number) => {
     increaseQuantity(id);

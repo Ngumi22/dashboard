@@ -12,7 +12,7 @@ export default function HeroSection() {
       <Banners
         contextName="hero"
         gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-2 md:max-w-xl w-full mt-1 md:mt-0"
-        gap="gap-1 md:gap-2"
+        gap="gap-2"
         height="h-full md:h-auto"
         maxBanners={4}
       />
