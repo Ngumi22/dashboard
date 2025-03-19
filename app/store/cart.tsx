@@ -41,6 +41,7 @@ export type CartStoreState = {
   getTotalCost: () => number;
   getTotalQuantity: () => number;
   updateItemQuantity: (id: number, quantity: number) => void;
+  validateCartItems: (validProductIds: number[]) => void; // New function
 };
 
 // Toast configuration for consistency
@@ -174,6 +175,15 @@ export const useCartStore = create<CartStoreState>()(
         set((state) => ({
           cartItems: state.cartItems.map((item) =>
             item.id === id ? { ...item, quantity } : item
+          ),
+        }));
+      },
+
+      // Validate cart items against a list of valid product IDs
+      validateCartItems: (validProductIds: number[]) => {
+        set((state) => ({
+          cartItems: state.cartItems.filter((item) =>
+            validProductIds.includes(item.id)
           ),
         }));
       },

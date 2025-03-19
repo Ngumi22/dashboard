@@ -31,7 +31,6 @@ export default function ProductInfo({
   const wishlist = useWishStore((state) => state.wishItems);
 
   const addItemToCart = useCartStore((state) => state.addItemToCart);
-  const cartItems = useCartStore((state) => state.cartItems);
 
   const addItemToCompare = useCompareStore((state) => state.addItemToCompare);
   const removeItemFromCompare = useCompareStore(
