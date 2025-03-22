@@ -136,7 +136,7 @@ export function ProductFilters({
       // Only add if there are selected values.
       if (values.length > 0) {
         // Format each value as "key:value".
-        updatedSpecs[`spec_${key}`] = values.map((val) => `${key}:${val}`);
+        updatedSpecs[`spec_${key}`] = values.map((val) => `${val}`);
       } else {
         updatedSpecs[`spec_${key}`] = undefined;
       }

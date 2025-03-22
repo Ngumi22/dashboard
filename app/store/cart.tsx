@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-toastify";
-import { fetchProductById } from "@/lib/actions/Product/fetchById";
+import { fetchProductsByIds } from "@/lib/actions/Product/fetchById";
 
 // Define the MinimalProduct type
 export type MinimalProduct = {
@@ -179,25 +179,37 @@ export const useCartStore = create<CartStoreState>()(
           ),
         }));
       },
-
       validateCartItems: async () => {
         const { cartItems } = get();
-        const validCartItems: CartItem[] = [];
 
-        for (const item of cartItems) {
-          try {
-            // Fetch the product by ID to check if it exists
-            const product = await fetchProductById(item.id);
-            if (product) {
-              validCartItems.push(item);
-            }
-          } catch (error) {
-            console.error(`Product with ID ${item.id} not found`, error);
+        try {
+          // Fetch all product IDs in the cart
+          const productIds = cartItems.map((item) => item.id);
+
+          // Fetch all products in a single query
+          const validProducts = await fetchProductsByIds(productIds);
+
+          // Filter out invalid items
+          const validCartItems = cartItems.filter((item) =>
+            validProducts.some((product) => product.id === item.id)
+          );
+
+          // Update the cart with only valid items
+          set({ cartItems: validCartItems });
+
+          if (validCartItems.length !== cartItems.length) {
+            showToast(
+              "Some items in your cart are no longer available.",
+              "error"
+            );
           }
+        } catch (error) {
+          console.error("Error validating cart items:", error);
+          showToast(
+            "Failed to validate cart items. Please try again.",
+            "error"
+          );
         }
-
-        // Update the cart with only valid items
-        set({ cartItems: validCartItems });
       },
     }),
     {

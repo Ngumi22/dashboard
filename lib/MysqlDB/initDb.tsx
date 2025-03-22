@@ -7,15 +7,14 @@ const poolConfig = {
   user: process.env.AWS_USER,
   password: process.env.AWS_PASSWORD,
   database: process.env.AWS_NAME,
-  waitForConnections: true, // Allow queuing when the pool is full
-  connectionLimit: 10, // Adjust based on your needs
-  queueLimit: 100, // Maximum number of queued requests
-  connectTimeout: 5000, // Timeout for acquiring a connection
-  idleTimeout: 30000, // Close idle connections after 30 seconds
+  waitForConnections: true,
+  connectionLimit: 20, // Increased from 10 to 20
+  queueLimit: 100,
+  connectTimeout: 10000, // Increase from 5000 to 10000 (10 seconds)
+  idleTimeout: 30000,
   enableKeepAlive: true,
-  namedPlaceholders: true, // Enable named placeholders for safer queries
+  namedPlaceholders: true,
 };
-
 // Singleton pool instance
 let pool: mysql.Pool | null = null;
 
@@ -45,32 +44,13 @@ export async function ensureDatabaseExists(): Promise<void> {
 /**
  * Initializes the database connection pool (singleton pattern).
  */
+
 export async function initDbConnection(): Promise<mysql.Pool> {
   if (!pool) {
     pool = mysql.createPool(poolConfig);
-
-    console.log("Database pool initialized successfully.");
-
-    // Monitor the connection pool
-    pool.on("enqueue", () => {
-      console.warn("Connection pool is full. Requests are being queued.");
-    });
-
-    pool.on("release", (connection) => {
-      console.log("Connection released back to the pool.");
-    });
-
-    pool.on("acquire", (connection) => {
-      console.log("Connection acquired from the pool.");
-    });
-
-    // Ensure the database exists after initializing the pool
-    await ensureDatabaseExists();
   }
-
   return pool;
 }
-
 /**
  * Gets a connection from the pool.
  */
@@ -162,7 +142,6 @@ export async function executeTransaction<T>(
 
   throw new Error("Max retries reached for transaction.");
 }
-
 /**
  * Closes the database pool (for graceful shutdown).
  */

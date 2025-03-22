@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import OrderSummary from "./order-summary";
 import { useCartStore } from "@/app/store/cart";
+import { useRouter } from "next/navigation";
 
 // Sample coupon codes
 const AVAILABLE_COUPONS = [
@@ -47,6 +48,7 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
     type: string;
   } | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const cartItems = useCartStore((state) => state.cartItems);
   const increaseItemQuantity = useCartStore(
@@ -59,16 +61,21 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
   const clearCart = useCartStore((state) => state.clearCart);
   const validateCartItems = useCartStore((state) => state.validateCartItems);
 
-  // Validate cart items when the component mounts
   useEffect(() => {
     const validateCart = async () => {
-      setIsLoading(true);
-      await validateCartItems(); // Validate cart items
-      setIsLoading(false);
+      try {
+        await validateCartItems();
+      } catch (error) {
+        console.error("Error validating cart items:", error);
+        toast({
+          title: "Error",
+          description: "Failed to validate cart items. Please try again.",
+          variant: "destructive",
+        });
+      }
     };
-
     validateCart();
-  }, [validateCartItems]);
+  }, [validateCartItems, toast]);
 
   // Load coupon from localStorage on mount
   useEffect(() => {
@@ -305,9 +312,9 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                 <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Your cart is empty</h3>
                 <p className="text-muted-foreground mb-6">
-                  Looks like you haven&apos;t added any items to your cart yet.
+                  Looks like you have not added any items to your cart yet.
                 </p>
-                <Button onClick={() => window.history.back()}>
+                <Button onClick={() => router.push(`/`)}>
                   Continue Shopping
                 </Button>
               </div>
@@ -315,7 +322,7 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
           </CardContent>
           {cartItems.length > 0 && (
             <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => window.history.back()}>
+              <Button variant="outline" onClick={() => router.push(`/`)}>
                 Continue Shopping
               </Button>
               <Button onClick={onProceedToCheckout}>

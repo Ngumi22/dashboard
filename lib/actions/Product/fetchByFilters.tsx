@@ -300,26 +300,27 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     conditions.push("COALESCE(ROUND(AVG(pr.rating), 1), 0) <= ?");
     params.push(filter.maxRating);
   }
+
+  // Handle spec_ prefixed parameters
   Object.entries(filter)
     .filter(([key]) => key.startsWith("spec_"))
-    .forEach(([_, value]) => {
-      // Replace `key` with `_`
+    .forEach(([key, value]) => {
       if (value) {
-        const specs = Array.isArray(value) ? value : [value];
-        specs.forEach((spec) => {
-          const [specName, specValue] = String(spec).split(":");
+        const specName = key.replace("spec_", ""); // Extract the specification name
+        const specValues = Array.isArray(value) ? value : [value];
+        specValues.forEach((specValue) => {
           conditions.push(
             `EXISTS (
-            SELECT 1
-            FROM product_specifications ps
-            INNER JOIN specifications spec
-              ON ps.specification_id = spec.specification_id
-            WHERE ps.product_id = p.product_id
-              AND LOWER(spec.specification_name) = ?
-              AND LOWER(ps.value) = ?
-          )`
+              SELECT 1
+              FROM product_specifications ps
+              INNER JOIN specifications spec
+                ON ps.specification_id = spec.specification_id
+              WHERE ps.product_id = p.product_id
+                AND LOWER(spec.specification_name) = ?
+                AND LOWER(ps.value) = ?
+            )`
           );
-          params.push(specName.toLowerCase(), specValue.toLowerCase());
+          params.push(specName.toLowerCase(), String(specValue).toLowerCase());
         });
       }
     });

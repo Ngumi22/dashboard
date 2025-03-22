@@ -72,6 +72,7 @@ export interface SearchParams {
     [specification_name: string]: string; // Allows filtering by multiple specifications dynamically
   };
   type?: "brand" | "category" | "default";
+  sort?: string;
 }
 
 // ProductRow extends RowDataPacket for direct MySQL query compatibility

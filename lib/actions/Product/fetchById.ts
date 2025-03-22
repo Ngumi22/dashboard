@@ -2,6 +2,7 @@
 
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { MinimalProduct } from "@/app/store/cart";
 
 export async function fetchProductById(productId: number) {
   return dbOperation(async (connection) => {
@@ -81,6 +82,20 @@ export async function fetchProductById(productId: number) {
       };
     } catch (error) {
       console.error("Error fetching product:", error);
+      throw new Error("Failed to fetch product details");
+    }
+  });
+}
+
+export async function fetchProductsByIds(ids: number[]) {
+  return dbOperation(async (connection) => {
+    try {
+      const query = `SELECT * FROM products WHERE product_id = ?`;
+
+      const [rows] = await connection.query(query, [ids]);
+      return rows as MinimalProduct[];
+    } catch (error) {
+      console.error("Error fetching products by IDs:", error);
       throw new Error("Failed to fetch product details");
     }
   });

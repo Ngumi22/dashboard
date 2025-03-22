@@ -11,7 +11,6 @@ import Link from "next/link";
 import { type MinimalProduct, useCartStore } from "@/app/store/cart";
 import { useCompareStore } from "@/app/store/compare";
 import { useWishStore } from "@/app/store/wishlist";
-import { shallow } from "zustand/shallow";
 
 interface ProductCardProps extends MinimalProduct {
   orientation?: "vertical" | "horizontal";
@@ -285,8 +284,7 @@ const ProductCard = ({
               alt={name}
               height={200}
               width={200}
-              objectFit="contain"
-              className="transition-transform duration-300 group-hover:scale-105 aspect-3/2 bg-gray-200 rounded-lg"
+              className="transition-transform duration-300 group-hover:scale-105 aspect-3/2 bg-gray-200 rounded-lg object-contain"
             />
           </div>
           <div className="absolute top-4 left-4 flex flex-col gap-2">
