@@ -87,13 +87,18 @@ export async function fetchProductById(productId: number) {
   });
 }
 
-export async function fetchProductsByIds(ids: number[]) {
+export async function fetchProductsByIds(productIds: number[]) {
+  // Early return if no product IDs are provided
+  if (productIds.length === 0) {
+    return [];
+  }
   return dbOperation(async (connection) => {
     try {
-      const query = `SELECT * FROM products WHERE product_id = ?`;
-
-      const [rows] = await connection.query(query, [ids]);
-      return rows as MinimalProduct[];
+      const query = `SELECT * FROM products WHERE product_id IN (${productIds.join(
+        ","
+      )})`;
+      const [rows] = await connection.execute(query);
+      return rows;
     } catch (error) {
       console.error("Error fetching products by IDs:", error);
       throw new Error("Failed to fetch product details");

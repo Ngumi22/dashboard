@@ -21,23 +21,23 @@ import {
 import BlogSearch from "../main/blog-search";
 
 export const metadata: Metadata = {
-  title: "Blog | TechTrove Electronics",
+  title: "Blog | Bernzz Digital Solutions",
   description:
     "Latest news, reviews, and insights about electronics and technology from TechTrove - your trusted source for tech information and product reviews.",
   keywords:
     "electronics blog, tech reviews, gadget news, technology insights, product comparisons",
   openGraph: {
-    title: "TechTrove Electronics Blog",
+    title: "Bernzz Digital Solutions Blog",
     description:
-      "Stay updated with the latest tech news, product reviews, and buying guides from TechTrove Electronics.",
-    url: "https://techtrove.com/blog",
-    siteName: "TechTrove Electronics",
+      "Stay updated with the latest tech news, product reviews, and buying guides from Bernzz Digital Solutions.",
+    url: "https://www.bernzzdigitalsolutions.co.ke",
+    siteName: "Bernzz Digital Solutions",
     images: [
       {
-        url: "https://techtrove.com/og-blog.jpg", // This would be a real image in production
+        url: "https://www.bernzzdigitalsolutions.co.ke/opengraph-image.png", // This would be a real image in production
         width: 1200,
         height: 630,
-        alt: "TechTrove Electronics Blog",
+        alt: "Bernzz Digital Solutions Blog",
       },
     ],
     locale: "en_US",
@@ -45,13 +45,13 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TechTrove Electronics Blog",
+    title: "Bernzz Digital Solutions Blog",
     description:
-      "Stay updated with the latest tech news, product reviews, and buying guides from TechTrove Electronics.",
-    images: ["https://techtrove.com/og-blog.jpg"], // This would be a real image in production
+      "Stay updated with the latest tech news, product reviews, and buying guides from Bernzz Digital Solutions.",
+    images: ["https://www.bernzzdigitalsolutions.co.ke/opengraph-image.png"], // This would be a real image in production
   },
   alternates: {
-    canonical: "https://techtrove.com/blog",
+    canonical: "https://www.bernzzdigitalsolutions.co.ke",
   },
 };
 

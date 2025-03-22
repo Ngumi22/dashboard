@@ -6,6 +6,11 @@ import { getQueryClient } from "@/components/Client-Side/get-query-client";
 import { parseSearchParams } from "@/lib/actions/Product/search-params";
 import { fetchProductsAndFilters } from "@/lib/actions/Product/fetchByFilters";
 import Loading from "../loading";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Products",
+};
 
 export default async function Page({
   searchParams,

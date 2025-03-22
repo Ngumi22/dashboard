@@ -8,19 +8,19 @@ import { prefetchData } from "@/lib/actions/serverSideFetching";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.bernzzdigitalsolutions.co.ke"),
   title: {
-    default: "Bernzz Digital Solutions - Premium Tech Products",
+    default: "Bernzz Digital Solutions - Affordable Tech Products",
     template: "%s | Bernzz Digital Solutions",
   },
   description:
-    "Shop the latest electronics, gadgets, and tech accessories at Bernzz Digital Solutions. Find premium products at competitive prices with fast shipping.",
+    "Shop the latest electronics, laptops, smartphones and accessories at Bernzz Digital Solutions. Find quality products at the most affordable prices.",
   keywords: [
-    "electronics",
-    "tech",
-    "gadgets",
-    "smartphones",
     "laptops",
-    "audio",
-    "smart home",
+    "electronics",
+    "computers",
+    "gaming",
+    "smartphones",
+    "accessories",
+    "computing",
   ],
   authors: [{ name: "Bernzz Digital Solutions" }],
   creator: "Bernzz Digital Solutions",
@@ -35,12 +35,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://www.bernzzdigitalsolutions.co.ke",
     siteName: "Bernzz Digital Solutions",
-    title: "Bernzz Digital Solutions - Premium Tech Products",
+    title: "Bernzz Digital Solutions - Affordable Tech Products",
     description:
-      "Shop the latest electronics, gadgets, and tech accessories at Bernzz Digital Solutions.",
+      "Shop the latest laptops, electronics, smartphones and accessories at Bernzz Digital Solutions",
     images: [
       {
-        url: "https://www.bernzzdigitalsolutions.co.ke/og-image.jpg", // This would be a real image in production
+        url: "https://www.bernzzdigitalsolutions.co.ke/opengraph-image.png", // This would be a real image in production
         width: 1200,
         height: 630,
         alt: "Bernzz Digital Solutions",
@@ -52,13 +52,12 @@ export const metadata: Metadata = {
     title: "Bernzz Digital Solutions",
     description:
       "Shop the latest electronics, gadgets, and tech accessories at Bernzz Digital Solutions.",
-    images: ["https://www.bernzzdigitalsolutions.co.ke/twitter-image.jpg"], // This would be a real image in production
+    images: ["https://www.bernzzdigitalsolutions.co.ke/opengraph-image.png"], // This would be a real image in production
     creator: "Bernzz Digital Solutions",
   },
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
   },
   manifest: "https://www.bernzzdigitalsolutions.co.ke/site.webmanifest",
   alternates: {
@@ -68,7 +67,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "google-site-verification-code", // Replace with actual verification code
+    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
   },
 };
 

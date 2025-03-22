@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { blogPosts } from "@/lib/blog-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://www.bernzzdigitalsolutions.co.ke";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   // Generate blog post URLs
   const blogUrls = blogPosts.map((post) => ({
@@ -15,9 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Add main pages
   const mainPages = [
     {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "daily" as const,
+      url: `${baseUrl}`,
       priority: 1.0,
     },
     {

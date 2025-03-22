@@ -182,16 +182,28 @@ export const useCartStore = create<CartStoreState>()(
       validateCartItems: async () => {
         const { cartItems } = get();
 
+        // Early return if cart is empty
+        if (cartItems.length === 0) {
+          return;
+        }
+
         try {
           // Fetch all product IDs in the cart
           const productIds = cartItems.map((item) => item.id);
+
+          // Early return if no product IDs are found
+          if (productIds.length === 0) {
+            return;
+          }
 
           // Fetch all products in a single query
           const validProducts = await fetchProductsByIds(productIds);
 
           // Filter out invalid items
           const validCartItems = cartItems.filter((item) =>
-            validProducts.some((product) => product.id === item.id)
+            validProducts.some(
+              (product: MinimalProduct) => product.id === item.id
+            )
           );
 
           // Update the cart with only valid items
