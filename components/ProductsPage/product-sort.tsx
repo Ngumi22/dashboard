@@ -43,14 +43,14 @@ export function ProductSort({
     sortOptions.find((option) => option.value === localSort)?.label || "Sort";
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full sm:w-[4rem]">
+        <Button variant="outline" className="w-full sm:w-[200px]">
           <ArrowUpDown className="mr-2 h-4 w-4" />
           {currentSortLabel}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[4rem]">
+      <DropdownMenuContent align="end" className="w-[200px]">
         {sortOptions.map((option) => (
           <DropdownMenuItem
             key={option.value}

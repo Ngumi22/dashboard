@@ -397,7 +397,7 @@ const ProductCard = ({
         <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] md:w-[100vw] p-0 border rounded-lg bg-white overflow-hidden">
           <DialogClose className="absolute right-4 top-4 z-10 rounded-full p-2 bg-white/80 hover:bg-white">
             <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
+            <span className="">Close</span>
           </DialogClose>
 
           <div className="grid grid-cols-1 md:grid-cols-2 h-full">
