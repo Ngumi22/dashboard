@@ -262,7 +262,8 @@ const ProductCard = ({
     ]
   );
 
-  const isOnSale = discount && discount > 0;
+  const isOnSale = discount !== undefined && discount !== null && discount > 0;
+
   const isNew = isNewProduct(created_at || "");
 
   const discountedPrice = useMemo(() => {

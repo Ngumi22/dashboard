@@ -14,7 +14,7 @@ export default function ShopByBrand() {
 
   useEffect(() => {
     if (!activeTab && brands.length > 0) {
-      setActiveTab("Apple");
+      setActiveTab("HP");
     }
   }, [brands, activeTab]); // Add activeTab to the dependency array
 
