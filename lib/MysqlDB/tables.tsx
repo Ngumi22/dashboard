@@ -1,8 +1,69 @@
 import { query } from "./initDb";
+
 export async function dbsetupTables() {
   try {
     // Create the database if it doesn't exist
     await query(`CREATE DATABASE IF NOT EXISTS bernzz`);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('user', 'editor', 'admin') NOT NULL DEFAULT 'user',
+        email_verified BOOLEAN DEFAULT FALSE,
+        last_login DATETIME,
+        password_changed_at DATETIME,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS allowed_emails (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        added_by INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (added_by) REFERENCES users(id)
+      );
+    `);
+    await query(`
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id INT NOT NULL,
+          token TEXT NOT NULL,
+          expires_at DATETIME NOT NULL,
+          revoked BOOLEAN DEFAULT FALSE,
+          revoked_at DATETIME,
+          user_agent TEXT,
+          ip VARCHAR(45),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+    `);
+    await query(`
+     CREATE TABLE IF NOT EXISTS auth_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        success BOOLEAN DEFAULT FALSE,
+        ip VARCHAR(45),
+        user_agent TEXT,
+        reason VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await query(`
+     CREATE TABLE IF NOT EXISTS login_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        ip VARCHAR(45) NOT NULL,
+        attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX (email, ip, attempt_time)
+      );
+    `);
 
     // Create the tables
     await query(`
