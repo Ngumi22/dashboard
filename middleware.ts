@@ -32,6 +32,7 @@ const publicRoutes = [
   "/signup",
   "/api/auth/login",
   "/api/auth/refresh",
+  "/api/csrf-token",
 ];
 
 // API routes that don't require authentication

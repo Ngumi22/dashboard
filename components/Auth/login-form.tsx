@@ -47,11 +47,13 @@ export default function LoginForm() {
     };
     console.log("CSRF Token:", csrfToken);
     getCsrfToken();
-  }, [csrfToken]);
+  }, []);
 
-  if (state.message == "Login successful") {
-    router.push("/dashboard");
-  }
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/dashboard");
+    }
+  }, [state, router]);
 
   return (
     <Card className="w-full max-w-md">

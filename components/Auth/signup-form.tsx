@@ -17,6 +17,7 @@ import {
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signup } from "@/lib/Auth_actions/auth-actions";
+import { useRouter } from "next/navigation";
 
 const initialState = {
   message: "",
@@ -31,6 +32,7 @@ const initialState = {
 
 export default function SignupForm() {
   const [state, formAction, isPending] = useFormState(signup, initialState);
+  const router = useRouter();
 
   const [role, setRole] = useState("user");
   const [csrfToken, setCsrfToken] = useState("");
@@ -47,7 +49,12 @@ export default function SignupForm() {
     };
     console.log("CSRF Token:", csrfToken);
     getCsrfToken();
-  }, [csrfToken]);
+  }, []);
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/login");
+    }
+  }, [state, router]);
   return (
     <Card>
       <form action={formAction}>

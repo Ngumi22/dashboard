@@ -12,12 +12,7 @@ import {
   getSession,
 } from "./sessions";
 import { hashPassword, isAllowedEmail, verifyPassword } from "./auth";
-import {
-  createUser,
-  getUserByEmail,
-  logAuthAttempt,
-  revokeAllUserTokens,
-} from "./db";
+import { createUser, getUserByEmail, logAuthAttempt } from "./db";
 import { rateLimit } from "./rate-limit";
 
 // Define the signup form schema with validation rules
@@ -85,7 +80,7 @@ export async function signup(state: SignupFormState, formData: FormData) {
     const submittedCsrfToken = formData.get("csrf")?.toString() || "";
 
     // Validate CSRF token
-    if (!storedCsrfToken || storedCsrfToken !== submittedCsrfToken) {
+    if (!storedCsrfToken || (await storedCsrfToken) !== submittedCsrfToken) {
       return {
         errors: {
           csrf: [
@@ -163,6 +158,7 @@ export async function signup(state: SignupFormState, formData: FormData) {
       });
 
       return {
+        success: true,
         message: "Account created successfully! You can now log in.",
       };
     } catch (error: any) {
@@ -197,7 +193,9 @@ export async function signup(state: SignupFormState, formData: FormData) {
     }
   } catch (error) {
     console.error("Signup error:", error);
+
     return {
+      success: false,
       message: "An unexpected error occurred. Please try again later.",
     };
   }
@@ -213,7 +211,7 @@ export async function login(state: LoginFormState, formData: FormData) {
     console.log("CSRF Token from FormData:", submittedCsrfToken);
 
     // Validate CSRF token
-    if (!storedCsrfToken || storedCsrfToken !== submittedCsrfToken) {
+    if (!storedCsrfToken || (await storedCsrfToken) !== submittedCsrfToken) {
       return {
         errors: {
           csrf: [
@@ -306,7 +304,7 @@ export async function login(state: LoginFormState, formData: FormData) {
       // Revoke all existing refresh tokens for this user (optional security measure)
       // This forces logout on all other devices when a new login occurs
       // Comment this out if you want to allow multiple active sessions
-      await revokeAllUserTokens(user.id);
+      // await revokeAllUserTokens(user.id);
 
       // Create session
       await createSession({
@@ -325,6 +323,7 @@ export async function login(state: LoginFormState, formData: FormData) {
       });
 
       return {
+        success: true,
         message: "Login successful",
       };
     } catch (error: any) {
@@ -338,14 +337,17 @@ export async function login(state: LoginFormState, formData: FormData) {
         userAgent,
         reason: error.message,
       });
-
+      // After successful validation
       return {
+        success: true,
         message: "Login successful",
       };
     }
   } catch (error) {
     console.error("Login error:", error);
+    // On errors
     return {
+      success: false,
       message: "An unexpected error occurred. Please try again later.",
     };
   }
