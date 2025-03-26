@@ -1,16 +1,11 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import {
-  createSession,
-  destroySession,
-  getCsrfToken,
-  getSession,
-} from "./sessions";
+import { createSession, destroySession, getSession } from "./sessions";
 import { hashPassword, isAllowedEmail, verifyPassword } from "./auth";
 import { createUser, getUserByEmail, logAuthAttempt } from "./db";
 import { rateLimit } from "./rate-limit";
@@ -74,15 +69,14 @@ export type LoginFormState = {
 
 export async function login(state: LoginFormState, formData: FormData) {
   try {
-    // Get CSRF token from cookies
-    const storedCsrfToken = getCsrfToken();
+    const storedCsrfToken = cookies().get("XSRF-TOKEN")?.value;
     const submittedCsrfToken = formData.get("csrf")?.toString() || "";
 
     console.log("CSRF Token from Cookies (Server):", storedCsrfToken);
     console.log("CSRF Token from FormData:", submittedCsrfToken);
 
     // Validate CSRF token
-    if (!storedCsrfToken || (await storedCsrfToken) !== submittedCsrfToken) {
+    if (!storedCsrfToken || storedCsrfToken !== submittedCsrfToken) {
       return {
         errors: {
           csrf: [
@@ -227,7 +221,7 @@ export async function login(state: LoginFormState, formData: FormData) {
 export async function signup(state: SignupFormState, formData: FormData) {
   try {
     // Get CSRF token from cookies
-    const storedCsrfToken = getCsrfToken();
+    const storedCsrfToken = cookies().get("XSRF-TOKEN")?.value;
     console.log("CSRF Token SERVER:", storedCsrfToken);
     const submittedCsrfToken = formData.get("csrf")?.toString() || "";
 

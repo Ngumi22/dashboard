@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
-import csrf from "csrf";
-
-const tokens = new csrf();
-const secret = process.env.CSRF_SECRET || tokens.secretSync();
+import { cookies } from "next/headers";
+import crypto from "crypto";
 
 export async function GET() {
-  const token = tokens.create(secret);
+  const token = crypto.randomBytes(32).toString("hex");
 
-  // Set CSRF token as an HTTP-only cookie
-  const response = NextResponse.json({ csrfToken: token });
-  response.cookies.set("XSRF-TOKEN", token, { httpOnly: true });
+  cookies().set("XSRF-TOKEN", token, {
+    httpOnly: true, // Prevents JavaScript access
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict", // Prevents CSRF attacks from other sites
+    path: "/",
+  });
 
-  return response;
+  return NextResponse.json({ csrfToken: token });
 }
