@@ -72,135 +72,6 @@ export type LoginFormState = {
   message?: string;
 };
 
-export async function signup(state: SignupFormState, formData: FormData) {
-  try {
-    // Get CSRF token from cookies
-    const storedCsrfToken = getCsrfToken();
-    console.log("CSRF Token SERVER:", storedCsrfToken);
-    const submittedCsrfToken = formData.get("csrf")?.toString() || "";
-
-    // Validate CSRF token
-    if (!storedCsrfToken || (await storedCsrfToken) !== submittedCsrfToken) {
-      return {
-        errors: {
-          csrf: [
-            "Invalid or expired form submission. Please refresh and try again.",
-          ],
-        },
-        message:
-          "Security validation failed. Please refresh the page and try again.",
-      };
-    }
-    console.log("CSRF Token:", submittedCsrfToken);
-
-    // Validate form fields
-    const validatedFields = SignupFormSchema.safeParse({
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-      role: formData.get("role"),
-      csrf: submittedCsrfToken,
-    });
-
-    // If form validation fails, return errors
-    if (!validatedFields.success) {
-      return {
-        errors: validatedFields.error.flatten().fieldErrors,
-        message: "Please correct the errors in the form.",
-      };
-    }
-
-    const { name, email, password, role } = validatedFields.data;
-
-    // Get client IP and user agent for security logging
-    const ip =
-      headers().get("x-forwarded-for") || headers().get("x-real-ip") || "";
-    const userAgent = headers().get("user-agent") || "";
-
-    // Check if the email is in the allowlist
-    const emailAllowed = await isAllowedEmail(email);
-    if (!emailAllowed) {
-      // Log unauthorized signup attempt
-      await logAuthAttempt({
-        email,
-        success: false,
-        ip,
-        userAgent,
-        reason: "Email not in allowlist",
-      });
-
-      return {
-        errors: {
-          email: ["This email is not authorized to create an account."],
-        },
-        message: "Email not authorized. Please contact your administrator.",
-      };
-    }
-
-    try {
-      // Hash the password with a strong algorithm
-      const hashedPassword = await hashPassword(password);
-
-      // Create the user in the database
-      await createUser({
-        name,
-        email,
-        password: hashedPassword,
-        role,
-      });
-
-      // Log successful signup
-      await logAuthAttempt({
-        email,
-        success: true,
-        ip,
-        userAgent,
-      });
-
-      return {
-        success: true,
-        message: "Account created successfully! You can now log in.",
-      };
-    } catch (error: any) {
-      console.error("Error creating user:", error);
-
-      // Log failed signup
-      await logAuthAttempt({
-        email,
-        success: false,
-        ip,
-        userAgent,
-        reason: error.message,
-      });
-
-      // Check for duplicate email error
-      if (
-        error.message?.includes("Duplicate entry") ||
-        error.code === "ER_DUP_ENTRY"
-      ) {
-        return {
-          errors: {
-            email: ["This email is already registered."],
-          },
-          message: "An account with this email already exists.",
-        };
-      }
-
-      return {
-        message:
-          "An error occurred while creating your account. Please try again.",
-      };
-    }
-  } catch (error) {
-    console.error("Signup error:", error);
-
-    return {
-      success: false,
-      message: "An unexpected error occurred. Please try again later.",
-    };
-  }
-}
-
 export async function login(state: LoginFormState, formData: FormData) {
   try {
     // Get CSRF token from cookies
@@ -346,6 +217,135 @@ export async function login(state: LoginFormState, formData: FormData) {
   } catch (error) {
     console.error("Login error:", error);
     // On errors
+    return {
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+    };
+  }
+}
+
+export async function signup(state: SignupFormState, formData: FormData) {
+  try {
+    // Get CSRF token from cookies
+    const storedCsrfToken = getCsrfToken();
+    console.log("CSRF Token SERVER:", storedCsrfToken);
+    const submittedCsrfToken = formData.get("csrf")?.toString() || "";
+
+    // Validate CSRF token
+    if (!storedCsrfToken || (await storedCsrfToken) !== submittedCsrfToken) {
+      return {
+        errors: {
+          csrf: [
+            "Invalid or expired form submission. Please refresh and try again.",
+          ],
+        },
+        message:
+          "Security validation failed. Please refresh the page and try again.",
+      };
+    }
+    console.log("CSRF Token:", submittedCsrfToken);
+
+    // Validate form fields
+    const validatedFields = SignupFormSchema.safeParse({
+      name: formData.get("name"),
+      email: formData.get("email"),
+      password: formData.get("password"),
+      role: formData.get("role"),
+      csrf: submittedCsrfToken,
+    });
+
+    // If form validation fails, return errors
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: "Please correct the errors in the form.",
+      };
+    }
+
+    const { name, email, password, role } = validatedFields.data;
+
+    // Get client IP and user agent for security logging
+    const ip =
+      headers().get("x-forwarded-for") || headers().get("x-real-ip") || "";
+    const userAgent = headers().get("user-agent") || "";
+
+    // Check if the email is in the allowlist
+    const emailAllowed = await isAllowedEmail(email);
+    if (!emailAllowed) {
+      // Log unauthorized signup attempt
+      await logAuthAttempt({
+        email,
+        success: false,
+        ip,
+        userAgent,
+        reason: "Email not in allowlist",
+      });
+
+      return {
+        errors: {
+          email: ["This email is not authorized to create an account."],
+        },
+        message: "Email not authorized. Please contact your administrator.",
+      };
+    }
+
+    try {
+      // Hash the password with a strong algorithm
+      const hashedPassword = await hashPassword(password);
+
+      // Create the user in the database
+      await createUser({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+      });
+
+      // Log successful signup
+      await logAuthAttempt({
+        email,
+        success: true,
+        ip,
+        userAgent,
+      });
+
+      return {
+        success: true,
+        message: "Account created successfully! You can now log in.",
+      };
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+
+      // Log failed signup
+      await logAuthAttempt({
+        email,
+        success: false,
+        ip,
+        userAgent,
+        reason: error.message,
+      });
+
+      // Check for duplicate email error
+      if (
+        error.message?.includes("Duplicate entry") ||
+        error.code === "ER_DUP_ENTRY"
+      ) {
+        return {
+          errors: {
+            email: ["This email is already registered."],
+          },
+          message: "An account with this email already exists.",
+        };
+      }
+
+      return {
+        message:
+          "An error occurred while creating your account. Please try again.",
+      };
+    }
+  } catch (error) {
+    console.error("Signup error:", error);
+
     return {
       success: false,
       message: "An unexpected error occurred. Please try again later.",
