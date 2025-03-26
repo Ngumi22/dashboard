@@ -136,8 +136,8 @@ export async function logAuthAttempt({
 }: {
   email: string;
   success: boolean;
-  ip: string;
-  userAgent: string;
+  ip?: string;
+  userAgent?: string;
   reason?: string | null;
 }) {
   return await dbOperation(async (connection) => {

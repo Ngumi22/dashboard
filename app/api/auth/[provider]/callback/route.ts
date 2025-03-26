@@ -144,9 +144,9 @@ export async function GET(
     // Create session
     await createSession({
       userId: user.id,
+      role: user.role,
       name: user.name,
       email: user.email,
-      role: user.role,
     });
 
     // Redirect to dashboard

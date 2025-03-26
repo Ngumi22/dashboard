@@ -1,14 +1,21 @@
 "use server";
 
 import { z } from "zod";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createSession, destroySession, getSession } from "./sessions";
 import { hashPassword, isAllowedEmail, verifyPassword } from "./auth";
 import { createUser, getUserByEmail, logAuthAttempt } from "./db";
 import { rateLimit } from "./rate-limit";
+
+// Define session data structure
+export type SessionData = {
+  userId: number;
+  role: string;
+  name: string;
+  email: string;
+};
 
 // Define the signup form schema with validation rules
 const SignupFormSchema = z.object({
@@ -72,174 +79,70 @@ export async function login(state: LoginFormState, formData: FormData) {
     const storedCsrfToken = cookies().get("XSRF-TOKEN")?.value;
     const submittedCsrfToken = formData.get("csrf")?.toString() || "";
 
-    console.log("CSRF Token from Cookies (Server):", storedCsrfToken);
-    console.log("CSRF Token from FormData:", submittedCsrfToken);
-
-    // Validate CSRF token
     if (!storedCsrfToken || storedCsrfToken !== submittedCsrfToken) {
       return {
-        errors: {
-          csrf: [
-            "Invalid or expired form submission. Please refresh and try again.",
-          ],
-        },
-        message:
-          "Security validation failed. Please refresh the page and try again.",
+        errors: { csrf: ["Invalid or expired form submission."] },
+        message: "Security validation failed.",
       };
     }
 
-    // Get client IP and user agent for security logging
-    const ip =
-      headers().get("x-forwarded-for") || headers().get("x-real-ip") || "";
-    const userAgent = headers().get("user-agent") || "";
+    // const ip =
+    //   headers().get("x-forwarded-for") || headers().get("x-real-ip") || "";
+    // const userAgent = headers().get("user-agent") || "";
 
-    // Apply rate limiting to prevent brute force attacks
-    const email = formData.get("email")?.toString() || "";
-    const rateLimitResult = await rateLimit(`login:${email}:${ip}`, 5, 60 * 15); // 5 attempts per 15 minutes
-
+    // Simple rate limiting (global)
+    const rateLimitResult = await rateLimit("global-login", 10, 15 * 60);
     if (!rateLimitResult.success) {
-      await logAuthAttempt({
-        email,
-        success: false,
-        ip,
-        userAgent,
-        reason: "Rate limit exceeded",
-      });
-
-      return {
-        message: "Too many login attempts. Please try again later.",
-      };
+      return { message: "Too many login attempts. Try again later." };
     }
 
-    // Validate form fields
     const validatedFields = LoginFormSchema.safeParse({
       email: formData.get("email"),
       password: formData.get("password"),
       csrf: submittedCsrfToken,
     });
 
-    // If form validation fails, return errors
     if (!validatedFields.success) {
       return {
         errors: validatedFields.error.flatten().fieldErrors,
-        message: "Please correct the errors in the form.",
+        message: "Please correct the errors.",
       };
     }
 
-    const { email: validatedEmail, password } = validatedFields.data;
+    const { email, password } = validatedFields.data;
+    const user = await getUserByEmail(email);
 
-    try {
-      // Get user from database
-      const user = await getUserByEmail(validatedEmail);
-
-      // Check if user exists
-      if (!user) {
-        // Log failed login attempt
-        await logAuthAttempt({
-          email: validatedEmail,
-          success: false,
-          ip,
-          userAgent,
-          reason: "User not found",
-        });
-
-        // Use a generic error message to prevent user enumeration
-        return {
-          message: "Invalid email or password.",
-        };
-      }
-
-      // Verify password
-      const passwordValid = await verifyPassword(password, user.password);
-      if (!passwordValid) {
-        // Log failed login attempt
-        await logAuthAttempt({
-          email: validatedEmail,
-          success: false,
-          ip,
-          userAgent,
-          reason: "Invalid password",
-        });
-
-        return {
-          message: "Invalid email or password.",
-        };
-      }
-
-      // Revoke all existing refresh tokens for this user (optional security measure)
-      // This forces logout on all other devices when a new login occurs
-      // Comment this out if you want to allow multiple active sessions
-      // await revokeAllUserTokens(user.id);
-
-      // Create session
-      await createSession({
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      });
-
-      // Log successful login
-      await logAuthAttempt({
-        email: validatedEmail,
-        success: true,
-        ip,
-        userAgent,
-      });
-
-      return {
-        success: true,
-        message: "Login successful",
-      };
-    } catch (error: any) {
-      console.error("Login error:", error);
-
-      // Log error
-      await logAuthAttempt({
-        email: validatedEmail,
-        success: false,
-        ip,
-        userAgent,
-        reason: error.message,
-      });
-      // After successful validation
-      return {
-        success: true,
-        message: "Login successful",
-      };
+    if (!user || !(await verifyPassword(password, user.password))) {
+      return { message: "Invalid email or password." };
     }
+
+    // Create session
+    await createSession({
+      userId: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+    });
+
+    return { success: true, message: "Login successful" };
   } catch (error) {
     console.error("Login error:", error);
-    // On errors
-    return {
-      success: false,
-      message: "An unexpected error occurred. Please try again later.",
-    };
+    return { success: false, message: "An error occurred. Try again later." };
   }
 }
 
 export async function signup(state: SignupFormState, formData: FormData) {
   try {
-    // Get CSRF token from cookies
     const storedCsrfToken = cookies().get("XSRF-TOKEN")?.value;
-    console.log("CSRF Token SERVER:", storedCsrfToken);
     const submittedCsrfToken = formData.get("csrf")?.toString() || "";
 
-    // Validate CSRF token
-    if (!storedCsrfToken || (await storedCsrfToken) !== submittedCsrfToken) {
+    if (!storedCsrfToken || storedCsrfToken !== submittedCsrfToken) {
       return {
-        errors: {
-          csrf: [
-            "Invalid or expired form submission. Please refresh and try again.",
-          ],
-        },
-        message:
-          "Security validation failed. Please refresh the page and try again.",
+        errors: { csrf: ["Invalid or expired form submission."] },
+        message: "Security validation failed.",
       };
     }
-    console.log("CSRF Token:", submittedCsrfToken);
 
-    // Validate form fields
     const validatedFields = SignupFormSchema.safeParse({
       name: formData.get("name"),
       email: formData.get("email"),
@@ -248,20 +151,15 @@ export async function signup(state: SignupFormState, formData: FormData) {
       csrf: submittedCsrfToken,
     });
 
-    // If form validation fails, return errors
     if (!validatedFields.success) {
       return {
         errors: validatedFields.error.flatten().fieldErrors,
-        message: "Please correct the errors in the form.",
+        message: "Please correct the errors.",
       };
     }
 
     const { name, email, password, role } = validatedFields.data;
-
-    // Get client IP and user agent for security logging
-    const ip =
-      headers().get("x-forwarded-for") || headers().get("x-real-ip") || "";
-    const userAgent = headers().get("user-agent") || "";
+    const hashedPassword = await hashPassword(password);
 
     // Check if the email is in the allowlist
     const emailAllowed = await isAllowedEmail(email);
@@ -270,8 +168,6 @@ export async function signup(state: SignupFormState, formData: FormData) {
       await logAuthAttempt({
         email,
         success: false,
-        ip,
-        userAgent,
         reason: "Email not in allowlist",
       });
 
@@ -284,66 +180,21 @@ export async function signup(state: SignupFormState, formData: FormData) {
     }
 
     try {
-      // Hash the password with a strong algorithm
-      const hashedPassword = await hashPassword(password);
+      await createUser({ name, email, password: hashedPassword, role });
 
-      // Create the user in the database
-      await createUser({
-        name,
-        email,
-        password: hashedPassword,
-        role,
-      });
-
-      // Log successful signup
-      await logAuthAttempt({
-        email,
-        success: true,
-        ip,
-        userAgent,
-      });
-
-      return {
-        success: true,
-        message: "Account created successfully! You can now log in.",
-      };
+      return { success: true, message: "Account created successfully!" };
     } catch (error: any) {
-      console.error("Error creating user:", error);
-
-      // Log failed signup
-      await logAuthAttempt({
-        email,
-        success: false,
-        ip,
-        userAgent,
-        reason: error.message,
-      });
-
-      // Check for duplicate email error
-      if (
-        error.message?.includes("Duplicate entry") ||
-        error.code === "ER_DUP_ENTRY"
-      ) {
+      if (error.message?.includes("Duplicate entry")) {
         return {
-          errors: {
-            email: ["This email is already registered."],
-          },
-          message: "An account with this email already exists.",
+          errors: { email: ["This email is already registered."] },
+          message: "Email already exists.",
         };
       }
-
-      return {
-        message:
-          "An error occurred while creating your account. Please try again.",
-      };
+      return { message: "An error occurred. Try again later." };
     }
   } catch (error) {
     console.error("Signup error:", error);
-
-    return {
-      success: false,
-      message: "An unexpected error occurred. Please try again later.",
-    };
+    return { success: false, message: "Unexpected error. Try again later." };
   }
 }
 
@@ -364,8 +215,8 @@ export async function getCurrentUser() {
 
   return {
     id: session.userId,
+    role: session.role,
     name: session.name,
     email: session.email,
-    role: session.role,
   };
 }

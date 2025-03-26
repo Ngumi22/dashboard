@@ -85,17 +85,27 @@ export function ProductFilters({
     Record<string, string[]>
   >(() => {
     const specs: Record<string, string[]> = {};
+
+    // Initialize from available filters
     availableFilters.specifications.forEach((spec) => {
       const specKey = spec.name.toLowerCase();
-      specs[specKey] = Array.isArray(currentFilters[specKey])
-        ? (currentFilters[specKey] as unknown[]).filter(
-            (item): item is string => typeof item === "string"
-          )
-        : [];
+      specs[specKey] = [];
     });
+
+    // Add any spec_* params from URL
+    Object.entries(currentFilters).forEach(([key, value]) => {
+      if (key.startsWith("spec_")) {
+        const specKey = key.replace("spec_", "").toLowerCase();
+        specs[specKey] = Array.isArray(value)
+          ? value.map(String)
+          : value
+          ? [String(value)]
+          : [];
+      }
+    });
+
     return specs;
   });
-
   // Debounced local states
   const debouncedPriceFilter = useDebounce(localPriceFilter, 300);
   const debouncedCategories = useDebounce(localCategories, 300);
@@ -104,8 +114,10 @@ export function ProductFilters({
   const debouncedSpecifications = useDebounce(localSpecifications, 300);
 
   // Sync debounced states with URL
+
   useEffect(() => {
     setFilters({
+      ...currentFilters, // Preserve existing filters
       minPrice: debouncedPriceFilter.min ?? undefined,
       maxPrice: debouncedPriceFilter.max ?? undefined,
     });

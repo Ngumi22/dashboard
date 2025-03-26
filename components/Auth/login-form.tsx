@@ -65,10 +65,18 @@ export default function LoginForm() {
       <CardContent className="space-y-4">
         {state?.message && (
           <Alert
-            variant={
-              state.message.includes("success") ? "default" : "destructive"
-            }>
-            <AlertCircle className="h-4 w-4" />
+            className={`${
+              state.message.includes("success")
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+            }`}>
+            <AlertCircle
+              className={`h-4 w-4 ${
+                state.message.includes("success")
+                  ? "bg-green-500"
+                  : "bg-red-500"
+              }`}
+            />
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         )}
