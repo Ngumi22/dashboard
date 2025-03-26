@@ -35,7 +35,7 @@ export default function SignupForm() {
   const router = useRouter();
 
   const [role, setRole] = useState("user");
-  const [csrfToken, setCsrfToken] = useState("");
+  const [csrfToken, setCsrfToken] = useState<string>("");
 
   useEffect(() => {
     const getCsrfToken = async () => {
@@ -47,9 +47,10 @@ export default function SignupForm() {
         console.error("Failed to fetch CSRF token", error);
       }
     };
-    console.log("CSRF Token:", csrfToken);
+    // console.log("CSRF Token:", csrfToken);
     getCsrfToken();
   }, []);
+
   useEffect(() => {
     if (state?.success) {
       router.push("/login");
