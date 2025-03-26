@@ -36,6 +36,11 @@ export function middleware(request: NextRequest) {
   const origin = request.headers.get("origin")?.replace(/\/$/, "");
   const method = request.method;
 
+  // **🚨 Security Fix: Block Middleware Subrequest Header 🚨**
+  if (request.headers.has("x-middleware-subrequest")) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+
   // CORS Preflight Handling
   if (method === "OPTIONS") {
     return new NextResponse(null, {
@@ -57,9 +62,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for authentication token (DO NOT verify it here)
+  // **🚨 Security Fix: Require Authentication but Avoid Token Validation Here 🚨**
   const accessToken = request.cookies.get("access_token")?.value;
-
   if (!accessToken) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
