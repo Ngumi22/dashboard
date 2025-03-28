@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ProductCard, {
   ProductCardSkeleton,
 } from "@/components/Product/ProductCards/product-card";
 import ScrollableTabbedSection from "@/components/Client-Side/Features/TabbedScrollableSection";
-import {
-  useFetchProductsBySubCategory,
-  useFetchSubCategories,
-} from "@/lib/actions/Hooks/useCategory";
+import { fetchCategoryWithProducts } from "@/lib/actions/Product/fetchSub";
 
 interface SubCategoryProductsProps {
   categoryName: string;
@@ -17,90 +15,66 @@ interface SubCategoryProductsProps {
 export default function SubCategoryProducts({
   categoryName,
 }: SubCategoryProductsProps) {
-  const [subCategoryName, setSubCategoryName] = useState<string>("");
   const {
-    data: subCategories,
-    isLoading: isSubCategoriesLoading,
-    error: subCategoriesError,
-  } = useFetchSubCategories(categoryName);
-  const {
-    data: subCategoryProducts,
-    isLoading: isProductsLoading,
-    error: productsError,
-  } = useFetchProductsBySubCategory(subCategoryName);
+    data: categoryData,
+    isLoading,
+    isError,
+    error,
+    refetch, // Allows retrying manually
+  } = useQuery({
+    queryKey: [`category-products:${categoryName}`, categoryName],
+    queryFn: () => fetchCategoryWithProducts(categoryName),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // Cache for 10 minutes
+    retry: 3, // Retry failed requests 3 times
+    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
+  });
 
-  // Find the first subcategory that has products
-  const getFirstSubcategoryWithProducts = (
-    subCategories: any[],
-    products: any
-  ) => {
-    for (const subCategory of subCategories) {
-      const hasProducts = products?.products?.some(
-        (product: { category_id: any }) =>
-          product.category_id === subCategory.category_id
-      );
-      if (hasProducts) {
-        return subCategory.category_name;
-      }
-    }
-    return subCategories[0]?.category_name || ""; // Fallback to first subcategory if none have products
-  };
-
-  useEffect(() => {
-    if (subCategories && subCategories.length > 0 && !subCategoryName) {
-      setSubCategoryName(
-        getFirstSubcategoryWithProducts(subCategories, subCategoryProducts)
-      );
-    }
-  }, [subCategories, subCategoryProducts, subCategoryName]);
-
-  // Memoized tabs to avoid recalculations
+  // Memoize tabs to prevent unnecessary recalculations
   const tabs = useMemo(() => {
     return (
-      subCategories
-        ?.map((subCategory: any) => ({
-          id: subCategory.category_name,
-          label: subCategory.category_name,
-          products:
-            subCategoryProducts?.products?.filter(
-              (product: { category_id: any }) =>
-                product.category_id === subCategory.category_id
-            ) || [],
-        }))
-        .filter((tab) => tab.products.length > 0) || [] // Ensure only categories with products are shown
+      categoryData?.subCategories?.map((subCategory) => ({
+        id: subCategory.name,
+        label: subCategory.name,
+        products: subCategory.products,
+      })) || []
     );
-  }, [subCategories, subCategoryProducts]);
+  }, [categoryData]);
 
-  const [activeTab, setActiveTab] = useState(tabs.length > 0 ? tabs[0].id : "");
+  // Manage active tab efficiently
+  const [activeTab, setActiveTab] = useState<string>(() =>
+    tabs.length > 0 ? tabs[0].id : ""
+  );
 
-  // Update activeTab dynamically
   useEffect(() => {
     if (tabs.length > 0 && !tabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab(tabs[0].id); // Ensure a valid tab is always selected
+      setActiveTab(tabs[0].id);
     }
   }, [tabs, activeTab]);
 
-  const handleTabChange = (tabId: string) => {
-    setSubCategoryName(tabId);
+  // Memoized handler to avoid unnecessary re-renders
+  const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
-  };
+  }, []);
 
-  if (subCategoriesError || productsError) {
+  // Error Handling with Retry
+  if (isError) {
     return (
       <div className="text-center text-red-500">
-        {subCategoriesError?.message || productsError?.message}
+        <p>
+          {error instanceof Error ? error.message : "Failed to load products"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+          Retry
+        </button>
       </div>
     );
   }
 
-  if (
-    !isSubCategoriesLoading &&
-    (!subCategories || subCategories.length === 0)
-  ) {
-    return null; // Hide if no subcategories exist
-  }
-
-  if (isSubCategoriesLoading || isProductsLoading) {
+  // Show Skeleton Loader while loading
+  if (isLoading) {
     return (
       <div className="grid grid-flow-col gap-4">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -108,6 +82,11 @@ export default function SubCategoryProducts({
         ))}
       </div>
     );
+  }
+
+  // If no data, return null
+  if (!categoryData || tabs.length === 0) {
+    return null;
   }
 
   return (

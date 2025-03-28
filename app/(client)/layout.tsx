@@ -59,7 +59,6 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     shortcut: "/favicon-16x16.png",
   },
-  manifest: "https://www.bernzzdigitalsolutions.co.ke/site.webmanifest",
   alternates: {
     canonical: "https://www.bernzzdigitalsolutions.co.ke",
     languages: {

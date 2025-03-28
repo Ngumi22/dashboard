@@ -5,7 +5,6 @@ import {
   useCategoriesQuery,
   useCategoryProductQuery,
 } from "@/lib/actions/Hooks/useCategory";
-import { Flame } from "lucide-react";
 import ProductCard, {
   ProductCardSkeleton,
 } from "@/components/Product/ProductCards/product-card";

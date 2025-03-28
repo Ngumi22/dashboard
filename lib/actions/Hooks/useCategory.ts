@@ -11,10 +11,8 @@ import {
   fetchCategoryWithSubCat,
   getUniqueCategories,
 } from "../Category/fetch";
-import {
-  fetchProductsBySubCategory,
-  fetchSubCategories,
-} from "../Product/fetchBySubCategory";
+import { fetchSubCategories } from "../Product/fetchBySubCategory";
+import { fetchCategoryWithProducts } from "../Product/fetchSub";
 
 const MINUTE = 1000 * 60;
 
@@ -29,18 +27,16 @@ export function useCategoriesQuery() {
   });
 }
 
-export function useFetchProductsBySubCategory(
+export function useFetchProductBySubCategory(
   subCategoryName: string,
   options?: UseQueryOptions<any, Error> // Add optional options parameter
 ) {
   return useQuery({
-    queryKey: ["subCategoryProducts", subCategoryName],
+    queryKey: [`subCategoryProducts:${subCategoryName}`, subCategoryName],
     queryFn: async () => {
       if (!subCategoryName) return null; // Ensure subcategory name exists
-      const data = await fetchProductsBySubCategory(subCategoryName);
-      if (!data || data.products.length === 0) {
-        throw new Error("No products found for this subcategory.");
-      }
+      const data = await fetchCategoryWithProducts(subCategoryName);
+
       return data;
     },
     staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
@@ -57,9 +53,7 @@ export function useFetchSubCategories(categoryName: string) {
     queryKey: ["subCategories", categoryName],
     queryFn: async () => {
       const data = await fetchSubCategories(categoryName);
-      if (!data || data.length === 0) {
-        throw new Error("No subcategories found for this category.");
-      }
+
       return data;
     },
     staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
