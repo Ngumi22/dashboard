@@ -52,10 +52,11 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
   const [visibleTabs, setVisibleTabs] = useState<Tab[]>(tabs);
   const [hiddenTabs, setHiddenTabs] = useState<Tab[]>([]);
 
-  const activeTabData = useMemo(
-    () => tabs.find((tab) => tab.id === activeTab) || tabs[0],
-    [tabs, activeTab]
-  );
+  const activeTabData = useMemo(() => {
+    return (
+      tabs.find((tab) => tab.id === activeTab) || tabs[0] || { products: [] }
+    );
+  }, [tabs, activeTab]);
 
   const updateTabsVisibility = useCallback(() => {
     if (!tabsRef.current) return;
@@ -236,7 +237,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
 
       <div className="relative">
         <div ref={productsRef} className="flex overflow-x-auto scrollbar gap-2">
-          {activeTabData.products.length > 0
+          {(activeTabData?.products ?? []).length > 0
             ? activeTabData.products.map((product) => (
                 <div
                   key={product.id}

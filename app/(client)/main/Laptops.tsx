@@ -23,50 +23,68 @@ export default function SubCategoryProducts({
     isLoading: isSubCategoriesLoading,
     error: subCategoriesError,
   } = useFetchSubCategories(categoryName);
-
   const {
     data: subCategoryProducts,
     isLoading: isProductsLoading,
     error: productsError,
   } = useFetchProductsBySubCategory(subCategoryName);
 
-  // Set the default subcategory when subCategories are loaded
+  // Find the first subcategory that has products
+  const getFirstSubcategoryWithProducts = (
+    subCategories: any[],
+    products: any
+  ) => {
+    for (const subCategory of subCategories) {
+      const hasProducts = products?.products?.some(
+        (product: { category_id: any }) =>
+          product.category_id === subCategory.category_id
+      );
+      if (hasProducts) {
+        return subCategory.category_name;
+      }
+    }
+    return subCategories[0]?.category_name || ""; // Fallback to first subcategory if none have products
+  };
+
   useEffect(() => {
     if (subCategories && subCategories.length > 0 && !subCategoryName) {
-      setSubCategoryName(subCategories[0].category_name); // Set the first subcategory as default
+      setSubCategoryName(
+        getFirstSubcategoryWithProducts(subCategories, subCategoryProducts)
+      );
     }
-  }, [subCategories, subCategoryName]);
+  }, [subCategories, subCategoryProducts, subCategoryName]);
 
-  // Memoize the tabs array
+  // Memoized tabs to avoid recalculations
   const tabs = useMemo(() => {
     return (
-      subCategories?.map((subCategory: any) => ({
-        id: subCategory.category_name,
-        label: subCategory.category_name,
-        products:
-          subCategoryProducts?.products?.filter(
-            (product: { category_id: any }) =>
-              product.category_id === subCategory.category_id
-          ) || [],
-      })) || []
+      subCategories
+        ?.map((subCategory: any) => ({
+          id: subCategory.category_name,
+          label: subCategory.category_name,
+          products:
+            subCategoryProducts?.products?.filter(
+              (product: { category_id: any }) =>
+                product.category_id === subCategory.category_id
+            ) || [],
+        }))
+        .filter((tab) => tab.products.length > 0) || [] // Ensure only categories with products are shown
     );
   }, [subCategories, subCategoryProducts]);
 
   const [activeTab, setActiveTab] = useState(tabs.length > 0 ? tabs[0].id : "");
 
-  // Synchronize activeTab with subCategoryName
+  // Update activeTab dynamically
   useEffect(() => {
     if (tabs.length > 0 && !tabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab(tabs[0].id); // Reset activeTab if it's not in the tabs array
+      setActiveTab(tabs[0].id); // Ensure a valid tab is always selected
     }
   }, [tabs, activeTab]);
 
   const handleTabChange = (tabId: string) => {
-    setSubCategoryName(tabId); // Update the subcategory name when a tab is clicked
-    setActiveTab(tabId); // Update the activeTab state
+    setSubCategoryName(tabId);
+    setActiveTab(tabId);
   };
 
-  // Handle errors
   if (subCategoriesError || productsError) {
     return (
       <div className="text-center text-red-500">
@@ -75,15 +93,13 @@ export default function SubCategoryProducts({
     );
   }
 
-  // Hide the component if no subcategories are found
   if (
     !isSubCategoriesLoading &&
     (!subCategories || subCategories.length === 0)
   ) {
-    return null; // Hide the component
+    return null; // Hide if no subcategories exist
   }
 
-  // Show loading state while data is being fetched
   if (isSubCategoriesLoading || isProductsLoading) {
     return (
       <div className="grid grid-flow-col gap-4">
@@ -97,7 +113,7 @@ export default function SubCategoryProducts({
   return (
     <section>
       <ScrollableTabbedSection
-        title={`Shop ${categoryName}`} // Dynamic title based on categoryName
+        title={`Shop ${categoryName}`}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={handleTabChange}
