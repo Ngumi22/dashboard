@@ -12,8 +12,10 @@ import Link from "next/link";
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
+  // console.log(user);
+
   if (!user) {
-    return null; // This should be handled by middleware, but just in case
+    return null;
   }
 
   return (

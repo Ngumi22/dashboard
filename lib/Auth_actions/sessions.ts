@@ -12,8 +12,8 @@ import {
 export type SessionData = {
   userId: number;
   role: string;
-  name?: string;
-  email?: string;
+  name: string;
+  email: string;
 };
 
 // JWT configuration
@@ -25,7 +25,7 @@ const JWT_REFRESH_SECRET = new TextEncoder().encode(
 );
 
 // Token expiration times
-const ACCESS_TOKEN_EXPIRATION = "15m";
+const ACCESS_TOKEN_EXPIRATION = "120m";
 const REFRESH_TOKEN_EXPIRATION = "7d";
 const REFRESH_TOKEN_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -61,6 +61,8 @@ export async function createSession(data: SessionData) {
     const accessToken = await new jose.SignJWT({
       userId: data.userId,
       role: data.role,
+      name: data.name,
+      email: data.email,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -149,6 +151,7 @@ export async function getSession() {
 }
 
 /** ================== Refresh the session using a refresh token ================== */
+/** ================== Refresh the session using a refresh token ================== */
 export async function refreshSession() {
   const refreshToken = getCookie("refresh_token");
   if (!refreshToken) return null;
@@ -162,7 +165,7 @@ export async function refreshSession() {
   // Revoke the old refresh token
   await revokeRefreshToken(tokenData.jti);
 
-  // Create new session
+  // Create new session (extending user session)
   return createSession({
     userId: user.id,
     role: user.role,

@@ -1,9 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
-        domains: ['images.unsplash.com', "fastly.picsum.photos", "loremflickr.com"],
-        formats: ['image/webp'],
+    async headers() {
+        return [
+            {
+                source: "/dashboard/:path*",
+                headers: [
+                    {
+                        key: "X-Robots-Tag",
+                        value: "noindex, nofollow",
+                    },
+                    {
+                        key: "Cache-Control",
+                        value: "no-store, must-revalidate",
+                    },
+                ],
+            },
+        ];
     },
-}
 
-export default nextConfig
+};
+
+export default nextConfig;

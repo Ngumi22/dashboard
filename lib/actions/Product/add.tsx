@@ -10,6 +10,8 @@ import { createProductTags } from "../Tags/post";
 import { createProductSpecifications } from "../Specifications/post";
 import { dbsetupTables } from "@/lib/MysqlDB/tables";
 import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/Auth_actions/sessions";
+import { getCurrentUser } from "@/lib/Auth_actions/auth-actions";
 
 export type FormState = {
   message: string;
@@ -20,10 +22,20 @@ export type FormState = {
 /**
  * Inserts a new product into the database.
  */
+
 export async function onSubmitAction(
   prevState: FormState,
   data: FormData
 ): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { message: "Unauthorized: Please log in first.", issues: [] };
+  }
+
+  // if (user.role !== "admin") {
+  //   return { message: "Forbidden: Only admins can add products.", issues: [] };
+  // }
+
   return dbOperation(async (connection) => {
     await connection.beginTransaction();
 
@@ -70,7 +82,7 @@ export async function onSubmitAction(
       }
 
       // Add brand and retrieve brand ID
-      const brandData = await addBrand(data, connection); // Pass connection
+      const brandData = await addBrand(data, connection);
       if (!brandData.brandId) {
         await connection.rollback();
         throw new Error("Failed to add brand.");
@@ -83,7 +95,7 @@ export async function onSubmitAction(
         brand_id: brandData.brandId,
       };
 
-      // Insert product and retrieve product ID
+      // Check for duplicate SKU
       const [existingProduct] = await connection.query(
         "SELECT product_id FROM products WHERE product_sku = ?",
         [parsedData.product_sku]
@@ -94,11 +106,13 @@ export async function onSubmitAction(
         throw new Error("A product with the same SKU already exists.");
       }
 
+      // Insert product
       const [productResult] = await connection.query(
         `INSERT INTO products (
           product_name, product_sku, product_description, product_price,
           product_quantity, product_discount, product_status, category_id, brand_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+
         [
           parsedData.product_name,
           parsedData.product_sku,
@@ -111,16 +125,16 @@ export async function onSubmitAction(
           parsedData.brand_id,
         ]
       );
+
       const productId = (productResult as any).insertId;
 
-      // Add suppliers and map them to the product
+      // Add suppliers
       const supplierResponse = await createSupplier(
         data,
         productId,
         connection
-      ); // Pass connection
-      const supplierData = supplierResponse;
-      const supplierIds = supplierData.supplierIds;
+      );
+      const supplierIds = supplierResponse.supplierIds;
       if (!supplierIds || supplierIds.length === 0) {
         await connection.rollback();
         throw new Error("No suppliers were added or mapped.");
@@ -139,12 +153,12 @@ export async function onSubmitAction(
 
       // Add related product data
       await Promise.all([
-        createProductImages(data, productId, connection), // Pass connection
-        createProductTags(data, productId, connection), // Pass connection
-        createProductSpecifications(data, productId, categoryId, connection), // Pass connection
+        createProductImages(data, productId, connection),
+        createProductTags(data, productId, connection),
+        createProductSpecifications(data, productId, categoryId, connection),
       ]);
 
-      // Commit the transaction
+      // Commit transaction
       await connection.commit();
 
       revalidatePath("/dashboard/products");
@@ -161,6 +175,7 @@ export async function onSubmitAction(
     }
   });
 }
+
 /**
  * Helper function to parse JSON fields from form data.
  */

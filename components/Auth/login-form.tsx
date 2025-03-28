@@ -66,9 +66,7 @@ export default function LoginForm() {
         {state?.message && (
           <Alert
             className={`${
-              state.message.includes("success")
-                ? "bg-green-500 text-white"
-                : "bg-red-500 text-white"
+              state.message.includes("success") ? "bg-green-500" : "bg-red-500"
             }`}>
             <AlertCircle
               className={`h-4 w-4 ${

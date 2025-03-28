@@ -4,7 +4,12 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 
 import { redirect } from "next/navigation";
-import { createSession, destroySession, getSession } from "./sessions";
+import {
+  createSession,
+  destroySession,
+  getSession,
+  refreshSession,
+} from "./sessions";
 import { hashPassword, isAllowedEmail, verifyPassword } from "./auth";
 import { createUser, getUserByEmail, logAuthAttempt } from "./db";
 import { rateLimit } from "./rate-limit";
@@ -207,16 +212,17 @@ export async function logout() {
 }
 
 export async function getCurrentUser() {
-  const session = await getSession();
+  let session = await getSession();
 
   if (!session) {
-    return null;
+    const refreshedSession = await refreshSession();
+    session = refreshedSession ? await getSession() : null;
   }
 
   return {
-    id: session.userId,
-    role: session.role,
-    name: session.name,
-    email: session.email,
+    id: session?.userId,
+    role: session?.role,
+    name: session?.name,
+    email: session?.email,
   };
 }

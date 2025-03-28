@@ -1,5 +1,7 @@
 "use server";
 
+import { getCurrentUser } from "@/lib/Auth_actions/auth-actions";
+import { getSession } from "@/lib/Auth_actions/sessions";
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { revalidatePath } from "next/cache";
@@ -7,8 +9,20 @@ import { revalidatePath } from "next/cache";
 export async function handleDeleteAction(product_id: number) {
   const productCacheKey = `product_${product_id}`;
 
+  // Validate product ID
   if (!product_id || product_id === 0) {
     throw new Error("Invalid product ID provided");
+  }
+
+  // Authenticate user
+  const user = await getCurrentUser();
+  if (!user) {
+    return { message: "Unauthorized: Please log in first.", issues: [] };
+  }
+
+  // Ensure only admins can delete products
+  if (user.role !== "admin") {
+    throw new Error("Forbidden: Only admins can delete products.");
   }
 
   return dbOperation(async (connection) => {
@@ -16,7 +30,7 @@ export async function handleDeleteAction(product_id: number) {
       // Start transaction
       await connection.beginTransaction();
 
-      // Step 1: Retrieve product details (category, brand, suppliers)
+      // Step 1: Retrieve product details
       const [productData]: [any[], any] = await connection.execute(
         `SELECT category_id, brand_id FROM products WHERE product_id = ?`,
         [product_id]
@@ -55,13 +69,11 @@ export async function handleDeleteAction(product_id: number) {
 
       // Step 5: Invalidate product caches
       cache.delete(productCacheKey);
-      // Cache invalidation
-      cache.delete(productCacheKey);
 
       // Commit transaction
       await connection.commit();
       revalidatePath("/dashboard/products");
-      return { message: "Product deleted successfully" };
+      return { success: true, message: "Product deleted successfully" };
     } catch (error: any) {
       // Rollback if any error occurs
       await connection.rollback();
