@@ -1,65 +1,79 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
-import {
-  useCategoriesQuery,
-  useCategoryProductQuery,
-} from "@/lib/actions/Hooks/useCategory";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import ProductCard, {
   ProductCardSkeleton,
 } from "@/components/Product/ProductCards/product-card";
 import ScrollableTabbedSection from "@/components/Client-Side/Features/TabbedScrollableSection";
+import { useQuery } from "@tanstack/react-query";
+import { fetchAllTopDiscountedProducts } from "@/lib/actions/Product/fetchMostDiscountedProducts";
 
 export default function DiscountedOffers() {
-  const { data: categories, isLoading: isCategoriesLoading } =
-    useCategoriesQuery();
+  // Directly use the server action in React Query
+  const {
+    data: categories = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["topDiscountedProducts"],
+    queryFn: () => fetchAllTopDiscountedProducts(),
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    refetchOnWindowFocus: false,
+  });
+
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
-  const mainCategories = useMemo(
-    () => categories?.filter((category) => !category.parent_category_id) || [],
-    [categories]
-  );
-
+  // Optimized tab initialization
   useEffect(() => {
-    if (!activeTab && mainCategories.length > 0) {
-      setActiveTab(mainCategories[0].category_name);
+    if (categories.length > 0 && !activeTab) {
+      setActiveTab(categories[0].name);
     }
-  }, [mainCategories, activeTab]);
+  }, [categories, activeTab]);
 
-  const { data: categoryProducts, isLoading: isProductsLoading } =
-    useCategoryProductQuery(activeTab ?? "");
-
-  const tabs = useMemo(
-    () =>
-      mainCategories.map((category) => ({
-        id: category.category_name,
-        label: category.category_name,
-        products:
-          categoryProducts?.products
-            ?.filter(
-              (product) =>
-                product.category_id.toString() ===
-                category.category_id.toString()
-            )
-            ?.sort((a, b) => b.discount - a.discount)
-            ?.slice(0, 5) || [],
-      })),
-    [mainCategories, categoryProducts]
-  );
+  // Memoized tabs computation
+  const tabs = useMemo(() => {
+    return categories.map(({ name, products }) => ({
+      id: name,
+      label: name,
+      products: products
+        .slice() // Create a copy before sorting
+        .sort((a, b) => b.discount - a.discount)
+        .slice(0, 5), // Get top 5 discounted products
+    }));
+  }, [categories]);
 
   const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
   }, []);
 
-  if (isCategoriesLoading || isProductsLoading) {
-    return <div>Loading...</div>;
+  // Improved loading state with proper skeleton count
+  if (isLoading) {
+    return (
+      <section>
+        <h2 className="text-lg font-semibold mb-4">Discounted Offers</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // Improved error handling
+  if (isError) {
+    return (
+      <div className="text-red-500 text-center py-4">
+        Failed to load categories. Please try again later.
+      </div>
+    );
   }
 
   return (
     <section>
       {activeTab && (
         <ScrollableTabbedSection
-          title="Hot Deals"
+          title="Discounted Offers"
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={handleTabChange}
