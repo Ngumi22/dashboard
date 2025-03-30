@@ -69,7 +69,7 @@ export async function fetchProductsByTag(
             categories c ON p.category_id = c.category_id -- Join to get category name
         WHERE
             t.tag_name = ?
-            AND p.product_status = 'approved' -- Filter by product status
+            AND p.product_status = 'approved'
         GROUP BY
             p.product_id
         ORDER BY

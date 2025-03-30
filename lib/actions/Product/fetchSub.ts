@@ -43,33 +43,37 @@ export async function fetchCategoryWithProducts(
     const result = await dbOperation(async (connection) => {
       const [rows] = await connection.query(
         `WITH RECURSIVE category_tree AS (
-          SELECT category_id, category_name, parent_category_id
-          FROM categories
-          WHERE category_name = ? AND category_status = 'active'
-          UNION ALL
-          SELECT c.category_id, c.category_name, c.parent_category_id
-          FROM categories c
-          INNER JOIN category_tree ct ON c.parent_category_id = ct.category_id
-          WHERE c.category_status = 'active'
+            SELECT category_id, category_name, parent_category_id
+            FROM categories
+            WHERE category_name = ? AND category_status = 'active'
+
+            UNION ALL
+
+            SELECT c.category_id, c.category_name, c.parent_category_id
+            FROM categories c
+            INNER JOIN category_tree ct ON c.parent_category_id = ct.category_id
+            WHERE c.category_status = 'active'
         )
         SELECT
-          ct.category_name AS subcategory_name,
-          p.product_id AS id,
-          p.product_name AS name,
-          p.product_description AS description,
-          p.product_price AS price,
-          p.product_discount AS discount,
-          p.product_quantity AS quantity,
-          p.created_at AS created_at,
-          p.category_id AS category_id,
-          MAX(pi.main_image) AS main_image,
-          COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings
+            ct.category_name AS subcategory_name,
+            p.product_id AS id,
+            p.product_name AS name,
+            p.product_description AS description,
+            p.product_price AS price,
+            p.product_discount AS discount,
+            p.product_quantity AS quantity,
+            p.created_at AS created_at,
+            p.category_id AS category_id,
+            MAX(pi.main_image) AS main_image,
+            COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings
         FROM category_tree ct
         INNER JOIN products p ON ct.category_id = p.category_id
         LEFT JOIN product_images pi ON p.product_id = pi.product_id
         LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
+        WHERE p.product_status = 'approved'
         GROUP BY ct.category_name, p.product_id
-        ORDER BY ct.category_name, p.product_name;`,
+        ORDER BY ct.category_name, p.product_name;
+        `,
         [categoryName]
       );
       return rows;

@@ -65,6 +65,7 @@ export async function fetchProductByCategory(
             main_c.category_name = ?
             AND main_c.category_status = 'active'
             AND main_c.parent_category_id IS NULL -- Ensures we select only main categories
+            AND p.product_status = 'approved'
         GROUP BY
             p.product_id, main_c.category_name -- Group by product ID and main category name
         ORDER BY

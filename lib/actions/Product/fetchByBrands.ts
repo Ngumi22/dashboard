@@ -64,6 +64,7 @@ export async function fetchProductByBrand(
         WHERE
             b.brand_name = ?
             AND b.deleted_at IS NULL
+            AND p.product_status = 'approved'
         GROUP BY
             p.product_id, b.brand_name
         ORDER BY

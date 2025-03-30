@@ -156,7 +156,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold mb-4">{title}</h2>
         <Link
-          href={"/products"}
+          href={`/products`}
           prefetch={true}
           className="text-md flex gap-2 items-center text-sm">
           <Button>

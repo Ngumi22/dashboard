@@ -152,7 +152,9 @@ export async function fetchProductsBySubCategory(
         LEFT JOIN products p ON s.category_id = p.category_id
         LEFT JOIN product_images pi ON p.product_id = pi.product_id
         LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
-        WHERE s.parent_category_id IS NOT NULL
+        WHERE
+            s.parent_category_id IS NOT NULL
+            AND p.product_status = 'approved'
         GROUP BY s.category_name, p.product_id
         ORDER BY s.category_name, p.product_name`,
         [sub_category_name]

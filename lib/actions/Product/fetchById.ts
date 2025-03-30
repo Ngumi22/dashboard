@@ -2,7 +2,38 @@
 
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { MinimalProduct } from "@/app/store/cart";
+
+export async function fetchProductsByIds(productIds: number[]) {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    //console.warn("⚠️ No product IDs provided for validation.");
+    return [];
+  }
+
+  return dbOperation(async (connection) => {
+    try {
+      //console.log("🔍 Fetching products for IDs:", productIds);
+
+      const placeholders = productIds.map(() => "?").join(",");
+      const query = `SELECT product_id AS id, product_name, product_price, product_quantity FROM products WHERE product_id IN (${placeholders})`;
+
+      // console.log("🛠 Executing query:", query, "with values:", productIds);
+
+      const [rows] = await connection.execute(query, productIds);
+
+      // console.log("✅ Fetched products from DB:", rows);
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        //console.warn("⚠️ No matching products found for IDs:", productIds);
+        return [];
+      }
+
+      return rows;
+    } catch (error) {
+      // console.error("❌ Error executing SQL query:", error);
+      throw new Error("Failed to fetch product details");
+    }
+  });
+}
 
 export async function fetchProductById(productId: number) {
   return dbOperation(async (connection) => {
@@ -82,25 +113,6 @@ export async function fetchProductById(productId: number) {
       };
     } catch (error) {
       console.error("Error fetching product:", error);
-      throw new Error("Failed to fetch product details");
-    }
-  });
-}
-
-export async function fetchProductsByIds(productIds: number[]) {
-  // Early return if no product IDs are provided
-  if (productIds.length === 0) {
-    return [];
-  }
-  return dbOperation(async (connection) => {
-    try {
-      const query = `SELECT * FROM products WHERE product_id IN (${productIds.join(
-        ","
-      )})`;
-      const [rows] = await connection.execute(query);
-      return rows;
-    } catch (error) {
-      console.error("Error fetching products by IDs:", error);
       throw new Error("Failed to fetch product details");
     }
   });

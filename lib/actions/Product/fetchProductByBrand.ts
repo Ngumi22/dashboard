@@ -78,6 +78,7 @@ export async function fetchProductsGroupedByBrand(): Promise<ProductBrand[]> {
           product_reviews pr ON p.product_id = pr.product_id
         WHERE
           b.deleted_at IS NULL
+          AND p.product_status = 'approved'
         GROUP BY
           b.brand_id, b.brand_name, p.product_id
         ORDER BY

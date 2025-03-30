@@ -18,7 +18,7 @@ export default function HomeBlogSection() {
       title: "The Future of Smart Home Technology",
       excerpt:
         "Discover how the latest smart home devices are revolutionizing everyday living.",
-      date: "May 15, 2024",
+      date: "March 15, 2025",
       author: "Alex Johnson",
       category: "Smart Home",
       image: "/blog.jpg",
@@ -29,7 +29,7 @@ export default function HomeBlogSection() {
       title: "Top 5 Wireless Earbuds for 2024",
       excerpt:
         "We compare the best wireless earbuds on the market to help you find your perfect match.",
-      date: "May 10, 2024",
+      date: "March 10, 2025",
       author: "Sarah Chen",
       category: "Audio",
       image: "/blog.jpg",
@@ -40,7 +40,7 @@ export default function HomeBlogSection() {
       title: "How to Choose the Right Gaming Monitor",
       excerpt:
         "Resolution, refresh rate, response time - we break down what really matters.",
-      date: "May 5, 2024",
+      date: "March 5, 2025",
       author: "Marcus Williams",
       category: "Gaming",
       image: "/blog.jpg",
@@ -66,7 +66,7 @@ export default function HomeBlogSection() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-2">
         {featuredPosts.map((post) => (
           <Card key={post.id} className="flex flex-col h-full">
             <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
@@ -84,7 +84,7 @@ export default function HomeBlogSection() {
                 <span className="mx-2">•</span>
                 <span>{post.date}</span>
               </div>
-              <CardTitle className="line-clamp-2">
+              <CardTitle className="line-clamp-2 text-sm md:text-xl">
                 <Link href={`/blog/${post.slug}`} className="hover:underline">
                   {post.title}
                 </Link>
@@ -94,8 +94,8 @@ export default function HomeBlogSection() {
               </CardDescription>
             </CardHeader>
             <CardFooter className="border-t pt-4">
-              <div className="text-sm">By {post.author}</div>
-              <Button asChild variant="ghost" size="sm" className="ml-auto">
+              {/* <div className="text-sm">By {post.author}</div> */}
+              <Button asChild variant="ghost" size="sm" className="m-auto">
                 <Link href={`/blog/${post.slug}`}>Read more</Link>
               </Button>
             </CardFooter>

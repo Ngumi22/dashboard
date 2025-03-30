@@ -54,7 +54,9 @@ export async function fetchProductByName(
         LEFT JOIN product_specifications ps ON p.product_id = ps.product_id
         LEFT JOIN specifications spec ON ps.specification_id = spec.specification_id
         LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
-        WHERE p.product_name = ?
+        WHERE
+            p.product_name = ?
+            AND p.product_status = 'approved'
         GROUP BY p.product_id
       `;
 

@@ -179,44 +179,111 @@ export const useCartStore = create<CartStoreState>()(
           ),
         }));
       },
+
       validateCartItems: async () => {
         const { cartItems } = get();
+        console.log(
+          "🛒 Cart before validation:",
+          JSON.stringify(cartItems, null, 2)
+        );
 
-        // Early return if cart is empty
         if (cartItems.length === 0) {
+          console.log("⚠️ Cart is empty, skipping validation.");
           return;
         }
 
         try {
-          // Fetch all product IDs in the cart
           const productIds = cartItems.map((item) => item.id);
+          console.log("🔍 Validating product IDs:", productIds);
 
-          // Early return if no product IDs are found
-          if (productIds.length === 0) {
+          const validProducts = await fetchProductsByIds(productIds);
+          console.log(
+            "✅ Valid products from server:",
+            JSON.stringify(validProducts, null, 2)
+          );
+
+          if (!Array.isArray(validProducts)) {
+            console.error(
+              "❌ Server did not return a valid array. Validation skipped."
+            );
             return;
           }
 
-          // Fetch all products in a single query
-          const validProducts = await fetchProductsByIds(productIds);
+          // Debug: Check if we got any products back
+          if (validProducts.length === 0) {
+            console.error(
+              "❌ Server returned empty array for existing cart items"
+            );
+            showToast("No valid products found in database", "error");
+            return;
+          }
 
-          // Filter out invalid items
-          const validCartItems = cartItems.filter((item) =>
-            validProducts.some(
-              (product: MinimalProduct) => product.id === item.id
-            )
+          // Create a map of valid product IDs (converting all to Numbers for safety)
+          const validProductsMap = new Map(
+            validProducts.map((product) => [Number(product.id), product])
           );
 
-          // Update the cart with only valid items
-          set({ cartItems: validCartItems });
+          // Validate each cart item
+          const validatedCartItems = cartItems
+            .map((item) => {
+              const dbProduct = validProductsMap.get(Number(item.id));
 
-          if (validCartItems.length !== cartItems.length) {
+              if (!dbProduct) {
+                console.warn(
+                  `❌ Product ${
+                    item.id
+                  } (${typeof item.id}) not found in database results`
+                );
+                return null;
+              }
+
+              // Ensure types match
+              const dbProductId = Number(dbProduct.id);
+              const cartItemId = Number(item.id);
+
+              if (dbProductId !== cartItemId) {
+                console.warn(
+                  `❌ ID mismatch: DB ${dbProductId} (${typeof dbProductId}) vs Cart ${cartItemId} (${typeof cartItemId})`
+                );
+                return null;
+              }
+
+              // Update with current database information
+              return {
+                ...item,
+                name: dbProduct.product_name, // Keep name updated
+                price: Number(dbProduct.product_price), // Ensure current price
+                quantity: Math.min(
+                  item.quantity,
+                  Number(dbProduct.product_quantity)
+                ),
+              } as CartItem; // Explicitly cast to CartItem
+            })
+            .filter((item): item is CartItem => item !== null); // Type guard to filter out null
+
+          console.log(
+            "🎯 Validated cart items:",
+            JSON.stringify(validatedCartItems, null, 2)
+          );
+
+          if (validatedCartItems.length !== cartItems.length) {
+            const removedCount = cartItems.length - validatedCartItems.length;
             showToast(
-              "Some items in your cart are no longer available.",
+              `${removedCount} item(s) removed as they're no longer available`,
               "error"
             );
           }
+
+          // Only update state if there are actual changes
+          if (
+            JSON.stringify(validatedCartItems) !== JSON.stringify(cartItems)
+          ) {
+            set({ cartItems: validatedCartItems });
+          } else {
+            // console.log("🔄 No changes needed - cart items are valid");
+          }
         } catch (error) {
-          console.error("Error validating cart items:", error);
+          // console.error("❌ Error validating cart items:", error);
           showToast(
             "Failed to validate cart items. Please try again.",
             "error"
