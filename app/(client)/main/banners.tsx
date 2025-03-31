@@ -3,9 +3,11 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useBannersQueryContext } from "@/lib/actions/Hooks/useBanner";
-import Image from "next/image";
 import Base64Image from "@/components/Data-Table/base64-image";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { fetchBannersByContext } from "@/lib/actions/Banners/fetch";
+
+const MINUTE = 1000 * 60;
 
 interface BannerProps {
   contextName: string;
@@ -30,8 +32,21 @@ function Banners({
   paddingX = "",
   paddingY = "",
 }: BannerProps) {
-  // This hook will instantly return prefetched data if available.
-  const { data: banners, isLoading } = useBannersQueryContext(contextName);
+  const {
+    data: banners,
+    isLoading,
+    isError,
+    refetch, // Allows retrying manually
+  } = useQuery({
+    queryKey: ["bannerData", contextName], // Must match server-side
+    queryFn: () => fetchBannersByContext(contextName),
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hours
+    placeholderData: keepPreviousData,
+    enabled: Boolean(contextName),
+    retry: 3,
+    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
+  });
 
   const slicedBanners = useMemo(() => {
     if (!banners) return [];
@@ -47,6 +62,34 @@ function Banners({
       })),
     [slicedBanners]
   );
+
+  // Error Handling with Retry
+  if (isError) {
+    return (
+      <div className="text-center text-red-500">
+        <ul
+          className={`flex md:grid ${gridCols} ${gap} ${height} ${className}`}>
+          {Array.from({ length: maxBanners || 3 }).map((_, index) => (
+            <li
+              key={index}
+              className="min-w-[180px] md:w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md bg-gray-200 animate-pulse">
+              <div className="grid gap-2">
+                <div className="h-6 bg-gray-300 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+                <div className="h-8 bg-gray-300 rounded w-1/3"></div>
+              </div>
+              <div className="w-20 h-20 bg-gray-300 rounded"></div>
+            </li>
+          ))}
+        </ul>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -74,7 +117,7 @@ function Banners({
         <li
           key={banner.banner_id}
           style={{ backgroundColor: bannerStyles[index].backgroundColor }}
-          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 md:rounded-md ${paddingX} ${paddingY}`}>
+          className={`w-[56%] md:w-full h-30 md:h-full flex-shrink-0 grid grid-flow-col content-center justify-between p-1 md:p-2 md:rounded-md ${paddingX} ${paddingY}`}>
           <div className="grid grid-flow-row gap-1 md:gap-4">
             <h1
               className="text-sm lg:text-lg font-semibold"
@@ -95,8 +138,8 @@ function Banners({
             <Base64Image
               src={banner.image}
               alt={banner.title}
-              width={120}
-              height={120}
+              width={105}
+              height={105}
             />
           </div>
         </li>

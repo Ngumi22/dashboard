@@ -74,8 +74,7 @@ const ProductCards: React.FC<ProductCardProps> = ({
         <Image
           src={main_image || "/placeholder.svg"}
           alt={name}
-          layout="fill"
-          objectFit="cover"
+          className="h-auto w-auto object-cover-fill"
         />
       </div>
       <h3 className="font-semibold text-lg line-clamp-2">{name}</h3>

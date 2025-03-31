@@ -1,7 +1,7 @@
 "use server";
 
 import { cache } from "@/lib/cache";
-import { DBQUERYLIMITS } from "@/lib/Constants";
+import { CACHE_TTL, DBQUERYLIMITS } from "@/lib/Constants";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { Product, SearchParams } from "./search-params";
 import { compressAndEncodeBase64 } from "../utils";
@@ -179,7 +179,7 @@ export async function fetchProductsAndFilters(filter: SearchParams): Promise<{
       // Cache result
       cache.set(cacheKey, {
         value: result,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return result;

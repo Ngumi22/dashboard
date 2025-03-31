@@ -164,9 +164,9 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
       <div className="lg:col-span-2">
-        <Card>
+        <Card className="grid space-y-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Your Cart</CardTitle>
@@ -176,10 +176,10 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
             </div>
             {cartItems.length > 0 && (
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={handleClearCart}
-                className="flex items-center gap-1">
+                className="flex items-center gap-1 ">
                 <Trash className="h-4 w-4" />
                 <span className="hidden sm:inline">Clear Cart</span>
               </Button>
@@ -211,10 +211,10 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between py-4 border-b">
-                    <div className="flex items-center gap-4">
+                    className="relative flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b gap-3">
+                    <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                       <Image
-                        src={item.main_image}
+                        src={item.main_image || "/placeholder.svg"}
                         alt={item.name}
                         width={80}
                         height={80}
@@ -227,7 +227,7 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
                       <div className="flex items-center border rounded-md">
                         <Button
                           variant="ghost"
@@ -248,25 +248,21 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                           <span className="sr-only">Increase quantity</span>
                         </Button>
                       </div>
-                      <div className="text-right min-w-[80px]">
+                      <div className="text-right min-w-[80px] order-1 sm:order-none">
                         <p className="font-medium">
                           Ksh {(item.price * item.quantity).toFixed(2)}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleRemoveItem(item.id)}>
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Remove item</span>
-                      </Button>
+                      <X
+                        className="h-4 w-4 cursor-pointer absolute top-0 right-4"
+                        onClick={() => handleRemoveItem(item.id)}
+                      />
                     </div>
                   </div>
                 ))}
 
                 <div className="pt-4">
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col gap-3">
                     <div className="flex-1">
                       <Label htmlFor="coupon-code" className="sr-only">
                         Coupon Code
@@ -308,24 +304,31 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="text-center py-8 sm:py-12">
                 <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Your cart is empty</h3>
                 <p className="text-muted-foreground mb-6">
                   Looks like you have not added any items to your cart yet.
                 </p>
-                <Button onClick={() => router.push(`/`)}>
+                <Button
+                  onClick={() => router.push(`/`)}
+                  className="w-full sm:w-auto max-w-xs mx-auto">
                   Continue Shopping
                 </Button>
               </div>
             )}
           </CardContent>
           {cartItems.length > 0 && (
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => router.push(`/`)}>
+            <CardFooter className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/`)}
+                className="w-full sm:w-auto">
                 Continue Shopping
               </Button>
-              <Button onClick={onProceedToCheckout}>
+              <Button
+                onClick={onProceedToCheckout}
+                className="w-full sm:w-auto">
                 Proceed to Checkout <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>

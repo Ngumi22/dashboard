@@ -4,6 +4,7 @@ import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { Category, Specification } from "./catType";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export async function fetchCategoryWithSubCat(): Promise<Category[]> {
   const cacheKey = "categoryDataWithSub";
@@ -68,7 +69,7 @@ export async function fetchCategoryWithSubCat(): Promise<Category[]> {
 
       // Return an empty array if no categories found
       if (!categories || categories.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+        cache.set(cacheKey, { value: [], expiry: Date.now() + CACHE_TTL });
         return [];
       }
 
@@ -90,7 +91,7 @@ export async function fetchCategoryWithSubCat(): Promise<Category[]> {
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: uniqueCategories,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL, // Cache for 24 hours
       });
       return uniqueCategories;
     } catch (error) {
@@ -128,7 +129,7 @@ export async function getUniqueCategories(): Promise<Category[]> {
 
       // Return an empty array if no categories found
       if (!categories || categories.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+        cache.set(cacheKey, { value: [], expiry: Date.now() + CACHE_TTL });
         return [];
       }
 
@@ -149,7 +150,12 @@ export async function getUniqueCategories(): Promise<Category[]> {
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: uniqueCategories,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL, // Cache for 24 hours
+      });
+      // Cache the result with an expiry time
+      cache.set(cacheKey, {
+        value: uniqueCategories,
+        expiry: Date.now() + CACHE_TTL, // Cache for 24 hours
       });
       return uniqueCategories;
     } catch (error) {
@@ -248,7 +254,7 @@ export async function fetchCategoryWithSubCatById(
       // Cache the enriched category data
       cache.set(cacheKey, {
         value: processedCategory,
-        expiry: Date.now() + 3600 * 10, // 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return processedCategory;
@@ -322,7 +328,7 @@ export async function fetchCategoryById(
       // Cache the enriched category data
       cache.set(cacheKey, {
         value: processedCategory,
-        expiry: Date.now() + 3600 * 10, // 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return processedCategory;
@@ -449,7 +455,7 @@ export async function fetchCategoryTreeWithSpecs(
       // Cache the result
       cache.set(cacheKey, {
         value: processedCategories,
-        expiry: Date.now() + 3600 * 10, // 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return processedCategories;
@@ -485,7 +491,7 @@ export async function fetchCategoryByName(categoryName: string) {
       // Cache the result
       cache.set(cacheKey, {
         value: result.rows,
-        expiry: Date.now() + 3600 * 10, // 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
       return result.rows[0]; // Return the first matching category
     } catch (error) {

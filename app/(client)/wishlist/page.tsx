@@ -5,6 +5,7 @@ import { useWishStore } from "@/app/store/wishlist";
 import ProductCard from "@/components/Product/ProductCards/product-card";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import Link from "next/link";
 
 export default function Wishlist() {
   const wishItems = useWishStore((state) => state.wishItems);
@@ -25,8 +26,21 @@ export default function Wishlist() {
     clearWish();
   };
 
+  if (wishItems.length === 0) {
+    return (
+      <div className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80 p-2 sm:p-5 text-center">
+        <div className="grid h-64 py-8">
+          <p className="text-xl font-semibold">No products added to wish.</p>
+          <Link href={"/"}>
+            <Button>Back Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section className="px-8 text-center py-8">
+    <section className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80 p-5 text-center">
       <div className="pb-4">
         <h2 className="text-2xl font-bold">Your Favorite Items</h2>
         <p className="text-xl font-semibold">

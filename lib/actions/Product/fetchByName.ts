@@ -4,6 +4,7 @@ import { cache } from "@/lib/cache";
 import { Product, ProductStatus } from "./productTypes";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export async function fetchProductByName(
   product_name: string
@@ -125,7 +126,7 @@ export async function fetchProductByName(
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: product,
-        expiry: Date.now() + 3600 * 1000 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
       return product;
     } catch (error) {

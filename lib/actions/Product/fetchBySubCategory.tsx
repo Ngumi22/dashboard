@@ -3,6 +3,7 @@
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export type MinimalProduct = {
   id: number;
@@ -198,7 +199,10 @@ export async function fetchProductsBySubCategory(
     // Get the subcategory and its products
     const subcategory = groupedProducts[sub_category_name];
     if (!subcategory) {
-      cache.set(cacheKey, { value: null, expiry: Date.now() + 3600 * 10 }); // Cache null result
+      cache.set(cacheKey, {
+        value: null,
+        expiry: Date.now() + 1000 * 60 * 60 * 24,
+      }); // Cache null result
       return null; // No products found for the subcategory
     }
 
@@ -210,7 +214,7 @@ export async function fetchProductsBySubCategory(
     // Store in cache for 5 minutes
     cache.set(cacheKey, {
       value: category,
-      expiry: Date.now() + 1000 * 60 * 5, // Cache for 5 minutes
+      expiry: Date.now() + CACHE_TTL,
     });
 
     return category;

@@ -4,6 +4,7 @@ import { cache } from "@/lib/cache"; // Import CacheUtil
 import { Brand } from "./brandType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export async function getUniqueBrands(): Promise<Brand[]> {
   const cacheKey = "brandData";
@@ -24,7 +25,10 @@ export async function getUniqueBrands(): Promise<Brand[]> {
 
     // Return an empty array if no brands found
     if (!brands || brands.length === 0) {
-      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+      cache.set(cacheKey, {
+        value: [],
+        expiry: Date.now() + 1000 * 60 * 60 * 24,
+      });
       return [];
     }
 
@@ -41,7 +45,7 @@ export async function getUniqueBrands(): Promise<Brand[]> {
 
     cache.set(cacheKey, {
       value: uniqueBrands,
-      expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      expiry: Date.now() + CACHE_TTL,
     });
     return uniqueBrands;
   });
@@ -83,7 +87,7 @@ export async function fetchBrandById(brand_id: number): Promise<Brand | null> {
 
       cache.set(cacheKey, {
         value: processedBrand,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return processedBrand;

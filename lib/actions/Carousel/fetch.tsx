@@ -4,6 +4,7 @@ import { cache } from "@/lib/cache"; // Import CacheUtil
 import { Carousel } from "./carouselType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 interface MiniCarousel {
   carousel_id: string;
@@ -55,7 +56,7 @@ export async function getUniqueCarousels({
 
       // Return an empty array if no carousels found
       if (!carousels || carousels.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 }); // Cache empty result
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 }); // Cache empty result
         return [];
       }
 
@@ -79,7 +80,7 @@ export async function getUniqueCarousels({
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: uniqueCarousels,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return uniqueCarousels;
@@ -135,7 +136,7 @@ export async function fetchCarouselById(
 
       cache.set(cacheKey, {
         value: processedCarousel,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return processedCarousel;
@@ -216,7 +217,7 @@ export async function fetchCarousels(): Promise<MiniCarousel[]> {
 
       // Return an empty array if no carousels found
       if (!rows || rows.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 }); // Cache empty result
+        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 }); // Cache empty result
         return [];
       }
 
@@ -238,7 +239,7 @@ export async function fetchCarousels(): Promise<MiniCarousel[]> {
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: uniqueCarousels,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return uniqueCarousels;

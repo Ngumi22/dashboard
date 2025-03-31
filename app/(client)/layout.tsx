@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import "../globals.css";
-import ClientSideWrapper from "@/components/Client-Side/ClientWrapper";
 import { ToastContainer } from "react-toastify";
 import { initialize } from "@/lib/MysqlDB/initialize";
 import { prefetchData } from "@/lib/actions/serverSideFetching";
+import { Suspense } from "react";
+import Loading from "./loading";
+import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
+import Footer from "@/components/Client-Side/Footer/footer";
+import Providers from "@/components/Client-Side/Provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.bernzzdigitalsolutions.co.ke"),
@@ -76,14 +80,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   await initialize();
-  const dehydratedState = await prefetchData();
+  await prefetchData();
 
   return (
     <html lang="en">
       <body suppressHydrationWarning={true}>
-        <ClientSideWrapper dehydratedState={dehydratedState}>
-          {children}
-        </ClientSideWrapper>
+        <Providers>{children}</Providers>
         <ToastContainer position="bottom-left" />
       </body>
     </html>

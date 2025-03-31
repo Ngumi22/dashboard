@@ -41,7 +41,7 @@ const BannerCarousel: React.FC<BannerProps> = ({
                 alt={image.alt}
                 layout="fill"
                 objectFit="cover"
-                className={`cursor-pointer ${imageClassName}`}
+                className={`cursor-pointer h-auto w-auto ${imageClassName}`}
               />
             </Link>
           ) : (
@@ -50,7 +50,7 @@ const BannerCarousel: React.FC<BannerProps> = ({
               alt={image.alt}
               layout="fill"
               objectFit="cover"
-              className={imageClassName}
+              className={`${imageClassName} h-auto w-auto`}
             />
           )}
           <div>

@@ -3,6 +3,7 @@
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export type Product = {
   id: number;
@@ -101,7 +102,7 @@ export async function fetchProductByBrand(
       // Store in cache
       cache.set(cacheKey, {
         value: brand,
-        expiry: Date.now() + 1000 * 60 * 5,
+        expiry: Date.now() + CACHE_TTL,
       });
 
       return brand;

@@ -182,38 +182,34 @@ export const useCartStore = create<CartStoreState>()(
 
       validateCartItems: async () => {
         const { cartItems } = get();
-        console.log(
-          "🛒 Cart before validation:",
-          JSON.stringify(cartItems, null, 2)
-        );
 
         if (cartItems.length === 0) {
-          console.log("⚠️ Cart is empty, skipping validation.");
+          // console.log("⚠️ Cart is empty, skipping validation.");
           return;
         }
 
         try {
           const productIds = cartItems.map((item) => item.id);
-          console.log("🔍 Validating product IDs:", productIds);
+          // console.log("🔍 Validating product IDs:", productIds);
 
           const validProducts = await fetchProductsByIds(productIds);
-          console.log(
-            "✅ Valid products from server:",
-            JSON.stringify(validProducts, null, 2)
-          );
+          // console.log(
+          //   "✅ Valid products from server:",
+          //   JSON.stringify(validProducts, null, 2)
+          // );
 
           if (!Array.isArray(validProducts)) {
-            console.error(
-              "❌ Server did not return a valid array. Validation skipped."
-            );
+            // console.error(
+            //   "❌ Server did not return a valid array. Validation skipped."
+            // );
             return;
           }
 
           // Debug: Check if we got any products back
           if (validProducts.length === 0) {
-            console.error(
-              "❌ Server returned empty array for existing cart items"
-            );
+            // console.error(
+            //   "❌ Server returned empty array for existing cart items"
+            // );
             showToast("No valid products found in database", "error");
             return;
           }
@@ -229,11 +225,11 @@ export const useCartStore = create<CartStoreState>()(
               const dbProduct = validProductsMap.get(Number(item.id));
 
               if (!dbProduct) {
-                console.warn(
-                  `❌ Product ${
-                    item.id
-                  } (${typeof item.id}) not found in database results`
-                );
+                // console.warn(
+                //   `❌ Product ${
+                //     item.id
+                //   } (${typeof item.id}) not found in database results`
+                // );
                 return null;
               }
 
@@ -242,9 +238,9 @@ export const useCartStore = create<CartStoreState>()(
               const cartItemId = Number(item.id);
 
               if (dbProductId !== cartItemId) {
-                console.warn(
-                  `❌ ID mismatch: DB ${dbProductId} (${typeof dbProductId}) vs Cart ${cartItemId} (${typeof cartItemId})`
-                );
+                // console.warn(
+                //   `❌ ID mismatch: DB ${dbProductId} (${typeof dbProductId}) vs Cart ${cartItemId} (${typeof cartItemId})`
+                // );
                 return null;
               }
 
@@ -261,10 +257,10 @@ export const useCartStore = create<CartStoreState>()(
             })
             .filter((item): item is CartItem => item !== null); // Type guard to filter out null
 
-          console.log(
-            "🎯 Validated cart items:",
-            JSON.stringify(validatedCartItems, null, 2)
-          );
+          // console.log(
+          //   "🎯 Validated cart items:",
+          //   JSON.stringify(validatedCartItems, null, 2)
+          // );
 
           if (validatedCartItems.length !== cartItems.length) {
             const removedCount = cartItems.length - validatedCartItems.length;

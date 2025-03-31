@@ -1,7 +1,7 @@
 "use server";
 
 import { cache } from "@/lib/cache";
-import { DBQUERYLIMITS } from "@/lib/Constants";
+import { CACHE_TTL, DBQUERYLIMITS } from "@/lib/Constants";
 import {
   Product,
   ProductStatus,
@@ -89,7 +89,7 @@ export async function fetchProducts(
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: result,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
       return result;
     } catch (error) {
@@ -386,7 +386,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: product,
-        expiry: Date.now() + 3600 * 1000 * 10, // Cache for 10 hours
+        expiry: Date.now() + 3600 * 2400 * 10, // Cache for 24 hours
       });
       return product;
     } catch (error) {
@@ -422,7 +422,7 @@ export async function fetchProductByName(productName: string) {
       // Cache the result
       cache.set(cacheKey, {
         value: result.rows,
-        expiry: Date.now() + 3600 * 10, // 10 hours
+        expiry: Date.now() + 3600 * 24, // 24 hours
       });
       return result.rows[0]; // Return the first matching product
     } catch (error) {
@@ -540,7 +540,7 @@ export async function fetchProductsAndFilters(
       // Cache the result with an expiry time
       cache.set(cacheKey, {
         value: result,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+        expiry: Date.now() + CACHE_TTL,
       });
       return result;
     } catch (error) {

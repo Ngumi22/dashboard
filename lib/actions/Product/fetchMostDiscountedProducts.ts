@@ -3,6 +3,7 @@
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export type MinimalProduct = {
   id: number;
@@ -35,8 +36,6 @@ type RawProductRow = {
   discount: string;
   quantity: number;
 };
-
-const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 
 export async function fetchAllTopDiscountedProducts(): Promise<
   DiscountedCategory[]

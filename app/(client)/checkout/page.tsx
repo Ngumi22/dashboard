@@ -72,23 +72,9 @@ export default function CheckoutPage() {
     }
   }, [isEmpty, activeTab, toast]);
 
-  // Progress indicator
-  const getProgress = () => {
-    switch (activeTab) {
-      case "cart":
-        return 33;
-      case "checkout":
-        return 66;
-      case "payment":
-        return 100;
-      default:
-        return 0;
-    }
-  };
-
   return (
-    <div className="container mx-auto py-8 max-w-8xl">
-      <h1 className="text-3xl font-bold mb-8 text-center md:text-left">
+    <div className="container mt-[9.7rem] lg:mt-[12rem] bg-muted/80 text-center">
+      <h1 className="text-3xl font-bold mb-2 text-center md:text-left">
         Checkout
       </h1>
       <Tabs

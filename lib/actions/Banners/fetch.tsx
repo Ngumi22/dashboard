@@ -5,6 +5,7 @@ import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { cache } from "@/lib/cache";
 import { UsageContext } from "@/app/(backend)/dashboard/banners/banner";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 // Function to fetch unique banners
 export async function getUniqueBanners(): Promise<Banner[]> {
@@ -42,7 +43,7 @@ export async function getUniqueBanners(): Promise<Banner[]> {
 
     // Return an empty array if no banners found
     if (!banners || banners.length === 0) {
-      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 });
       return [];
     }
 
@@ -67,7 +68,7 @@ export async function getUniqueBanners(): Promise<Banner[]> {
 
     cache.set(cacheKey, {
       value: uniqueBanners,
-      expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      expiry: Date.now() + CACHE_TTL,
     });
 
     return uniqueBanners;
@@ -134,7 +135,7 @@ export async function fetchBannerById(
 
     cache.set(cacheKey, {
       value: processedBanner,
-      expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      expiry: Date.now() + CACHE_TTL,
     });
     return processedBanner;
   });
@@ -199,10 +200,10 @@ export async function fetchBannersByContext(
       }))
     );
 
-    // Cache the result for 10 hours
+    // Cache the result for 24 hours
     cache.set(cacheKey, {
       value: processedBanners,
-      expiry: Date.now() + 3600 * 10 * 1000,
+      expiry: Date.now() + 3600 * 24 * 1000,
     });
 
     return processedBanners;
@@ -226,7 +227,7 @@ export async function fetchUsageContexts() {
     );
     // Return an empty array if no contexts found
     if (!contexts || contexts.length === 0) {
-      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
+      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 });
       return [];
     }
 
@@ -240,7 +241,7 @@ export async function fetchUsageContexts() {
     // Cache the result with an expiry time using CacheUtil
     cache.set(cacheKey, {
       value: data,
-      expiry: Date.now() + 3600 * 10, // Cache for 10 hours
+      expiry: Date.now() + CACHE_TTL,
     });
 
     return data;

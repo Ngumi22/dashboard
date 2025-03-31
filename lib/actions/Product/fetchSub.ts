@@ -3,6 +3,7 @@
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 export type MinimalProduct = {
   id: number;
@@ -119,7 +120,7 @@ export async function fetchCategoryWithProducts(
 
     cache.set(cacheKey, {
       value: response,
-      expiry: Date.now() + 1000 * 60 * 5,
+      expiry: Date.now() + CACHE_TTL,
     });
     return response;
   } catch (error: any) {
