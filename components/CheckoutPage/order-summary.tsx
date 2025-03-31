@@ -152,7 +152,7 @@ export default function OrderSummary() {
 
     const message = formatWhatsAppMessage();
     // Replace with your actual WhatsApp business number
-    const phoneNumber = "254700000000";
+    const phoneNumber = "2547112725364";
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
 
     toast({
