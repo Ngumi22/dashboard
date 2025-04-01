@@ -32,6 +32,8 @@ const AVAILABLE_COUPONS = [
   { code: "FLAT15", discount: 15, type: "fixed" },
 ];
 
+const phoneNumber1 = process.env.PHONE_NUMBER1;
+
 // Payment method icons
 const PaymentIcons = () => (
   <div className="flex flex-wrap gap-2 justify-center mt-2">
@@ -152,8 +154,7 @@ export default function OrderSummary() {
 
     const message = formatWhatsAppMessage();
     // Replace with your actual WhatsApp business number
-    const phoneNumber = "2547112725364";
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+    window.open(`https://wa.me/${phoneNumber1}?text=${message}`, "_blank");
 
     toast({
       title: "WhatsApp Checkout",
