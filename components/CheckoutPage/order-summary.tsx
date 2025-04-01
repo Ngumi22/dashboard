@@ -32,7 +32,7 @@ const AVAILABLE_COUPONS = [
   { code: "FLAT15", discount: 15, type: "fixed" },
 ];
 
-const phoneNumber1 = process.env.PHONE_NUMBER1;
+const phoneNumber1 = "+254112725364";
 
 // Payment method icons
 const PaymentIcons = () => (
