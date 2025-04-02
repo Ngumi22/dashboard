@@ -30,7 +30,7 @@ export default function ProductsByTagPage({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-[9.7rem] lg:mt-[11rem] bg-muted/80">
       <div className="mb-8 flex justify-between items-center">
         <Button
           variant="ghost"

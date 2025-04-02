@@ -5,23 +5,29 @@ import ScrollableSection from "@/components/Client-Side/Features/ScrollableSecti
 import Base64Image from "@/components/Data-Table/base64-image";
 import { getUniqueCategories } from "@/lib/actions/Category/fetch";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Category } from "@/lib/actions/Category/catType";
 
 const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 const MINUTE = 1000 * 60;
 
-export default function Categories() {
+type SubCategoryProductsProps = {
+  initialData?: Category[];
+};
+
+export default function Categories({ initialData }: SubCategoryProductsProps) {
   const {
-    data: categories = [],
+    data: categories = initialData,
     isLoading,
     isError,
-    refetch, // Allows retrying manually
-  } = useQuery({
+    refetch,
+  } = useQuery<Category[] | undefined>({
     queryKey: ["categoryData"],
     queryFn: () => getUniqueCategories(),
-    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
-    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hourss
-    placeholderData: keepPreviousData, // Keep previous data while fetching new data
-    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
+    initialData,
+    staleTime: 24 * 60 * MINUTE,
+    gcTime: 48 * 60 * MINUTE,
+    placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
   });
 
   // Error Handling with Retry
@@ -48,6 +54,11 @@ export default function Categories() {
         </li>
       </ul>
     );
+  }
+
+  // Handle case where categories is undefined
+  if (!categories) {
+    return null; // or return some fallback UI
   }
 
   return (

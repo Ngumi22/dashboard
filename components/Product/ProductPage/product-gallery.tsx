@@ -6,8 +6,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
-import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useMemo, useState, useEffect } from "react";
 
 interface ProductGalleryProps {
   mainImage: string;
@@ -28,32 +27,26 @@ export default function ProductGallery({
   const [isZoomed, setIsZoomed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogIndex, setDialogIndex] = useState(0);
-  const [direction, setDirection] = useState(0); // -1 for left, 1 for right
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Convert thumbnails array to a flat array of images
   const allImages = useMemo(() => {
-    const images = [mainImage];
-    thumbnails.forEach((thumbnail) => {
-      Object.values(thumbnail).forEach((url) => {
-        if (url) images.push(url);
-      });
-    });
-    return images;
+    return [mainImage, ...thumbnails.flatMap((t) => Object.values(t))];
   }, [mainImage, thumbnails]);
 
   const currentIndex = allImages.indexOf(currentImage);
 
-  const nextImage = () => {
-    setDirection(1);
-    const nextIndex = (currentIndex + 1) % allImages.length;
-    setCurrentImage(allImages[nextIndex]);
+  const changeImage = (newIndex: number) => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setTimeout(() => {
+      setCurrentImage(allImages[newIndex]);
+      setIsAnimating(false);
+    }, 300); // Matches CSS transition time
   };
 
-  const previousImage = () => {
-    setDirection(-1);
-    const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length;
-    setCurrentImage(allImages[prevIndex]);
-  };
+  const nextImage = () => changeImage((currentIndex + 1) % allImages.length);
+  const previousImage = () =>
+    changeImage((currentIndex - 1 + allImages.length) % allImages.length);
 
   const handleZoom = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isZoomed) return;
@@ -64,53 +57,6 @@ export default function ProductGallery({
     image.style.transformOrigin = `${x}% ${y}%`;
   };
 
-  const openDialog = (index: number) => {
-    setDialogIndex(index);
-    setDialogOpen(true);
-  };
-
-  const nextDialogImage = () => {
-    setDirection(1);
-    setDialogIndex((prevIndex) => (prevIndex + 1) % allImages.length);
-  };
-
-  const prevDialogImage = () => {
-    setDirection(-1);
-    setDialogIndex(
-      (prevIndex) => (prevIndex - 1 + allImages.length) % allImages.length
-    );
-  };
-
-  // Animation variants
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: number) => ({
-      x: direction > 0 ? -1000 : 1000,
-      opacity: 0,
-    }),
-  };
-
-  // Thumbnail animation variants
-  const thumbnailVariants = {
-    inactive: { opacity: 0.6, scale: 0.95 },
-    active: {
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.3 },
-    },
-    hover: {
-      scale: 1.05,
-      transition: { duration: 0.2 },
-    },
-  };
-
   return (
     <div className="space-y-5">
       {/* Main Image */}
@@ -119,33 +65,22 @@ export default function ProductGallery({
           "relative aspect-square overflow-hidden w-96 group rounded-lg h-80 bg-gray-200 p-4",
           isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"
         )}
-        onClick={() => openDialog(currentIndex)}
+        onClick={() => setDialogOpen(true)}
         onMouseMove={handleZoom}>
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={currentImage}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 },
-            }}
-            className="absolute inset-0">
-            <Image
-              src={currentImage}
-              alt="Product image"
-              fill
-              className={cn(
-                "object-contain transition-transform duration-500 h-auto w-auto bg-inherit",
-                isZoomed && "scale-150"
-              )}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 ease-in-out">
+          <Image
+            src={currentImage}
+            alt="Product image"
+            fill
+            className={cn(
+              "object-contain transition-transform duration-500 h-auto w-auto bg-inherit",
+              isZoomed && "scale-150",
+              isAnimating ? "opacity-0 scale-105" : "opacity-100 scale-100"
+            )}
+          />
+        </div>
 
+        {/* Navigation Buttons */}
         <Button
           variant="ghost"
           size="icon"
@@ -180,35 +115,31 @@ export default function ProductGallery({
           <span className="sr-only">Zoom image</span>
         </Button>
       </div>
-      {/* Thumbnails */}
 
+      {/* Thumbnails */}
       <div className="grid grid-cols-6 gap-2 w-96">
         {allImages.map((image, index) => (
-          <motion.button
+          <button
             key={index}
-            onClick={() => {
-              setDirection(index > currentIndex ? 1 : -1);
-              setCurrentImage(image);
-            }}
-            initial="inactive"
-            animate={currentImage === image ? "active" : "inactive"}
-            whileHover="hover"
-            variants={thumbnailVariants}
+            onClick={() => changeImage(index)}
             className={cn(
-              "relative object-contain overflow-hidden rounded-md bg-muted w-full",
-              currentImage === image && "ring-2 ring-primary"
+              "relative object-contain overflow-hidden rounded-md bg-muted w-full transition-transform duration-200 ease-in-out",
+              currentImage === image
+                ? "ring-2 ring-primary scale-105"
+                : "hover:scale-105"
             )}>
             <Image
               src={image}
-              alt={`Product thumbnail ${index + 1}`}
+              alt={`Thumbnail ${index + 1}`}
               height={60}
               width={60}
               className="object-contain h-auto w-auto"
             />
-          </motion.button>
+          </button>
         ))}
       </div>
-      {/* Dialog for fullscreen gallery */}
+
+      {/* Dialog for fullscreen view */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-7xl w-full h-[90vh] p-0 border-none bg-transparent">
           <div className="relative h-full w-full flex items-center justify-center group">
@@ -218,34 +149,26 @@ export default function ProductGallery({
             </DialogClose>
 
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              <AnimatePresence initial={false} custom={direction} mode="wait">
-                <motion.div
-                  key={dialogIndex}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 },
-                  }}
-                  className="absolute inset-0 flex items-center justify-center">
-                  <Image
-                    src={allImages[dialogIndex]}
-                    alt={`Product image ${dialogIndex + 1}`}
-                    fill
-                    className="object-contain"
-                  />
-                </motion.div>
-              </AnimatePresence>
+              <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 ease-in-out">
+                <Image
+                  src={allImages[dialogIndex]}
+                  alt={`Dialog image ${dialogIndex + 1}`}
+                  fill
+                  className="object-contain transition-transform duration-500"
+                />
+              </div>
             </div>
 
+            {/* Dialog Navigation */}
             <Button
               variant="ghost"
               size="icon"
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-white hover:bg-white/40 rounded-full"
-              onClick={prevDialogImage}>
+              onClick={() =>
+                setDialogIndex(
+                  (prev) => (prev - 1 + allImages.length) % allImages.length
+                )
+              }>
               <ChevronLeft className="h-6 w-6" />
               <span className="sr-only">Previous image</span>
             </Button>
@@ -254,7 +177,9 @@ export default function ProductGallery({
               variant="ghost"
               size="icon"
               className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/20 hover:bg-background/40 rounded-full"
-              onClick={nextDialogImage}>
+              onClick={() =>
+                setDialogIndex((prev) => (prev + 1) % allImages.length)
+              }>
               <ChevronRight className="h-6 w-6" />
               <span className="sr-only">Next image</span>
             </Button>

@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, User, CreditCard } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 
 import CartTab from "@/components/CheckoutPage/cart-tab";
@@ -102,17 +100,24 @@ export default function CheckoutPage() {
           </TabsTrigger>
         </TabsList>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}>
+        <div className="relative mt-6 min-h-[400px] overflow-hidden">
+          <div
+            className={`transition-all duration-200 ease-in-out ${
+              activeTab === "cart"
+                ? "opacity-100 translate-y-0 visible"
+                : "opacity-0 absolute translate-y-4 invisible"
+            }`}>
             <TabsContent value="cart" className="mt-6">
               <CartTab onProceedToCheckout={() => setActiveTab("checkout")} />
             </TabsContent>
+          </div>
 
+          <div
+            className={`transition-all duration-200 ease-in-out ${
+              activeTab === "checkout"
+                ? "opacity-100 translate-y-0 visible"
+                : "opacity-0 absolute translate-y-4 invisible"
+            }`}>
             <TabsContent value="checkout" className="mt-6">
               <CheckoutTab
                 isLoggedIn={isLoggedIn}
@@ -121,16 +126,37 @@ export default function CheckoutPage() {
                 onContinue={() => setActiveTab("payment")}
               />
             </TabsContent>
+          </div>
 
+          <div
+            className={`transition-all duration-200 ease-in-out ${
+              activeTab === "payment"
+                ? "opacity-100 translate-y-0 visible"
+                : "opacity-0 absolute translate-y-4 invisible"
+            }`}>
             <TabsContent value="payment" className="mt-6">
               <PaymentTab
                 onBack={() => setActiveTab("checkout")}
                 onComplete={handleCompleteOrder}
               />
             </TabsContent>
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        </div>
       </Tabs>
+
+      <style jsx global>{`
+        .transition-all {
+          transition-property: all;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          transition-duration: 200ms;
+        }
+        .duration-200 {
+          transition-duration: 200ms;
+        }
+        .ease-in-out {
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
     </div>
   );
 }

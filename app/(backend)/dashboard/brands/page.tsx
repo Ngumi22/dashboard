@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Edit, Trash, Eye, Plus } from "lucide-react";
+import { Trash } from "lucide-react";
 import { Filter, RowAction } from "@/components/Data-Table/types";
 import {
   filterData,

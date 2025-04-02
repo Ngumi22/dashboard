@@ -1,9 +1,9 @@
-import Base64Image from "@/components/Data-Table/base64-image";
+"use client";
 import Image from "next/image";
 import Link from "next/link";
 
 type MiniCarousel = {
-  carousel_id: string;
+  carousel_id: number;
   title: string;
   short_description: string;
   description: string;

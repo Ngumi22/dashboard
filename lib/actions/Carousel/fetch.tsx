@@ -6,8 +6,8 @@ import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
 import { CACHE_TTL } from "@/lib/Constants";
 
-interface MiniCarousel {
-  carousel_id: string;
+export interface MiniCarousel {
+  carousel_id: number;
   title: string;
   short_description: string;
   description: string;

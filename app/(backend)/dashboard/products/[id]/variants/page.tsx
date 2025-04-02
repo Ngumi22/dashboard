@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Edit, Trash, Eye, Plus } from "lucide-react";
+import { Edit, Trash, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Filter, RowAction } from "@/components/Data-Table/types";
 import { filterData, searchData } from "@/components/Data-Table/utils";

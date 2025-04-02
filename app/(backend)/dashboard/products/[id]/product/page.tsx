@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/tooltip";
 import { ProductVariants } from "@/components/Product/ProductPage/product-variants";
 import { ProductReviews } from "@/components/Product/ProductPage/product-reviews";
-import { ProductAnalytics } from "@/components/Product/ProductPage/product-analytics";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
@@ -40,6 +39,7 @@ import { useStore } from "@/app/store";
 import { fetchProductById } from "@/lib/actions/Product/fetch";
 import { Product } from "@/lib/actions/Product/productTypes";
 import Base64Image from "@/components/Data-Table/base64-image";
+import ProductAnalytics from "@/components/Product/ProductPage/product-analytics";
 
 export default function ProductPage() {
   const fetchUniqueCategoriesWithSubs = useStore(

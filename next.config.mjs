@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
 const nextConfig = {
     async headers() {
         return [
@@ -17,7 +19,26 @@ const nextConfig = {
             },
         ];
     },
+    experimental: {
+        optimizePackageImports: [
+            '@radix-ui/themes',
+            'lucide-react',
+            '@tanstack/react-query',
+            'lodash',
+            'date-fns'
+        ]
+    },
 
+    webpack: (config) => {
+        config.optimization.splitChunks = {
+            chunks: 'all',
+            maxSize: 244 * 1024, // 244kB per chunk max
+        };
+        return config;
+    }
 };
 
-export default nextConfig;
+export default withBundleAnalyzer({
+    enabled: process.env.ANALYZE === 'true',
+    openAnalyzer: false
+})(nextConfig);

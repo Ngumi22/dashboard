@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import "../globals.css";
-import { ToastContainer } from "react-toastify";
-import { initialize } from "@/lib/MysqlDB/initialize";
 import { prefetchData } from "@/lib/actions/serverSideFetching";
-import { Suspense } from "react";
-import Loading from "./loading";
-import NewNavbar from "@/components/Client-Side/Navbar/Navbar";
-import Footer from "@/components/Client-Side/Footer/footer";
-import Providers from "@/components/Client-Side/Provider";
+import dynamic from "next/dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.bernzzdigitalsolutions.co.ke"),
@@ -73,20 +67,36 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
   },
 };
+// Dynamic import for Providers to separate its bundle
+const Providers = dynamic(() => import("@/components/Client-Side/Provider"), {
+  ssr: false,
+  loading: () => null,
+});
+
+// Delay loading ToastContainer until after hydration
+const ToastContainer = dynamic(
+  () => import("react-toastify").then((c) => c.ToastContainer),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await initialize();
-  await prefetchData();
+  // Prefetch only critical data
+  const dehydratedState = await prefetchData();
 
   return (
     <html lang="en">
       <body suppressHydrationWarning={true}>
-        <Providers>{children}</Providers>
-        <ToastContainer position="bottom-left" />
+        <Providers dehydratedState={dehydratedState}>
+          {children}
+          <ToastContainer position="bottom-left" />
+        </Providers>
       </body>
     </html>
   );

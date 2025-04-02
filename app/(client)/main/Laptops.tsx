@@ -6,17 +6,22 @@ import ProductCard, {
   ProductCardSkeleton,
 } from "@/components/Product/ProductCards/product-card";
 import ScrollableTabbedSection from "@/components/Client-Side/Features/TabbedScrollableSection";
-import { fetchCategoryWithProducts } from "@/lib/actions/Product/fetchSub";
+import {
+  CategoryWithProducts,
+  fetchCategoryWithProducts,
+} from "@/lib/actions/Product/fetchSub";
 
-interface SubCategoryProductsProps {
+type SubCategoryProductsProps = {
   categoryName: string;
-}
+  initialData?: CategoryWithProducts;
+};
 
 export default function SubCategoryProducts({
   categoryName,
+  initialData, // Passed from server
 }: SubCategoryProductsProps) {
   const {
-    data: categoryData,
+    data: categoryData = initialData,
     isLoading,
     isError,
     error,
@@ -24,9 +29,9 @@ export default function SubCategoryProducts({
   } = useQuery({
     queryKey: [`category-products:${categoryName}`, categoryName],
     queryFn: () => fetchCategoryWithProducts(categoryName),
+    initialData,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // Cache for 10 minutes
-    retry: 3, // Retry failed requests 3 times
     refetchOnWindowFocus: false, // Prevent refetching when switching tabs
   });
 

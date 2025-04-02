@@ -4,7 +4,7 @@ import Link from "next/link";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import { useStore } from "@/app/store";
 import Base64Image from "@/components/Data-Table/base64-image";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 

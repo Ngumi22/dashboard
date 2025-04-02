@@ -1,16 +1,25 @@
 "use client";
 
 import React, { useMemo } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import Base64Image from "@/components/Data-Table/base64-image";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchBannersByContext } from "@/lib/actions/Banners/fetch";
+import { Banner } from "@/lib/actions/Banners/bannerType";
+import dynamic from "next/dynamic";
+
+// Lazy load heavy dependencies
+const Base64Image = dynamic(
+  () => import("@/components/Data-Table/base64-image"),
+  { ssr: false }
+);
+
+const Link = dynamic(() => import("next/link"), { ssr: false });
 
 const MINUTE = 1000 * 60;
 
 interface BannerProps {
   contextName: string;
+  initialData?: any;
   gridFlow?: string;
   gridCols?: string;
   gap?: string;
@@ -23,6 +32,7 @@ interface BannerProps {
 
 function Banners({
   contextName,
+  initialData,
   gridFlow = "",
   gridCols = "",
   gap = "",
@@ -33,30 +43,29 @@ function Banners({
   paddingY = "",
 }: BannerProps) {
   const {
-    data: banners,
+    data: banners = initialData, // Fallback to server data
     isLoading,
     isError,
     refetch, // Allows retrying manually
   } = useQuery({
     queryKey: ["bannerData", contextName], // Must match server-side
     queryFn: () => fetchBannersByContext(contextName),
+    initialData,
     staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
     gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hours
-    placeholderData: keepPreviousData,
     enabled: Boolean(contextName),
-    retry: 3,
     refetchOnWindowFocus: false, // Prevent refetching when switching tabs
   });
 
+  // Memoized transformations (same optimization pattern)
   const slicedBanners = useMemo(() => {
     if (!banners) return [];
     return maxBanners > 0 ? banners.slice(0, maxBanners) : banners;
   }, [banners, maxBanners]);
 
-  // Pre-calculate styles for optimization.
   const bannerStyles = useMemo(
     () =>
-      slicedBanners.map((banner) => ({
+      slicedBanners.map((banner: Banner) => ({
         backgroundColor: banner.background_color,
         color: banner.text_color,
       })),
@@ -113,7 +122,7 @@ function Banners({
   return (
     <ul
       className={`flex md:grid ${gridFlow} ${gridCols} ${gap} ${height} ${className}`}>
-      {slicedBanners.map((banner, index) => (
+      {slicedBanners.map((banner: Banner, index: number) => (
         <li
           key={banner.banner_id}
           style={{ backgroundColor: bannerStyles[index].backgroundColor }}

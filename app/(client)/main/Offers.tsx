@@ -6,39 +6,51 @@ import ProductCard, {
 } from "@/components/Product/ProductCards/product-card";
 import ScrollableTabbedSection from "@/components/Client-Side/Features/TabbedScrollableSection";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllTopDiscountedProducts } from "@/lib/actions/Product/fetchMostDiscountedProducts";
+import {
+  DiscountedCategory,
+  fetchAllTopDiscountedProducts,
+} from "@/lib/actions/Product/fetchMostDiscountedProducts";
 
-export default function DiscountedOffers() {
-  // Directly use the server action in React Query
+interface DiscountedOffersProps {
+  initialData?: DiscountedCategory[];
+}
+
+export default function DiscountedOffers({
+  initialData,
+}: DiscountedOffersProps) {
   const {
-    data: categories = [],
+    data: categories = initialData ?? [],
     isLoading,
     isError,
-  } = useQuery({
+    error,
+    refetch,
+  } = useQuery<DiscountedCategory[]>({
     queryKey: ["topDiscountedProducts"],
-    queryFn: () => fetchAllTopDiscountedProducts(),
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    queryFn: fetchAllTopDiscountedProducts,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
+    initialData,
     refetchOnWindowFocus: false,
+    retry: 3,
   });
 
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
-  // Optimized tab initialization
+  // Initialize active tab
   useEffect(() => {
     if (categories.length > 0 && !activeTab) {
       setActiveTab(categories[0].name);
     }
   }, [categories, activeTab]);
 
-  // Memoized tabs computation
+  // Memoized tabs data
   const tabs = useMemo(() => {
     return categories.map(({ name, products }) => ({
       id: name,
       label: name,
-      products: products
-        .slice() // Create a copy before sorting
-        .sort((a, b) => b.discount - a.discount)
-        .slice(0, 5), // Get top 5 discounted products
+      products: [...products] // Create a new array
+        .sort((a, b) => b.discount - a.discount) // Sort by discount
+        .slice(0, 5), // Top 5 products
     }));
   }, [categories]);
 
@@ -46,41 +58,56 @@ export default function DiscountedOffers() {
     setActiveTab(tabId);
   }, []);
 
-  // Improved loading state with proper skeleton count
-  if (isLoading) {
+  // Loading state (only when no initialData)
+  if (isLoading && !initialData) {
     return (
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Discounted Offers</h2>
-        <div className="grid grid-cols-2 gap-4">
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Discounted Offers</h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Array.from({ length: 10 }).map((_, i) => (
-            <ProductCardSkeleton key={i} />
+            <ProductCardSkeleton key={`skeleton-${i}`} />
           ))}
         </div>
       </section>
     );
   }
 
-  // Improved error handling
+  // Error handling
   if (isError) {
     return (
-      <div className="text-red-500 text-center py-4">
-        Failed to load categories. Please try again later.
+      <div className="text-center space-y-2 py-4">
+        <p className="text-red-500">
+          {error?.message || "Failed to load discounted offers"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+          Retry
+        </button>
       </div>
+    );
+  }
+
+  // Empty state
+  if (!categories.length) {
+    return (
+      <section>
+        <h2 className="text-lg font-semibold">Discounted Offers</h2>
+        <p className="text-gray-500">No discounted products available</p>
+      </section>
     );
   }
 
   return (
     <section>
-      {activeTab && (
-        <ScrollableTabbedSection
-          title="Discounted Offers"
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          ProductCard={ProductCard}
-          ProductCardSkeleton={ProductCardSkeleton}
-        />
-      )}
+      <ScrollableTabbedSection
+        title="Discounted Offers"
+        tabs={tabs}
+        activeTab={activeTab ?? tabs[0]?.id}
+        onTabChange={handleTabChange}
+        ProductCard={ProductCard}
+        ProductCardSkeleton={ProductCardSkeleton}
+      />
     </section>
   );
 }

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function Logo() {
   return (
-    <Link href={"/"} prefetch={true}>
+    <Link href={"/"} prefetch={true} className="h-14 w-auto">
       <Image
         src="/logo.png"
         alt="Bernzz Logo"
@@ -11,7 +11,6 @@ export default function Logo() {
         height={144}
         className="h-auto w-auto" // Ensure responsive sizing
         priority // Ensures preloading for LCP improvement
-        quality={75} // Higher quality but optimized
         sizes="(max-width: 768px) 128px, (max-width: 1024px) 144px, 192px"
       />
     </Link>

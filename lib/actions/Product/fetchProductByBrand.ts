@@ -3,6 +3,7 @@
 import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
+import { CACHE_TTL } from "@/lib/Constants";
 
 // Define your types
 export type MinimalProduct = {
@@ -40,10 +41,8 @@ type RawProductRow = {
   category_id: string;
 };
 
-const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
-
 export async function fetchProductsGroupedByBrand(): Promise<ProductBrand[]> {
-  const cacheKey = `allBrandProducts`;
+  const cacheKey = `brandProducts`;
 
   // Check cache first with proper typing
   const cachedData = cache.get(cacheKey);

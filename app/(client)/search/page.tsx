@@ -26,7 +26,7 @@ async function SearchResults({ query }: { query: string }) {
 
   if (products.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-4 mt-[9.7rem] lg:mt-[11rem] bg-muted/80">
         <h2 className="text-xl font-semibold mb-2">No results found</h2>
         <p className="text-muted-foreground">
           We couldnt find any products matching {query}
@@ -36,7 +36,7 @@ async function SearchResults({ query }: { query: string }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-[9.7rem] lg:mt-[11rem] bg-muted/80">
       {products.map((product) => (
         <Card key={product.id} className="overflow-hidden">
           <div className="aspect-square relative">
@@ -83,7 +83,7 @@ export default async function SearchPage({
   const query = searchParams.q || "";
 
   return (
-    <div className="container py-10">
+    <div className="container py-10 mt-[9.7rem] lg:mt-[11rem] bg-muted/80">
       <div className="mb-8 flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Search Results</h1>

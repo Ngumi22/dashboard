@@ -1,5 +1,3 @@
-"use client";
-
 import HeroCarousels from "@/components/Client-Side/Hero/hero-carousel";
 
 export default function CarouselPage() {

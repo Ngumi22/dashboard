@@ -1,5 +1,3 @@
-"use client";
-
 import BannerComponent from "@/components/Client-Side/Hero/banners";
 
 export default function Bannerspage() {

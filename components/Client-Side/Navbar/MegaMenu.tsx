@@ -35,10 +35,13 @@ export interface Category {
   parent_category_id?: number | null;
   category_slug?: string;
 }
+interface MegaMenuProps {
+  initialData?: Category[]; // Server-prefetched data
+}
 
 const MINUTE = 1000 * 60;
 
-export default function MegaMenu() {
+export default function MegaMenu({ initialData }: MegaMenuProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const debouncedActiveMenu = useDebounce(activeMenu, 100);
@@ -53,12 +56,13 @@ export default function MegaMenu() {
   }, []);
 
   const {
-    data: categoriesData,
+    data: categoriesData = initialData, // Fallback to server data
     isLoading,
     isError,
   } = useQuery<Category[], Error>({
     queryKey: ["categoryDataWithSub"],
     queryFn: () => fetchCategoryWithSubCat(),
+    initialData,
     staleTime: 24 * 60 * MINUTE,
     gcTime: 48 * 60 * MINUTE,
     placeholderData: keepPreviousData,
@@ -66,7 +70,10 @@ export default function MegaMenu() {
     refetchOnWindowFocus: false,
   });
 
-  if (isLoading) return <Skeleton className="h-12 w-full rounded-lg" />;
+  // Loading state (only shows if no initialData)
+  if ((isLoading && !initialData) || !categoriesData) {
+    return <Skeleton className="h-12 w-full rounded-lg" />;
+  }
   if (isError || !categoriesData) return <div>Error fetching categories</div>;
 
   const categoriesWithSlugs = categoriesData.map((category) => ({

@@ -25,7 +25,7 @@ export default async function ProductPage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <section className="mt-[9.7rem] lg:mt-[11rem] bg-muted/80">
       <div className="container p-4 mx-auto">
         <div className="mb-4">
           <Button
@@ -61,6 +61,6 @@ export default async function ProductPage({
 
         <RecentlyViewed currentProductId={product.id.toString()} />
       </div>
-    </div>
+    </section>
   );
 }

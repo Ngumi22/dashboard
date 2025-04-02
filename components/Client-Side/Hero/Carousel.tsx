@@ -1,21 +1,49 @@
+"use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import {
-  ChevronUp,
-  ChevronDown,
-  ArrowBigUp,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
-import CarouselSlide from "./Carousel-Slide";
-import { useCarouselsQuery } from "@/lib/actions/Hooks/useCarousel";
-import { useDebounce } from "@/lib/hooks/use-debounce";
-import { Button } from "@/components/ui/button";
 
-export default function Carousel() {
-  const { data, isLoading } = useCarouselsQuery();
+import dynamic from "next/dynamic";
+
+// Lazy load icons and skeleton
+const ArrowUp = dynamic(
+  () => import("lucide-react").then((mod) => mod.ArrowUp),
+  { ssr: false }
+);
+const ArrowDown = dynamic(
+  () => import("lucide-react").then((mod) => mod.ArrowDown),
+  { ssr: false }
+);
+const CarouselSlide = dynamic(() => import("./Carousel-Slide"), { ssr: false });
+
+import { useQuery } from "@tanstack/react-query";
+import { fetchCarousels, MiniCarousel } from "@/lib/actions/Carousel/fetch";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const MINUTE = 1000 * 60;
+
+interface CarouselProps {
+  initialData?: MiniCarousel[];
+  isAdmin?: boolean;
+}
+
+export default function Carousel({
+  initialData,
+  isAdmin = false,
+}: CarouselProps) {
+  const {
+    data: carouselData = initialData, // Fallback to server data
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["carouselsData"],
+    queryFn: () => fetchCarousels(),
+    initialData,
+    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
+    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48
+    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
+  });
 
   // Wrap the initialization of 'carousels' in useMemo
-  const carousels = useMemo(() => data || [], [data]);
+  const carousels = useMemo(() => carouselData || [], [carouselData]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -125,11 +153,13 @@ export default function Carousel() {
     handleSwipeEnd(touchEndX.current - touchStartX.current);
   };
 
-  if (isLoading || !carousels.length) {
+  // Loading state (only shows if no initialData)
+  if ((isLoading && !initialData) || !carouselData) {
     return (
-      <div className="relative w-full h-52 md:h-96 overflow-hidden bg-gray-200 animate-pulse"></div>
+      <Skeleton className="h-52 md:h-96 overflow-hidden bg-gray-200 animate-pulse w-full rounded-lg" />
     );
   }
+  if (isError || !carouselData) return <div>Error fetching categories</div>;
 
   return (
     <div
