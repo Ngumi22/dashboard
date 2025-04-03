@@ -4,15 +4,12 @@ import dynamic from "next/dynamic";
 import { Suspense } from "react";
 
 // Lazy load both carousel and banners
-const Carousel = dynamic(
-  () => import("@/components/Client-Side/Hero/Carousel"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-52 md:h-96 bg-gray-200 animate-pulse w-full" />
-    ),
-  }
-);
+const Carousel = dynamic(() => import("../main/carousel"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-52 md:h-96 bg-gray-200 animate-pulse w-full" />
+  ),
+});
 
 const Banners = dynamic(() => import("../main/banners"), {
   ssr: false,

@@ -12,7 +12,10 @@ const ArrowDown = dynamic(
   () => import("lucide-react").then((mod) => mod.ArrowDown),
   { ssr: false }
 );
-const CarouselSlide = dynamic(() => import("./Carousel-Slide"), { ssr: false });
+const CarouselSlide = dynamic(
+  () => import("@/components/Client-Side/Hero/Carousel-Slide"),
+  { ssr: false }
+);
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchCarousels, MiniCarousel } from "@/lib/actions/Carousel/fetch";
@@ -22,13 +25,9 @@ const MINUTE = 1000 * 60;
 
 interface CarouselProps {
   initialData?: MiniCarousel[];
-  isAdmin: boolean;
 }
 
-export default function Carousel({
-  initialData,
-  isAdmin = false,
-}: CarouselProps) {
+export default function Carousel({ initialData }: CarouselProps) {
   const {
     data: carouselData = initialData, // Fallback to server data
     isLoading,
