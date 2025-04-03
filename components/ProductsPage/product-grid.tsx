@@ -4,6 +4,7 @@ import ProductCard from "../Product/ProductCards/product-card";
 interface ProductGridProps {
   products: Product[];
   gridLayout: number;
+  isLoading?: boolean;
 }
 
 export function formatPrice(price: number) {

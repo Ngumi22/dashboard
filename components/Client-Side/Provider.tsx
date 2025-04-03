@@ -2,17 +2,22 @@
 import {
   QueryClientProvider,
   HydrationBoundary,
+  QueryClient,
   useIsFetching,
 } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { DehydratedState } from "@tanstack/react-query";
 import { getQueryClient } from "./get-query-client";
 import NewNavbar from "./Navbar/Navbar";
 import Footer from "./Footer/footer";
 
-function LoadingSpinner() {
+function LoadingOverlay({ isVisible }: { isVisible: boolean }) {
   return (
-    <div className="fixed inset-0 z-[9999] bg-background flex items-center justify-center">
+    <div
+      className={`fixed inset-0 z-[9999] bg-background flex items-center justify-center transition-opacity duration-500 ${
+        isVisible ? "opacity-100 visible" : "opacity-0 invisible"
+      }`}>
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-lg font-medium">Loading...</p>
@@ -23,29 +28,25 @@ function LoadingSpinner() {
 
 function LoadingManager({ children }: { children: React.ReactNode }) {
   const [showContent, setShowContent] = useState(false);
-  const assetsLoaded = useRef(false);
   const isFetching = useIsFetching();
-  const [domPainted, setDomPainted] = useState(false);
+  const pathname = usePathname();
+  const assetsLoaded = useRef(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [loadingDelayOver, setLoadingDelayOver] = useState(false);
 
-  // Ensure the DOM is fully painted
+  // Ensure DOM is painted
   useEffect(() => {
-    requestAnimationFrame(() => setDomPainted(true));
+    requestAnimationFrame(() => setShowContent(true));
   }, []);
 
-  // Add a slight delay after everything is ready to prevent flickering
+  // Track page transitions
   useEffect(() => {
-    let delayTimer: NodeJS.Timeout;
-    if (assetsLoaded.current && isFetching === 0 && domPainted) {
-      delayTimer = setTimeout(() => {
-        setLoadingDelayOver(true);
-        setShowContent(true);
-      }, 400); // Small delay to ensure smooth transition
-    }
-    return () => clearTimeout(delayTimer);
-  }, [isFetching, domPainted]);
+    setIsTransitioning(true);
+    const timer = setTimeout(() => setIsTransitioning(false), 300); // Ensure smooth transitions
+    return () => clearTimeout(timer);
+  }, [pathname]);
 
-  // Check if all assets have loaded
+  // Check if assets are loaded
   useEffect(() => {
     if (document.readyState === "complete") {
       assetsLoaded.current = true;
@@ -58,13 +59,20 @@ function LoadingManager({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Ensure all queries are fetched before hiding loader
+  useEffect(() => {
+    let delayTimer: NodeJS.Timeout;
+    if (assetsLoaded.current && isFetching === 0 && !isTransitioning) {
+      delayTimer = setTimeout(() => setLoadingDelayOver(true), 500);
+    }
+    return () => clearTimeout(delayTimer);
+  }, [isFetching, isTransitioning]);
+
   return (
     <>
-      {!showContent && <LoadingSpinner />}
+      <LoadingOverlay isVisible={!loadingDelayOver} />
       <div
-        className={`transition-opacity duration-500 ${
-          loadingDelayOver ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}>
+        className={`transition-opacity duration-500 ${loadingDelayOver ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         {children}
       </div>
     </>

@@ -50,7 +50,7 @@ export default function Page() {
   return (
     <div className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80">
       <HeroSection />
-      <div className="pt-2 md:container space-y-5">
+      <div className="pt-2 md:container space-y-10">
         <Service />
         <DiscountedOffers />
         <Banners

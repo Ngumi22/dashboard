@@ -1,65 +1,35 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useDeferredValue } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-
-// Static imports (smaller components)
-
 import { useProductFilters } from "@/lib/hooks/use-product-filters";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { fetchProductsAndFilters } from "@/lib/actions/Product/fetchByFilters";
 import { parseSearchParams } from "@/lib/actions/Product/search-params";
 
-// Dynamic imports for heavy components
+// Debounce & Cache Time Constants
+const DEBOUNCE_DELAY = 400;
+const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
-// Replace all dynamic imports with explicit loading components
-const SortBar = dynamic(() => import("./sort-bar").then((mod) => mod.SortBar), {
-  loading: () => <div className="h-12 bg-gray-100 rounded animate-pulse" />,
-  ssr: false,
-});
-
-const ProductFilters = dynamic(
-  () => import("./product-filters").then((mod) => mod.ProductFilters),
-  {
-    loading: () => <div className="h-64 bg-gray-100 rounded animate-pulse" />,
-    ssr: false,
-  }
-);
-
+// Dynamic Imports for Heavy Components
 const ProductGrid = dynamic(
   () => import("./product-grid").then((mod) => mod.ProductGrid),
-  {
-    loading: () => (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-64 bg-gray-100 rounded animate-pulse" />
-        ))}
-      </div>
-    ),
-    ssr: false,
-  }
+  { ssr: false }
 );
-
-const Pagination = dynamic(
-  () => import("./pagination").then((mod) => mod.Pagination),
-  {
-    loading: () => <div className="h-10 bg-gray-100 rounded animate-pulse" />,
-    ssr: false,
-  }
+const SortBar = dynamic(() => import("./sort-bar").then((mod) => mod.SortBar));
+const ProductFilters = dynamic(
+  () => import("./product-filters").then((mod) => mod.ProductFilters),
+  { ssr: false }
 );
-
+const Pagination = dynamic(() =>
+  import("./pagination").then((mod) => mod.Pagination)
+);
 const MobileFiltersDrawer = dynamic(
   () =>
     import("./mobile-filters-drawer").then((mod) => mod.MobileFiltersDrawer),
-  {
-    loading: () => null, // No loading for drawer as it's triggered by user
-    ssr: false,
-  }
+  { ssr: false }
 );
-
-const MINUTE = 1000 * 60;
 
 export type ProductsPageProps = {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -68,38 +38,37 @@ export type ProductsPageProps = {
 export default function ProductsPageClient({
   searchParams,
 }: ProductsPageProps) {
-  const [gridLayout, setGridLayout] = useState(4);
   const parsedParams = parseSearchParams(searchParams);
   const { setFilters, ...filters } = useProductFilters(parsedParams);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const debouncedFilters = useDebounce(filters, DEBOUNCE_DELAY);
+  const deferredFilters = useDeferredValue(debouncedFilters);
+  const [gridLayout, setGridLayout] = useState(4);
 
-  const debouncedFilters = useDebounce(filters, 400);
-
-  const { data, isError, refetch } = useQuery({
-    queryKey: ["products", debouncedFilters],
-    queryFn: () => fetchProductsAndFilters(debouncedFilters),
-    staleTime: 5 * MINUTE,
-    gcTime: 10 * MINUTE,
+  const { data, isError, isFetching } = useQuery({
+    queryKey: ["products", deferredFilters],
+    queryFn: () => fetchProductsAndFilters(deferredFilters),
+    placeholderData: keepPreviousData,
+    staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
   });
 
-  const availableFilters = useMemo(
-    () => ({
-      categories: data?.filters?.categories || [],
-      brands: data?.filters?.brands || [],
-      specifications: data?.filters?.specifications || [],
-      minPrice: data?.filters?.minPrice || 0,
-      maxPrice: data?.filters?.maxPrice || 0,
-    }),
-    [data?.filters]
-  );
+  const availableFilters = useMemo(() => {
+    if (!data?.filters) return null;
+    return {
+      categories: data.filters.categories || [],
+      brands: data.filters.brands || [],
+      specifications: data.filters.specifications || [],
+      minPrice: data.filters.minPrice || 0,
+      maxPrice: data.filters.maxPrice || 0,
+    };
+  }, [data?.filters]);
 
   if (isError) {
     return (
       <div className="p-4 text-red-600">
         Error loading products
         <button
-          onClick={() => refetch()}
+          onClick={() => window.location.reload()}
           className="ml-2 px-3 py-1 bg-blue-500 text-white rounded">
           Retry
         </button>
@@ -117,28 +86,26 @@ export default function ProductsPageClient({
       />
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[240px_1fr]">
-        {!isDesktop && (
-          <div className="px-4 mb-4">
+        {availableFilters && (
+          <>
             <MobileFiltersDrawer
               availableFilters={availableFilters}
               currentFilters={filters}
               setFilters={setFilters}
             />
-          </div>
-        )}
-
-        {isDesktop && (
-          <ProductFilters
-            availableFilters={availableFilters}
-            currentFilters={filters}
-            setFilters={setFilters}
-          />
+            <ProductFilters
+              availableFilters={availableFilters}
+              currentFilters={filters}
+              setFilters={setFilters}
+            />
+          </>
         )}
 
         <div className="flex flex-col gap-6">
           <ProductGrid
             products={data?.products || []}
             gridLayout={gridLayout}
+            isLoading={isFetching}
           />
           <Pagination
             currentPage={filters.page || 1}

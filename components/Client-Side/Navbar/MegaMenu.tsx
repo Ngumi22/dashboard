@@ -8,7 +8,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { SelectSeparator } from "@/components/ui/select";
 import Image from "next/image";
 import {
   ArrowRight,
