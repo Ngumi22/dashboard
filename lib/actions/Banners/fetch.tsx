@@ -2,24 +2,12 @@
 
 import { Banner } from "./bannerType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import { cache } from "@/lib/cache";
 import { UsageContext } from "@/app/(backend)/dashboard/banners/banner";
 import { compressAndEncodeBase64 } from "../utils";
 import { CACHE_TTL } from "@/lib/Constants";
 
 // Function to fetch unique banners
 export async function getUniqueBanners(): Promise<Banner[]> {
-  const cacheKey = "bannersData";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Banner[]; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   // Query the database for banners if not in cache
   return await dbOperation(async (connection) => {
     const [banners] = await connection.query(
@@ -43,7 +31,6 @@ export async function getUniqueBanners(): Promise<Banner[]> {
 
     // Return an empty array if no banners found
     if (!banners || banners.length === 0) {
-      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 });
       return [];
     }
 
@@ -66,11 +53,6 @@ export async function getUniqueBanners(): Promise<Banner[]> {
       }))
     );
 
-    cache.set(cacheKey, {
-      value: uniqueBanners,
-      expiry: Date.now() + CACHE_TTL,
-    });
-
     return uniqueBanners;
   });
 }
@@ -79,17 +61,6 @@ export async function getUniqueBanners(): Promise<Banner[]> {
 export async function fetchBannerById(
   banner_id: number
 ): Promise<Banner | null> {
-  const cacheKey = `banner_${banner_id}`;
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Banner; // Return cached data as Banner
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     const [rows] = await connection.query(
       `SELECT
@@ -133,10 +104,6 @@ export async function fetchBannerById(
       new_context_name: banner.new_context_name,
     };
 
-    cache.set(cacheKey, {
-      value: processedBanner,
-      expiry: Date.now() + CACHE_TTL,
-    });
     return processedBanner;
   });
 }
@@ -144,17 +111,6 @@ export async function fetchBannerById(
 export async function fetchBannersByContext(
   context_name: string
 ): Promise<Banner[]> {
-  const cacheKey = `banners_${context_name}`;
-
-  // Check if the result is in cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Banner[];
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     const [rows] = await connection.query(
       `SELECT
@@ -200,34 +156,17 @@ export async function fetchBannersByContext(
       }))
     );
 
-    // Cache the result for 24 hours
-    cache.set(cacheKey, {
-      value: processedBanners,
-      expiry: Date.now() + 3600 * 24 * 1000,
-    });
-
     return processedBanners;
   });
 }
 
 export async function fetchUsageContexts() {
-  const cacheKey = "contexts";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as UsageContext[]; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
   return await dbOperation(async (connection) => {
     const [contexts] = await connection.execute(
       `SELECT context_id, name FROM usage_contexts`
     );
     // Return an empty array if no contexts found
     if (!contexts || contexts.length === 0) {
-      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 });
       return [];
     }
 
@@ -238,11 +177,6 @@ export async function fetchUsageContexts() {
         name: context.name,
       }))
     );
-    // Cache the result with an expiry time using CacheUtil
-    cache.set(cacheKey, {
-      value: data,
-      expiry: Date.now() + CACHE_TTL,
-    });
 
     return data;
   });

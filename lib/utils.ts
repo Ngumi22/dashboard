@@ -101,9 +101,12 @@ export function parseNumberField(
 }
 
 export const formatCurrency = (amount: number) => {
-  return (amount / 100).toLocaleString("en-KE", {
+  return amount.toLocaleString("en-KE", {
     style: "currency",
-    currency: "Ksh",
+    currency: "KES", // Correct currency code for Kenyan Shilling
+    currencyDisplay: "symbol", // This will show "Ksh" instead of "KES"
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 };
 

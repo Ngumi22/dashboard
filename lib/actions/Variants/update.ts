@@ -2,10 +2,7 @@
 "use server";
 
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
-import {
-  variantFormSchema,
-  VariantFormValues,
-} from "@/components/Product/Variants/schema";
+import { variantFormSchema } from "@/components/Product/Variants/schema";
 import { revalidatePath } from "next/cache";
 import { parseVariantForm } from "./parse";
 

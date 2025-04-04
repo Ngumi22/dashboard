@@ -1,6 +1,5 @@
 "use client";
 
-import type * as React from "react";
 import { Heart, Minus, Plus, Share2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -8,6 +7,7 @@ import Link from "next/link";
 import { type MinimalProduct, useCartStore } from "@/app/store/cart";
 import { useWishStore } from "@/app/store/wishlist";
 import { useCompareStore } from "@/app/store/compare";
+import { formatCurrency } from "@/lib/utils";
 
 export default function ProductInfo({
   id,
@@ -68,6 +68,7 @@ export default function ProductInfo({
       quantity: localQuantity, // Use localQuantity for cart
       created_at,
       specifications,
+      tags,
     });
   };
 
@@ -88,6 +89,7 @@ export default function ProductInfo({
           brand_name,
           created_at,
           specifications,
+          tags,
         });
   };
 
@@ -108,6 +110,7 @@ export default function ProductInfo({
           brand_name,
           created_at,
           specifications,
+          tags,
         });
   };
 
@@ -125,7 +128,7 @@ export default function ProductInfo({
       return {
         color: "bg-yellow-100 text-yellow-800",
         text: "Low Stock",
-        description: `Only ${stockQuantity} units left`,
+        description: `${stockQuantity} units left`,
       };
     } else {
       return {
@@ -141,8 +144,8 @@ export default function ProductInfo({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{name}</h1>
-        <p className="text-xs text-muted-foreground">SKU: {sku}</p>
+        <h1 className="text-xl font-bold">{name}</h1>
+
         <div className="flex items-center gap-4">
           <div className="flex items-center">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -162,23 +165,24 @@ export default function ProductInfo({
 
       <div className="space-y-2">
         <div className="flex items-center gap-4">
-          <span className="text-3xl font-bold text-primary">
-            Ksh {finalPrice}
+          <span className="text-sm font-bold text-primary">
+            {formatCurrency(finalPrice)}
           </span>
           {discount > 0 && (
             <>
-              <span className="text-xl text-muted-foreground line-through">
-                Ksh {price}
+              <span className="text-sm text-muted-foreground line-through">
+                {formatCurrency(price)}
               </span>
               <span className="text-sm">-{discount}%</span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 p-2">
-          <span className={stockStatus.color}>{stockStatus.text}</span>
+        <div className="text-sm flex items-center gap-2">
+          Availability:{" "}
           <span className="text-sm text-muted-foreground ">
             {stockStatus.description}
           </span>
+          <span className={stockStatus.color}>{stockStatus.text}</span>
         </div>
       </div>
 
@@ -251,6 +255,11 @@ export default function ProductInfo({
           />
           {isInCompare ? "Remove from Compare" : "Add to Compare"}
         </Button>
+
+        <ul>
+          <li>Prices are subject to change without notice!</li>
+          <li>All Prices are VAT Exclusive</li>
+        </ul>
       </div>
     </div>
   );

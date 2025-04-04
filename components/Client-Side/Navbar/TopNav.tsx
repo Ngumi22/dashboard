@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Phone, MessageCircleHeart, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const accountOptions = ["Create Account", "Login", "Logout"];
+const accountOptions = ["Sign Up", "Login"];
 
 export default function TopNav() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export default function TopNav() {
     <div className="bg-[#151C25] flex items-center justify-between px-2 sm:px-4 py-1">
       {/* Left Section: Delivery Text */}
       <p className="text-white text-xs md:text-sm whitespace-nowrap truncate">
-        Free Delivery Over Ksh 80,000
+        Free Deliveries
       </p>
 
       {/* Right Section: Contact Links and Account Dropdown */}

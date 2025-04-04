@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  ArrowBigRight,
-  Book,
-  ChevronDown,
-  Dot,
-  LucideIcon,
-} from "lucide-react";
+import { ArrowBigRight, ChevronDown, LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

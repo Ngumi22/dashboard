@@ -8,7 +8,7 @@ import BannerCarousel from "./BannerCarousel";
 
 // Skeleton Loader
 const ProductCardSkeleton = () => (
-  <div className="relative flex w-[50vw] md:w-[33.33vw] lg:w-[25vw] xl:w-[20vw] flex-col bg-gray-200 animate-pulse rounded-md p-4">
+  <div className="relative flex w-60 flex-col bg-gray-200 animate-pulse rounded-md p-4">
     <div className="w-full aspect-square bg-gray-300 rounded-md"></div>
     <div className="mt-2 h-4 w-3/4 bg-gray-300 rounded"></div>
     <div className="mt-1 h-4 w-1/2 bg-gray-300 rounded"></div>
@@ -77,7 +77,7 @@ const ScrollableSection: React.FC<ScrollableSectionProps> = ({
   };
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`${className}`}>
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold mb-4">{title}</h2>
         {isScrollable && (
@@ -134,7 +134,7 @@ const ScrollableSection: React.FC<ScrollableSectionProps> = ({
             items.map((item) => (
               <div
                 key={item.id}
-                className={`flex-shrink-0 ${itemClassName} snap-start`}>
+                className={`${itemClassName} flex-shrink-0 snap-start`}>
                 {item.content}
               </div>
             ))

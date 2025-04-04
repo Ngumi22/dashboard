@@ -1,23 +1,10 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { Category, Specification } from "./catType";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export async function fetchCategoryWithSubCat(): Promise<Category[]> {
-  const cacheKey = "categoryDataWithSub";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category[]; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return dbOperation(async (connection) => {
     try {
       const [categories] = await connection.query(`
@@ -69,7 +56,6 @@ export async function fetchCategoryWithSubCat(): Promise<Category[]> {
 
       // Return an empty array if no categories found
       if (!categories || categories.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + CACHE_TTL });
         return [];
       }
 
@@ -88,11 +74,6 @@ export async function fetchCategoryWithSubCat(): Promise<Category[]> {
         }))
       );
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: uniqueCategories,
-        expiry: Date.now() + CACHE_TTL, // Cache for 24 hours
-      });
       return uniqueCategories;
     } catch (error) {
       console.error("Error fetching unique categories:", error);
@@ -102,17 +83,6 @@ export async function fetchCategoryWithSubCat(): Promise<Category[]> {
 }
 
 export async function getUniqueCategories(): Promise<Category[]> {
-  const cacheKey = "categoryData";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category[]; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return dbOperation(async (connection) => {
     try {
       const [categories] = await connection.query(
@@ -129,7 +99,6 @@ export async function getUniqueCategories(): Promise<Category[]> {
 
       // Return an empty array if no categories found
       if (!categories || categories.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + CACHE_TTL });
         return [];
       }
 
@@ -147,16 +116,6 @@ export async function getUniqueCategories(): Promise<Category[]> {
         }))
       );
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: uniqueCategories,
-        expiry: Date.now() + CACHE_TTL, // Cache for 24 hours
-      });
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: uniqueCategories,
-        expiry: Date.now() + CACHE_TTL, // Cache for 24 hours
-      });
       return uniqueCategories;
     } catch (error) {
       console.error("Error fetching unique categories:", error);
@@ -168,17 +127,6 @@ export async function getUniqueCategories(): Promise<Category[]> {
 export async function fetchCategoryWithSubCatById(
   category_id: number
 ): Promise<Category | null> {
-  const cacheKey = `category_${category_id}`;
-
-  // Check cache first
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category;
-    }
-    cache.delete(cacheKey);
-  }
-
   return dbOperation(async (connection) => {
     try {
       // Fetch base category information
@@ -251,12 +199,6 @@ export async function fetchCategoryWithSubCatById(
         })),
       };
 
-      // Cache the enriched category data
-      cache.set(cacheKey, {
-        value: processedCategory,
-        expiry: Date.now() + CACHE_TTL,
-      });
-
       return processedCategory;
     } catch (error) {
       console.error(`Error fetching category ${category_id}:`, error);
@@ -269,17 +211,6 @@ export async function fetchCategoryWithSubCatById(
 export async function fetchCategoryById(
   category_id: number
 ): Promise<Category | null> {
-  const cacheKey = `category_${category_id}`;
-
-  // Check cache first
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category;
-    }
-    cache.delete(cacheKey);
-  }
-
   return dbOperation(async (connection) => {
     try {
       // Fetch base category information
@@ -324,12 +255,6 @@ export async function fetchCategoryById(
           specification_name: spec.specification_name,
         })),
       };
-
-      // Cache the enriched category data
-      cache.set(cacheKey, {
-        value: processedCategory,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return processedCategory;
     } catch (error) {
@@ -385,17 +310,6 @@ export async function getCategorySpecs(category_ids: number[]) {
 export async function fetchCategoryTreeWithSpecs(
   category_id: number
 ): Promise<Category[]> {
-  const cacheKey = `categoryTreeWithSpecs_${category_id}`;
-
-  // Check cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category[];
-    }
-    cache.delete(cacheKey);
-  }
-
   return dbOperation(async (connection) => {
     try {
       // Step 1: Fetch category hierarchy using recursive CTE
@@ -452,12 +366,6 @@ export async function fetchCategoryTreeWithSpecs(
         }))
       );
 
-      // Cache the result
-      cache.set(cacheKey, {
-        value: processedCategories,
-        expiry: Date.now() + CACHE_TTL,
-      });
-
       return processedCategories;
     } catch (error) {
       console.error("Error fetching category tree with specs:", error);
@@ -467,16 +375,6 @@ export async function fetchCategoryTreeWithSpecs(
 }
 
 export async function fetchCategoryByName(categoryName: string) {
-  const cacheKey = `${categoryName}`;
-
-  // Check cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Category[];
-    }
-    cache.delete(cacheKey);
-  }
   return dbOperation(async (connection) => {
     try {
       // Step 1: Fetch category hierarchy using recursive CTE
@@ -488,11 +386,7 @@ export async function fetchCategoryByName(categoryName: string) {
       if (result.rows.length === 0) {
         return null; // No category found
       }
-      // Cache the result
-      cache.set(cacheKey, {
-        value: result.rows,
-        expiry: Date.now() + CACHE_TTL,
-      });
+
       return result.rows[0]; // Return the first matching category
     } catch (error) {
       console.error("Error fetching category tree with specs:", error);

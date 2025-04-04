@@ -1,6 +1,5 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export interface Specification {
@@ -46,17 +45,6 @@ export async function getSpecificationsForProduct(productId: string) {
 export async function getProductSpecifications(
   product_id: number
 ): Promise<ProductSpecification[]> {
-  const cacheKey = `Specifications_${product_id}`;
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as ProductSpecification[]; // Return cached data as Banner
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     try {
       const [rows] = await connection.query(
@@ -79,7 +67,6 @@ export async function getProductSpecifications(
 
       // Return an empty array if no rows found
       if (!rows || rows.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 });
         return [];
       }
 
@@ -90,12 +77,6 @@ export async function getProductSpecifications(
           specification_value: row.specification_value,
         }))
       );
-
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: specifications,
-        expiry: Date.now() + 3600 * 10, // Cache for 10 hours
-      });
 
       return specifications;
     } catch (error) {

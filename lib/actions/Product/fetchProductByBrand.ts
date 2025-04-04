@@ -1,9 +1,7 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 // Define your types
 export type MinimalProduct = {
@@ -42,14 +40,6 @@ type RawProductRow = {
 };
 
 export async function fetchProductsGroupedByBrand(): Promise<ProductBrand[]> {
-  const cacheKey = `brandProducts`;
-
-  // Check cache first with proper typing
-  const cachedData = cache.get(cacheKey);
-  if (cachedData && Date.now() < cachedData.expiry) {
-    return cachedData.value;
-  }
-
   // Add proper typing to the dbOperation callback
   return dbOperation(async (connection) => {
     try {
@@ -122,12 +112,6 @@ export async function fetchProductsGroupedByBrand(): Promise<ProductBrand[]> {
       );
 
       const brands = Object.values(brandMap);
-
-      // Update cache with proper typing
-      cache.set(cacheKey, {
-        value: brands,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return brands;
     } catch (error) {

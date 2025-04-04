@@ -2,7 +2,6 @@
 import {
   QueryClientProvider,
   HydrationBoundary,
-  QueryClient,
   useIsFetching,
 } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
@@ -15,12 +14,12 @@ import Footer from "./Footer/footer";
 function LoadingOverlay({ isVisible }: { isVisible: boolean }) {
   return (
     <div
-      className={`fixed inset-0 z-[9999] bg-background flex items-center justify-center transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] bg-black flex items-center justify-center transition-opacity duration-500 ${
         isVisible ? "opacity-100 visible" : "opacity-0 invisible"
       }`}>
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-lg font-medium">Loading...</p>
+        <p className="text-lg font-medium text-white">Loading...</p>
       </div>
     </div>
   );

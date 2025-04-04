@@ -22,12 +22,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { logout } from "@/lib/Auth_actions/auth-actions";
 
 export default function Notifications() {
   const router = useRouter();
 
   const handleLogout = async () => {
     try {
+      await logout();
       router.push("/login"); // Redirect to login page
     } catch (error) {
       console.error("Logout failed:", error);

@@ -26,6 +26,7 @@ import {
   CarouselItemm,
 } from "@/lib/actions/Carousel/carouselType";
 import Carousel from "./Carousel";
+import Image from "next/image";
 
 export default function HeroCarousels({ isAdmin = true }: HeroCarouselsProps) {
   const { toast } = useToast();
@@ -136,7 +137,9 @@ export default function HeroCarousels({ isAdmin = true }: HeroCarouselsProps) {
                 className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-4">
                   {carousel.image && typeof carousel.image === "string" && (
-                    <img
+                    <Image
+                      height={200}
+                      width={200}
                       src={carousel.image}
                       alt={carousel.title}
                       className="w-16 h-16 object-cover rounded"

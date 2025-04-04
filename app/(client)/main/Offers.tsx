@@ -75,15 +75,10 @@ export default function DiscountedOffers({
   // Error handling
   if (isError) {
     return (
-      <div className="text-center space-y-2 py-4">
-        <p className="text-red-500">
-          {error?.message || "Failed to load discounted offers"}
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
-          Retry
-        </button>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <ProductCardSkeleton key={`skeleton-${i}`} />
+        ))}
       </div>
     );
   }

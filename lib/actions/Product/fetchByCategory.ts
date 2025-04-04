@@ -1,9 +1,7 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export type Product = {
   id: number;
@@ -26,17 +24,6 @@ export type ProductCategory = {
 export async function fetchProductByCategory(
   category_name: string
 ): Promise<ProductCategory | null> {
-  const cacheKey = `categoryProducts:${category_name}`;
-
-  // Check cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as ProductCategory;
-    }
-    cache.delete(cacheKey); // Remove expired cache
-  }
-
   return dbOperation(async (connection) => {
     try {
       const result = await connection.query(
@@ -97,12 +84,6 @@ export async function fetchProductByCategory(
       );
 
       const category: ProductCategory = { name: category_name, products };
-
-      // Store in cache
-      cache.set(cacheKey, {
-        value: category,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return category;
     } catch (error: any) {

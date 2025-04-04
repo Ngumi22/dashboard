@@ -1,5 +1,5 @@
 "use server";
-import { cache } from "@/lib/cache";
+
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
@@ -235,7 +235,6 @@ export const updateProductAction = async (
 
       // Commit the transaction and invalidate the cache.
       await connection.commit();
-      cache.delete(cacheKey);
       revalidatePath("/dashboard/products");
 
       console.log("Product update successful.");

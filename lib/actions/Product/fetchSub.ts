@@ -1,9 +1,7 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export type MinimalProduct = {
   id: number;
@@ -30,16 +28,6 @@ export type CategoryWithProducts = {
 export async function fetchCategoryWithProducts(
   categoryName: string
 ): Promise<CategoryWithProducts | null> {
-  const cacheKey = `category-products:${categoryName}`;
-
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as CategoryWithProducts;
-    }
-    cache.delete(cacheKey);
-  }
-
   try {
     const result = await dbOperation(async (connection) => {
       const [rows] = await connection.query(
@@ -81,7 +69,6 @@ export async function fetchCategoryWithProducts(
     });
 
     if (!result || result.length === 0) {
-      cache.set(cacheKey, { value: null, expiry: Date.now() + 1000 * 60 * 5 });
       return null;
     }
 
@@ -118,10 +105,6 @@ export async function fetchCategoryWithProducts(
       subCategories,
     };
 
-    cache.set(cacheKey, {
-      value: response,
-      expiry: Date.now() + CACHE_TTL,
-    });
     return response;
   } catch (error: any) {
     console.error(`Error fetching category ${categoryName}:`, error);

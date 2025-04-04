@@ -1,23 +1,12 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { Product, ProductStatus } from "./productTypes";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export async function fetchProductByName(
   product_name: string
 ): Promise<Product> {
-  const cacheKey = `product_${product_name}`;
-
-  // Check cache first
-  const cachedData = cache.get(cacheKey);
-  if (cachedData && Date.now() < cachedData.expiry) {
-    return cachedData.value as Product;
-  }
-  cache.delete(cacheKey); // Expired cache cleanup
-
   return dbOperation(async (connection) => {
     try {
       const query = `
@@ -123,11 +112,6 @@ export async function fetchProductByName(
           : [],
       };
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: product,
-        expiry: Date.now() + CACHE_TTL,
-      });
       return product;
     } catch (error) {
       console.error("Error fetching product by ID:", error);

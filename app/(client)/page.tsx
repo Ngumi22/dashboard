@@ -50,25 +50,25 @@ export default function Page() {
   return (
     <div className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80">
       <HeroSection />
-      <div className="pt-2 md:container space-y-10">
+      <div className="md:container space-y-6">
         <Service />
         <DiscountedOffers />
         <Banners
           contextName="Hero"
-          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
+          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-2"
           gap="gap-2 md:gap-4"
           height="h-30 md:h-40"
-          maxBanners={3}
+          maxBanners={2}
           paddingX="px-3 md:px-8"
           paddingY="py-2 md:py-4"
         />
         <NewProducts />
         <Banners
           contextName="Hero"
-          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-3"
+          gridCols="flex md:grid grid-cols-1 overflow-scroll scrollbar md:grid-cols-2"
           gap="gap-2 md:gap-4"
           height="h-30 md:h-40"
-          maxBanners={3}
+          maxBanners={2}
           paddingX="px-3 md:px-8"
           paddingY="py-2 md:py-4"
         />

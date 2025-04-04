@@ -1,23 +1,10 @@
 "use server";
 
-import { cache } from "@/lib/cache"; // Import CacheUtil
 import { Brand } from "./brandType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export async function getUniqueBrands(): Promise<Brand[]> {
-  const cacheKey = "brandData";
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Brand[]; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     // Fetch all unique brands
     const [brands] = await connection.query(`
@@ -25,10 +12,6 @@ export async function getUniqueBrands(): Promise<Brand[]> {
 
     // Return an empty array if no brands found
     if (!brands || brands.length === 0) {
-      cache.set(cacheKey, {
-        value: [],
-        expiry: Date.now() + 1000 * 60 * 60 * 24,
-      });
       return [];
     }
 
@@ -43,26 +26,11 @@ export async function getUniqueBrands(): Promise<Brand[]> {
       }))
     );
 
-    cache.set(cacheKey, {
-      value: uniqueBrands,
-      expiry: Date.now() + CACHE_TTL,
-    });
     return uniqueBrands;
   });
 }
 
 export async function fetchBrandById(brand_id: number): Promise<Brand | null> {
-  const cacheKey = `brand_${brand_id}`;
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Brand; // Return cached data as Banner
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     try {
       // Query the database
@@ -84,11 +52,6 @@ export async function fetchBrandById(brand_id: number): Promise<Brand | null> {
           ? await compressAndEncodeBase64(brand.brand_image)
           : null, // Compress image if it exists
       };
-
-      cache.set(cacheKey, {
-        value: processedBrand,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return processedBrand;
     } catch (error) {

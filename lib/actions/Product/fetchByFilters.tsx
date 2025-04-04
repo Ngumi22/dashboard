@@ -1,7 +1,6 @@
 "use server";
 
-import { cache } from "@/lib/cache";
-import { CACHE_TTL, DBQUERYLIMITS } from "@/lib/Constants";
+import { DBQUERYLIMITS } from "@/lib/Constants";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { Product, SearchParams } from "./search-params";
 import { compressAndEncodeBase64 } from "../utils";
@@ -21,20 +20,7 @@ export async function fetchProductsAndFilters(filter: SearchParams): Promise<{
 }> {
   const limit = Number(filter.perPage) || DBQUERYLIMITS.default;
   const offset = ((filter.page ?? 1) - 1) * limit;
-  const cacheKey = `products_${filter.page}_${limit}_${offset}_${
-    filter.sort
-  }_${JSON.stringify(filter)}`;
-
   const sortClause = getSortClause(filter.sort || "newest");
-
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value;
-    }
-    cache.delete(cacheKey);
-  }
-
   return dbOperation(async (connection) => {
     try {
       // Fetch all parent categories and their subcategories
@@ -176,11 +162,6 @@ export async function fetchProductsAndFilters(filter: SearchParams): Promise<{
       // console.log("Final SQL Query:", query);
 
       // console.log("Sort parameter:", filter.sort);
-      // Cache result
-      cache.set(cacheKey, {
-        value: result,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return result;
     } catch (error) {
@@ -331,8 +312,8 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     conditions.length > 0
       ? conditions.join(" AND ")
       : filter.name
-      ? "p.product_name LIKE ?"
-      : "1";
+        ? "p.product_name LIKE ?"
+        : "1";
   if (!conditions.length && filter.name) {
     params.push(`%${filter.name}%`);
   }

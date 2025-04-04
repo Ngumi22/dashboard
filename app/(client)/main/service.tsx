@@ -59,16 +59,18 @@ const services = [
 export default function Service() {
   return (
     <div className="md:container">
-      <div className="flex overflow-x-auto gap-4 snap-x snap-mandatory scrollbar py-4 px-2 md:px-0">
+      <div className="flex overflow-x-auto gap-2 md:gap-4 snap-x snap-mandatory scrollbar py-2">
         {services.map((service) => {
           const Icon = icons[service.icon as keyof typeof icons];
           return (
             <div
               key={service.id}
-              className="flex-shrink-0 h-32 w-56 snap-start flex flex-col items-center justify-center gap-2 p-2 md:p-4 bg-white shadow-md rounded-lg text-center">
-              {Icon && <Icon className="h-8 w-8 text-blue-600" />}
-              <div>
-                <h3 className="text-md font-semibold">{service.title}</h3>
+              className="flex-shrink-0 h-32 w-56 snap-start flex items-center justify-center shadow bg-white gap-4 p-2 md:p-4 rounded-lg text-center">
+              {Icon && <Icon className="h-12 w-12 text-gray-900" />}
+              <div className="text-start">
+                <h3 className="text-start text-md font-semibold">
+                  {service.title}
+                </h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {service.description}
                 </p>

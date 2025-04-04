@@ -22,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { logout } from "@/lib/actions/Auth/login";
+import { logout } from "@/lib/Auth_actions/auth-actions";
 
 export function UserNav() {
   const router = useRouter();

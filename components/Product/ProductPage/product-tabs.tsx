@@ -1,16 +1,5 @@
-"use client";
-import { Mail, MapPin, Phone, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Key,
-  ReactElement,
-  JSXElementConstructor,
-  ReactNode,
-  ReactPortal,
-  AwaitedReactNode,
-} from "react";
 import { Product } from "@/lib/actions/Product/productTypes";
 
 interface ProductTabsProps {

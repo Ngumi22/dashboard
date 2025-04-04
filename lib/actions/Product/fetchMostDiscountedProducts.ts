@@ -1,9 +1,7 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export type MinimalProduct = {
   id: number;
@@ -22,32 +20,10 @@ export type DiscountedCategory = {
   name: string;
   products: MinimalProduct[];
 };
-// Define the raw row type from the database
-type RawProductRow = {
-  category_id: string;
-  category_name: string;
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  created_at: string;
-  main_image: string;
-  ratings: string;
-  discount: string;
-  quantity: number;
-};
 
 export async function fetchAllTopDiscountedProducts(): Promise<
   DiscountedCategory[]
 > {
-  const cacheKey = "topDiscountedProducts";
-
-  // Check cache first
-  const cachedData = cache.get(cacheKey);
-  if (cachedData && Date.now() < cachedData.expiry) {
-    return JSON.parse(JSON.stringify(cachedData.value)) as DiscountedCategory[];
-  }
-
   return dbOperation(async (connection) => {
     try {
       const [rows] = await connection.query(`
@@ -114,12 +90,6 @@ export async function fetchAllTopDiscountedProducts(): Promise<
       }
 
       const categories = Object.values(categoryMap);
-
-      // Update cache
-      cache.set(cacheKey, {
-        value: categories,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return categories;
     } catch (error) {

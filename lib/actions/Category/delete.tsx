@@ -1,14 +1,9 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { FieldPacket, RowDataPacket } from "mysql2/promise";
 
 export async function deleteCategory(category_id: number) {
-  const categoryCacheKey = `category_${category_id}`;
-  const uniqueCategoriesCacheKey = "categoryData";
-  const uniqueCategoriesCacheKey1 = "categoriesWithSubs";
-
   return await dbOperation(async (connection) => {
     // Check if the category exists and whether it's a parent category
     const [categoryRows]: [RowDataPacket[], FieldPacket[]] =
@@ -40,11 +35,6 @@ export async function deleteCategory(category_id: number) {
     if (result.affectedRows === 0) {
       return { success: false, error: "Failed to delete category" };
     }
-
-    // Invalidate caches
-    cache.delete(categoryCacheKey);
-    cache.delete(uniqueCategoriesCacheKey);
-    cache.delete(uniqueCategoriesCacheKey1);
 
     return {
       success: true,

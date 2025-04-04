@@ -1,12 +1,11 @@
 "use client";
 
-import type * as React from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ZoomIn, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 
 interface ProductGalleryProps {
   mainImage: string;
@@ -62,7 +61,7 @@ export default function ProductGallery({
       {/* Main Image */}
       <div
         className={cn(
-          "relative aspect-square overflow-hidden w-96 group rounded-lg h-80 bg-gray-200 p-4",
+          "relative aspect-square overflow-hidden w-full group rounded-lg h-72 bg-gray-200 p-4",
           isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"
         )}
         onClick={() => setDialogOpen(true)}
@@ -117,7 +116,7 @@ export default function ProductGallery({
       </div>
 
       {/* Thumbnails */}
-      <div className="grid grid-cols-6 gap-2 w-96">
+      <div className="grid grid-cols-6 gap-2 w-full items-center h-24">
         {allImages.map((image, index) => (
           <button
             key={index}

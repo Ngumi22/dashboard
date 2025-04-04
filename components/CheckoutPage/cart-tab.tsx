@@ -26,6 +26,7 @@ import { useToast } from "@/components/ui/use-toast";
 import OrderSummary from "./order-summary";
 import { useCartStore } from "@/app/store/cart";
 import { useRouter } from "next/navigation";
+import { formatCurrency } from "@/lib/utils";
 
 // Sample coupon codes
 const AVAILABLE_COUPONS = [
@@ -223,7 +224,7 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                       <div>
                         <h3 className="font-medium">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Ksh {item.price.toFixed(2)} each
+                          {formatCurrency(item.price)} each
                         </p>
                       </div>
                     </div>
@@ -250,7 +251,7 @@ export default function CartTab({ onProceedToCheckout }: CartTabProps) {
                       </div>
                       <div className="text-right min-w-[80px] order-1 sm:order-none">
                         <p className="font-medium">
-                          Ksh {(item.price * item.quantity).toFixed(2)}
+                          {formatCurrency(item.price * item.quantity)}
                         </p>
                       </div>
                       <X

@@ -8,9 +8,7 @@ import { createSupplier } from "../Supplier/post";
 import { createProductImages } from "../Images/post";
 import { createProductTags } from "../Tags/post";
 import { createProductSpecifications } from "../Specifications/post";
-import { dbsetupTables } from "@/lib/MysqlDB/tables";
 import { revalidatePath } from "next/cache";
-import { getSession } from "@/lib/Auth_actions/sessions";
 import { getCurrentUser } from "@/lib/Auth_actions/auth-actions";
 
 export type FormState = {

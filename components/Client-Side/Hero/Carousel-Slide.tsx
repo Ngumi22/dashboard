@@ -31,8 +31,8 @@ export default function CarouselSlide({
           <Image
             src={carousel.image}
             alt={`${carousel.title} ${carousel.short_description}`}
-            width={500}
-            height={500}
+            width={600}
+            height={600}
             className="object-contain scale-50 md:scale-75 h-auto w-auto"
           />
         </div>

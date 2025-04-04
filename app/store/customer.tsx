@@ -1,10 +1,11 @@
 import { Category } from "@/lib/actions/Category/catType";
 import { deleteCategory } from "@/lib/actions/Category/delete";
 import {
-  fetchCategoryById,
-  getUniqueCategories,
+  fetchCategoryByName,
+  fetchCategoryWithSubCat,
+  fetchCategoryWithSubCatById,
+  fetchSubcategoryByName,
 } from "@/lib/actions/Category/fetch";
-import { getCachedData, setCachedData, clearCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface CategoryState {
@@ -12,9 +13,30 @@ export interface CategoryState {
   loading: boolean;
   error: string | null;
   selectedCategory: Category | null;
-  fetchUniqueCategories: () => Promise<void>;
+  fetchUniqueCategoriesWithSubs: () => Promise<void>;
   deleteCategoryState: (category_id: number) => Promise<{ success: boolean }>;
-  fetchCategoryByIdState: (category_id: number) => Promise<Category | null>;
+  fetchCategoryWithSubByIdState: (
+    category_id: number
+  ) => Promise<Category | null>;
+}
+
+export interface CategoryState {
+  categories: Category[];
+  loading: boolean;
+  error: string | null;
+  selectedCategory: Category | null;
+  categoryDetails: Category | null; // Added this
+  subcategoryDetails: Category | null; // Added this
+  fetchUniqueCategoriesWithSubs: () => Promise<void>;
+  fetchCategoryBySlug: (category_name: string) => Promise<Category | null>;
+  fetchSubcategoryBySlug: (
+    categorySlug: string,
+    subcategorySlug: string
+  ) => Promise<Category | null>;
+  fetchCategoryWithSubByIdState: (
+    category_id: number
+  ) => Promise<Category | null>;
+  deleteCategoryState: (category_id: number) => Promise<{ success: boolean }>;
 }
 
 export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
@@ -22,30 +44,17 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
   loading: false,
   error: null,
   selectedCategory: null,
+  categoryDetails: null, // Added this
+  subcategoryDetails: null, // Added this
 
-  fetchUniqueCategories: async () => {
-    const cacheKey = "categories";
-
-    // Check if data is cached
-    const cachedData = getCachedData<Category[]>(cacheKey);
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { categories } = get();
-      if (JSON.stringify(categories) !== JSON.stringify(cachedData)) {
-        set({ categories: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
-    // Prevent redundant API calls if already loading
+  fetchUniqueCategoriesWithSubs: async () => {
     const { loading } = get();
     if (loading) return;
 
     set({ loading: true, error: null });
 
     try {
-      const categories = await getUniqueCategories(); // Fetch categories
-      setCachedData(cacheKey, categories, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      const categories = await fetchCategoryWithSubCat();
       set({ categories, loading: false, error: null });
     } catch (err) {
       set({
@@ -56,24 +65,58 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
     }
   },
 
-  fetchCategoryByIdState: async (category_id: number) => {
-    const cacheKey = `category_${category_id}`;
-    const cachedCategory = getCachedData<Category>(cacheKey);
-
-    if (cachedCategory) {
-      set({ selectedCategory: cachedCategory, loading: false, error: null });
-      return cachedCategory;
+  fetchCategoryBySlug: async (category_name: string) => {
+    try {
+      set({ loading: true });
+      const category = await fetchCategoryByName(category_name);
+      set({
+        categoryDetails: category,
+        loading: false,
+        error: null,
+      });
+      return category;
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Error fetching category",
+        loading: false,
+      });
+      return null;
     }
+  },
 
+  fetchSubcategoryBySlug: async (
+    categorySlug: string,
+    subcategorySlug: string
+  ) => {
+    try {
+      set({ loading: true });
+      const subcategory = await fetchSubcategoryByName(
+        categorySlug,
+        subcategorySlug
+      );
+      set({
+        subcategoryDetails: subcategory,
+        loading: false,
+        error: null,
+      });
+      return subcategory;
+    } catch (err) {
+      set({
+        error:
+          err instanceof Error ? err.message : "Error fetching subcategory",
+        loading: false,
+      });
+      return null;
+    }
+  },
+
+  fetchCategoryWithSubByIdState: async (category_id: number) => {
     set({ loading: true, error: null });
 
     try {
-      const category = await fetchCategoryById(category_id);
+      const category = await fetchCategoryWithSubCatById(category_id);
 
       if (category) {
-        // Cache the category with a TTL of 2 minutes
-        setCachedData(cacheKey, category, { ttl: 2 * 60 });
-
         set({ selectedCategory: category, loading: false, error: null });
         return category;
       } else {
@@ -101,20 +144,9 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
 
     try {
       const cacheKey = "categories";
-
-      // Call the server action to delete the category
       await deleteCategory(category_id);
+      const freshData = await fetchCategoryWithSubCat();
 
-      // Clear the cached data
-      clearCachedData(cacheKey);
-
-      // Refetch categories after deletion to get the latest data
-      const freshData = (await getUniqueCategories()) as Category[];
-
-      // Update the cache with the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
-
-      // Update the state with the latest categories
       set({ categories: freshData, loading: false, error: null });
 
       return { success: true };
@@ -123,7 +155,6 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
         error: err instanceof Error ? err.message : "Error deleting category",
         loading: false,
       });
-
       return { success: false };
     }
   },

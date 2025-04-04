@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
+
 import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,53 +13,9 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getPostBySlug, getRelatedPosts } from "@/lib/blog-data";
+import { metadata } from "@/lib/Metadata/blog-metadata";
 
-// Generate metadata for the page
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const post = getPostBySlug(params.slug);
-
-  if (!post) {
-    return {
-      title: "Post Not Found",
-    };
-  }
-
-  return {
-    title: `${post.title} | BDS Blog`,
-    description: post.excerpt,
-    keywords: post.tags?.join(", "),
-    authors: [{ name: post.author }],
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      type: "article",
-      publishedTime: post.date,
-      authors: [post.author],
-      tags: post.tags,
-      images: [
-        {
-          url: post.image,
-          width: 1200,
-          height: 630,
-          alt: post.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
-      images: [post.image],
-    },
-    alternates: {
-      canonical: `https://techtrove.com/blog/${post.slug}`,
-    },
-  };
-}
+export { metadata };
 
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const post = getPostBySlug(params.slug);
@@ -72,7 +28,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const relatedPosts = getRelatedPosts(post.id);
 
   return (
-    <div className="container px-4 py-12 mx-auto">
+    <div className="container mt-[8rem] lg:mt-[11rem] bg-muted/80 px-4 py-4 mx-auto">
       <Button variant="ghost" asChild className="mb-8">
         <Link href="/blog" className="flex items-center">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to all posts

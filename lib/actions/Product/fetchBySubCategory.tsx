@@ -1,6 +1,5 @@
 "use server";
 
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
 import { CACHE_TTL } from "@/lib/Constants";
@@ -31,17 +30,6 @@ export type SubCategory = {
 export async function fetchSubCategories(
   categoryName: string
 ): Promise<SubCategory[]> {
-  const cacheKey = `subCategories:${categoryName}`;
-
-  // Check cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value;
-    }
-    cache.delete(cacheKey); // Remove expired cache
-  }
-
   try {
     const result = await dbOperation(async (connection) => {
       const [rows] = await connection.query(
@@ -84,15 +72,8 @@ export async function fetchSubCategories(
 
     // Return an empty array if no subcategories found
     if (!result || result.length === 0) {
-      cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 10 }); // Cache empty result
       return [];
     }
-
-    // Store in cache for 5 minutes
-    cache.set(cacheKey, {
-      value: result,
-      expiry: Date.now() + 1000 * 60 * 5, // Cache for 5 minutes
-    });
 
     return result;
   } catch (error: any) {
@@ -104,17 +85,6 @@ export async function fetchSubCategories(
 export async function fetchProductsBySubCategory(
   sub_category_name: string
 ): Promise<ProductSubCategory | null> {
-  const cacheKey = `subCategoryProducts:${sub_category_name}`;
-
-  // Check cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as ProductSubCategory;
-    }
-    cache.delete(cacheKey); // Remove expired cache
-  }
-
   try {
     const result = await dbOperation(async (connection) => {
       const [rows] = await connection.query(
@@ -166,7 +136,6 @@ export async function fetchProductsBySubCategory(
 
     // Return null if no rows found
     if (!result || result.length === 0) {
-      cache.set(cacheKey, { value: null, expiry: Date.now() + 3600 * 10 }); // Cache null result
       return null;
     }
 
@@ -199,10 +168,6 @@ export async function fetchProductsBySubCategory(
     // Get the subcategory and its products
     const subcategory = groupedProducts[sub_category_name];
     if (!subcategory) {
-      cache.set(cacheKey, {
-        value: null,
-        expiry: Date.now() + 1000 * 60 * 60 * 24,
-      }); // Cache null result
       return null; // No products found for the subcategory
     }
 
@@ -210,12 +175,6 @@ export async function fetchProductsBySubCategory(
       name: sub_category_name,
       products: subcategory,
     };
-
-    // Store in cache for 5 minutes
-    cache.set(cacheKey, {
-      value: category,
-      expiry: Date.now() + CACHE_TTL,
-    });
 
     return category;
   } catch (error: any) {

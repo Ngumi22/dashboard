@@ -1,7 +1,6 @@
 "use server";
 
-import { cache } from "@/lib/cache";
-import { CACHE_TTL, DBQUERYLIMITS } from "@/lib/Constants";
+import { DBQUERYLIMITS } from "@/lib/Constants";
 import {
   Product,
   ProductStatus,
@@ -20,18 +19,6 @@ export async function fetchProducts(
     DBQUERYLIMITS[filter.type as keyof typeof DBQUERYLIMITS] ||
     DBQUERYLIMITS.default;
   const offset = (currentPage - 1) * limit;
-  const cacheKey = `products_${currentPage}_${limit}_${offset}_${JSON.stringify(
-    filter
-  )}`;
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value; // Ensure data is returned as an array
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
 
   return dbOperation(async (connection) => {
     try {
@@ -86,11 +73,6 @@ export async function fetchProducts(
 
       const result = { products };
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: result,
-        expiry: Date.now() + CACHE_TTL,
-      });
       return result;
     } catch (error) {
       console.error("Error fetching filtered products:", error);
@@ -271,15 +253,6 @@ function buildFilterConditions(filter: SearchParams) {
 }
 
 export async function fetchProductById(product_id: number): Promise<Product> {
-  const cacheKey = `product_${product_id}`;
-
-  // Check cache first
-  const cachedData = cache.get(cacheKey);
-  if (cachedData && Date.now() < cachedData.expiry) {
-    return cachedData.value as Product;
-  }
-  cache.delete(cacheKey); // Expired cache cleanup
-
   return dbOperation(async (connection) => {
     try {
       const query = `
@@ -383,11 +356,6 @@ export async function fetchProductById(product_id: number): Promise<Product> {
           : [],
       };
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: product,
-        expiry: Date.now() + 3600 * 2400 * 10, // Cache for 24 hours
-      });
       return product;
     } catch (error) {
       console.error("Error fetching product by ID:", error);
@@ -399,16 +367,6 @@ export async function fetchProductById(product_id: number): Promise<Product> {
 }
 
 export async function fetchProductByName(productName: string) {
-  const cacheKey = `${productName}`;
-
-  // Check cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Product[];
-    }
-    cache.delete(cacheKey);
-  }
   return dbOperation(async (connection) => {
     try {
       const result = await connection.query(
@@ -419,11 +377,7 @@ export async function fetchProductByName(productName: string) {
       if (result.rows.length === 0) {
         return null; // No product found
       }
-      // Cache the result
-      cache.set(cacheKey, {
-        value: result.rows,
-        expiry: Date.now() + 3600 * 24, // 24 hours
-      });
+
       return result.rows[0]; // Return the first matching product
     } catch (error) {
       console.error("Error fetching product name:", error);
@@ -452,18 +406,6 @@ export async function fetchProductsAndFilters(
     DBQUERYLIMITS[filter.type as keyof typeof DBQUERYLIMITS] ||
     DBQUERYLIMITS.default;
   const offset = (currentPage - 1) * limit;
-  const cacheKey = `products_${currentPage}_${limit}_${offset}_${JSON.stringify(
-    filter
-  )}`;
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value;
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
 
   return dbOperation(async (connection) => {
     try {
@@ -537,11 +479,6 @@ export async function fetchProductsAndFilters(
         },
       };
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: result,
-        expiry: Date.now() + CACHE_TTL,
-      });
       return result;
     } catch (error) {
       console.error("Error fetching filtered products:", error);

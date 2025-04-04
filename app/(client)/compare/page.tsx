@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { MinimalProduct, useCompareStore } from "@/app/store/compare";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { fetchProductById } from "@/lib/actions/Product/fetchById";
-import { formatCurrency } from "@/components/Product/ProductCards/product-card";
 import { useCartStore } from "@/app/store/cart";
 import { X } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils";
 
 export default function ProductComparison() {
   const compareItems = useCompareStore((state) => state.compareItems);

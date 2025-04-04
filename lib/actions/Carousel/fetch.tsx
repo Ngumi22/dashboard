@@ -1,10 +1,8 @@
 "use server";
 
-import { cache } from "@/lib/cache"; // Import CacheUtil
 import { Carousel } from "./carouselType";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
-import { CACHE_TTL } from "@/lib/Constants";
 
 export interface MiniCarousel {
   carousel_id: number;
@@ -23,17 +21,6 @@ export async function getUniqueCarousels({
   limit?: number;
   status?: "active" | "inactive" | "all";
 } = {}): Promise<Carousel[]> {
-  const cacheKey = `carouselsData`; // Unique cache key based on status and limit
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Carousel[]; // Return cached data
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     try {
       // Construct the SQL query dynamically based on status
@@ -56,7 +43,6 @@ export async function getUniqueCarousels({
 
       // Return an empty array if no carousels found
       if (!carousels || carousels.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 }); // Cache empty result
         return [];
       }
 
@@ -77,12 +63,6 @@ export async function getUniqueCarousels({
         }))
       );
 
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: uniqueCarousels,
-        expiry: Date.now() + CACHE_TTL,
-      });
-
       return uniqueCarousels;
     } catch (error) {
       console.error("Error fetching unique carousels:", error);
@@ -94,17 +74,6 @@ export async function getUniqueCarousels({
 export async function fetchCarouselById(
   carousel_id: number
 ): Promise<Carousel | null> {
-  const cacheKey = `carousel_${carousel_id}`;
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as Carousel; // Return cached data as Banner
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     try {
       // Query the database
@@ -134,11 +103,6 @@ export async function fetchCarouselById(
         background_color: carousel.background_color,
       };
 
-      cache.set(cacheKey, {
-        value: processedCarousel,
-        expiry: Date.now() + CACHE_TTL,
-      });
-
       return processedCarousel;
     } catch (error) {
       console.error("Database query error:", error);
@@ -148,16 +112,6 @@ export async function fetchCarouselById(
 }
 
 export async function deleteCarousel(carousel_id: number): Promise<boolean> {
-  const cacheKey = `carousel_${carousel_id}`;
-
-  // Check if the carousel exists in the cache using CacheUtil
-  const cachedData = cache.get(cacheKey);
-
-  // If the cached data is valid, delete it from the cache
-  if (cachedData) {
-    cache.delete(cacheKey); // Delete expired or valid cached entry
-  }
-
   return await dbOperation(async (connection) => {
     try {
       // Check if the carousel exists in the database
@@ -176,9 +130,6 @@ export async function deleteCarousel(carousel_id: number): Promise<boolean> {
         carousel_id,
       ]);
 
-      cache.delete("carousels");
-      cache.delete(cacheKey);
-
       return true; // Deletion successful
     } catch (error) {
       console.error("Error deleting carousel:", error);
@@ -188,17 +139,6 @@ export async function deleteCarousel(carousel_id: number): Promise<boolean> {
 }
 
 export async function fetchCarousels(): Promise<MiniCarousel[]> {
-  const cacheKey = `carouselsData`; // Unique cache key based on status and limit
-
-  // Check if the result is already in the cache
-  if (cache.has(cacheKey)) {
-    const cachedData = cache.get(cacheKey);
-    if (cachedData && Date.now() < cachedData.expiry) {
-      return cachedData.value as MiniCarousel[]; // Return cached data
-    }
-    cache.delete(cacheKey); // Invalidate expired cache
-  }
-
   return await dbOperation(async (connection) => {
     try {
       const [rows] = await connection.query(
@@ -217,7 +157,6 @@ export async function fetchCarousels(): Promise<MiniCarousel[]> {
 
       // Return an empty array if no carousels found
       if (!rows || rows.length === 0) {
-        cache.set(cacheKey, { value: [], expiry: Date.now() + 3600 * 24 }); // Cache empty result
         return [];
       }
 
@@ -235,12 +174,6 @@ export async function fetchCarousels(): Promise<MiniCarousel[]> {
           status: carousel.status,
         }))
       );
-
-      // Cache the result with an expiry time
-      cache.set(cacheKey, {
-        value: uniqueCarousels,
-        expiry: Date.now() + CACHE_TTL,
-      });
 
       return uniqueCarousels;
     } catch (error) {

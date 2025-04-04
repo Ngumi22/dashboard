@@ -152,14 +152,11 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
   };
 
   return (
-    <div className={`mx-auto py-8 ${className}`}>
+    <div className={`mx-auto py-4 ${className}`}>
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold mb-4">{title}</h2>
-        <Link
-          href={`/products`}
-          prefetch={true}
-          className="text-md flex gap-2 items-center text-sm">
-          <Button>
+        <Link href={`/products`}>
+          <Button className="rounded-none text-sm md:text-md flex gap-1 p-2 items-center">
             Shop All <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
@@ -173,7 +170,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
               <Button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`md:px-4 px-2 py-2 whitespace-nowrap transition-colors text-[0.8rem] lg:text-sm font-medium rounded-none ${
+                className={`md:px-4 p-2 whitespace-nowrap transition-colors text-[0.8rem] lg:text-sm font-medium rounded-none ${
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-background text-foreground hover:bg-muted"
@@ -186,7 +183,7 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="px-2 py-2 rounded-none border-none">
+                    className="p-2 rounded-none border-none">
                     More <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>

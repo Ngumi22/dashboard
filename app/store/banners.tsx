@@ -3,7 +3,6 @@ import {
   fetchUsageContexts,
   getUniqueBanners,
 } from "@/lib/actions/Banners/fetch";
-import { clearCachedData, getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 import { Banner, UsageContext } from "@/lib/actions/Banners/bannerType";
@@ -29,19 +28,6 @@ export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
   error: null,
 
   fetchBanners: async () => {
-    const cacheKey = "banners";
-
-    // Check if data is cached
-    const cachedData = getCachedData<Banner[]>(cacheKey);
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { banners } = get();
-      if (JSON.stringify(banners) !== JSON.stringify(cachedData)) {
-        set({ banners: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
     // Prevent redundant API calls if already loading
     const { loading } = get();
     if (loading) return;
@@ -50,7 +36,6 @@ export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
 
     try {
       const banners = await getUniqueBanners(); // Fetch banners
-      setCachedData(cacheKey, banners, { ttl: 2 * 60 * 60 * 1000 }); // Cache the data
       set({ banners, loading: false, error: null });
     } catch (err) {
       set({
@@ -78,15 +63,6 @@ export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
   },
 
   fetchUsageContexts: async () => {
-    const cacheKey = "contexts";
-
-    // Check if contexts are cached
-    const cachedData = getCachedData<UsageContext[]>(cacheKey);
-    if (cachedData) {
-      set({ contexts: cachedData, loading: false, error: null });
-      return;
-    }
-
     // Prevent redundant API calls if already loading
     const { loading } = get();
     if (loading) return;
@@ -95,7 +71,7 @@ export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
 
     try {
       const contexts = await fetchUsageContexts(); // Fetch usage contexts
-      setCachedData(cacheKey, contexts, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+
       set({ contexts, loading: false, error: null });
     } catch (err) {
       set({
@@ -110,13 +86,9 @@ export const createBannerSlice: StateCreator<BannerState> = (set, get) => ({
     set({ loading: true });
 
     try {
-      const cacheKey = "banners";
       await deleteBanner(banner_id); // Call delete API
 
-      // Immediately clear cache and update state
-      clearCachedData(cacheKey); // Clear banners cache
       const banners = await getUniqueBanners(); // Refetch banners
-      setCachedData(cacheKey, banners); // Update cache with new banners
       set({ banners, loading: false, error: null }); // Set state with new banners
 
       return { success: true };

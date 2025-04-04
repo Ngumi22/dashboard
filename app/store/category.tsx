@@ -6,7 +6,6 @@ import {
   fetchCategoryWithSubCatById,
   fetchSubcategoryByName,
 } from "@/lib/actions/Category/fetch";
-import { getCachedData, setCachedData, clearCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface CategoryState {
@@ -49,17 +48,6 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
   subcategoryDetails: null, // Added this
 
   fetchUniqueCategoriesWithSubs: async () => {
-    const cacheKey = "categoryData";
-
-    const cachedData = getCachedData<Category[]>(cacheKey);
-    if (cachedData) {
-      const { categories } = get();
-      if (JSON.stringify(categories) !== JSON.stringify(cachedData)) {
-        set({ categories: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
     const { loading } = get();
     if (loading) return;
 
@@ -67,7 +55,6 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
 
     try {
       const categories = await fetchCategoryWithSubCat();
-      setCachedData(cacheKey, categories, { ttl: 2 * 60 });
       set({ categories, loading: false, error: null });
     } catch (err) {
       set({
@@ -124,21 +111,12 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
   },
 
   fetchCategoryWithSubByIdState: async (category_id: number) => {
-    const cacheKey = `category_${category_id}`;
-    const cachedCategory = getCachedData<Category>(cacheKey);
-
-    if (cachedCategory) {
-      set({ selectedCategory: cachedCategory, loading: false, error: null });
-      return cachedCategory;
-    }
-
     set({ loading: true, error: null });
 
     try {
       const category = await fetchCategoryWithSubCatById(category_id);
 
       if (category) {
-        setCachedData(cacheKey, category, { ttl: 2 * 60 });
         set({ selectedCategory: category, loading: false, error: null });
         return category;
       } else {
@@ -167,9 +145,8 @@ export const createCategorySlice: StateCreator<CategoryState> = (set, get) => ({
     try {
       const cacheKey = "categories";
       await deleteCategory(category_id);
-      clearCachedData(cacheKey);
       const freshData = await fetchCategoryWithSubCat();
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
+
       set({ categories: freshData, loading: false, error: null });
 
       return { success: true };

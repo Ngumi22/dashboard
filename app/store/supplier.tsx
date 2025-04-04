@@ -3,8 +3,6 @@ import {
   getUniqueSuppliers,
 } from "@/lib/actions/Supplier/fetch";
 import { StateCreator } from "zustand";
-
-import { getCachedData, setCachedData } from "@/lib/cache";
 import { Supplier } from "@/lib/actions/Supplier/supplierTypes";
 
 export interface SupplierState {
@@ -23,19 +21,6 @@ export const createSupplierSlice: StateCreator<SupplierState> = (set, get) => ({
   selectedSupplier: null,
 
   fetchUniqueSuppliers: async () => {
-    const cacheKey = "suppliers";
-
-    //Check if data is cached
-    const cachedData = getCachedData<Supplier[]>(cacheKey);
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { suppliers } = get();
-      if (JSON.stringify(suppliers) !== JSON.stringify(cachedData)) {
-        set({ suppliers: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
     // Prevent redundant API calls if already loading
     const { loading } = get();
     if (loading) return;
@@ -44,7 +29,6 @@ export const createSupplierSlice: StateCreator<SupplierState> = (set, get) => ({
 
     try {
       const suppliers = await getUniqueSuppliers(); // Fetch suppliers
-      setCachedData(cacheKey, suppliers, { ttl: 2 * 60 }); // Cache the data for 2 minutes
       set({ suppliers, loading: false, error: null });
     } catch (err) {
       set({

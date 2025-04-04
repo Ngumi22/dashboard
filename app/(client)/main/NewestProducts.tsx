@@ -26,13 +26,7 @@ export default function NewProducts({
   initialData,
   currentPage,
 }: NewProductsProps) {
-  const {
-    data: newproducts = initialData,
-    isLoading,
-    isError,
-    error,
-    refetch, // Allows retrying manually
-  } = useQuery({
+  const { data: newproducts = initialData } = useQuery({
     queryKey: ["products", currentPage, {}], // Unique cache key
     queryFn: () => fetchProducts(currentPage ?? 1, {}),
 
@@ -64,8 +58,7 @@ export default function NewProducts({
           />
         ),
       }))}
-      className="mb-8"
-      itemClassName=""
+      itemClassName="w-64"
     />
   );
 }

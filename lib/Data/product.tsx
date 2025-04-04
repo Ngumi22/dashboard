@@ -1,5 +1,4 @@
 import { RowDataPacket } from "mysql2/promise";
-import { cache, getCache, setCache } from "../cache";
 import { Buffer } from "buffer"; // Import buffer for better type consistency
 import { getConnection } from "../MysqlDB/initDb";
 
@@ -112,10 +111,6 @@ export async function fetchFilteredProductsFromDb(
   products: Product[];
   errorMessage?: string;
 }> {
-  const cacheKey = `filtered_products_${currentPage}_${JSON.stringify(filter)}`;
-  const cachedData = getCache(cacheKey);
-  if (cachedData) return cachedData;
-
   const limit = LIMITS[filter.type as keyof typeof LIMITS] || LIMITS.default;
   const offset = (currentPage - 1) * limit;
 
@@ -206,7 +201,6 @@ export async function fetchFilteredProductsFromDb(
     const products = rows.map(mapProductRow);
 
     const result = { products };
-    setCache(cacheKey, result, { ttl: 300 });
     return result;
   } catch (error) {
     console.error("Error fetching filtered products:", error);
@@ -219,16 +213,6 @@ export async function fetchFilteredProductsFromDb(
 export async function fetchProductByIdFromDb(
   productId: string
 ): Promise<Product | null> {
-  // Define cache key and TTL (time-to-live)
-  const cacheKey = `product:${productId}`;
-  const ttl = 300; // Cache for 5 minutes
-
-  // Check if the product is already cached
-  const cachedProduct = getCache(cacheKey);
-  if (cachedProduct) {
-    return cachedProduct as Product;
-  }
-
   const connection = await getConnection();
 
   try {
@@ -269,9 +253,6 @@ export async function fetchProductByIdFromDb(
     }
 
     const product = mapProductRow(rows[0] as ProductRow);
-
-    // Cache the result for future requests
-    setCache(cacheKey, product, { ttl });
 
     return product;
   } catch (error) {

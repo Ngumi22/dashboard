@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/app/store/cart";
 import { useToast } from "@/components/ui/use-toast";
+import { formatCurrency } from "@/lib/utils";
 
 // Sample coupon codes
 const AVAILABLE_COUPONS = [
@@ -114,24 +115,22 @@ export default function OrderSummary() {
 
     // Add each item with details
     cartItems.forEach((item) => {
-      message += `• ${item.name} × ${item.quantity} - Ksh ${(
+      message += `• ${item.name} × ${item.quantity} - ${
         item.price * item.quantity
-      ).toFixed(2)}\n`;
+      }\n`;
     });
 
     // Add summary
     message += "\n*Order Summary:*\n";
-    message += `Subtotal: Ksh ${subtotal.toFixed(2)}\n`;
+    message += `Subtotal: ${formatCurrency(subtotal)}\n`;
 
     if (discount > 0) {
-      message += `Discount (${appliedCoupon?.code}): -Ksh ${discount.toFixed(
-        2
-      )}\n`;
+      message += `Discount (${appliedCoupon?.code}): -${formatCurrency(discount)}\n`;
     }
 
-    message += `Shipping: Ksh ${shipping.toFixed(2)}\n`;
-    message += `Tax: Ksh ${tax.toFixed(2)}\n`;
-    message += `*Total: Ksh ${total.toFixed(2)}*\n`;
+    message += `Shipping: ${formatCurrency(shipping)}\n`;
+    message += `Tax: ${formatCurrency(tax)}\n`;
+    message += `*Total: ${formatCurrency(total)}*\n`;
 
     message += "\n*Customer Details:*\n";
     message +=
@@ -217,7 +216,7 @@ export default function OrderSummary() {
                     {item.name} <span>× {item.quantity}</span>
                   </span>
                   <span className="font-semibold">
-                    Ksh {(item.price * item.quantity).toFixed(2)}
+                    {formatCurrency(item.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -229,7 +228,7 @@ export default function OrderSummary() {
                   <Tag className="mr-2 h-4 w-4" />
                   Subtotal
                 </span>
-                <span>Ksh {subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
 
               {appliedCoupon && (
@@ -242,7 +241,7 @@ export default function OrderSummary() {
                       : "Fixed"}
                     )
                   </span>
-                  <span>-Ksh {discount.toFixed(2)}</span>
+                  <span>-{formatCurrency(discount)}</span>
                 </div>
               )}
 
@@ -251,20 +250,20 @@ export default function OrderSummary() {
                   <Truck className="mr-2 h-4 w-4" />
                   Shipping
                 </span>
-                <span>Ksh {shipping.toFixed(2)}</span>
+                <span>{formatCurrency(shipping)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="flex items-center font-semibold">
                   <CreditCard className="mr-2 h-4 w-4" />
                   Tax
                 </span>
-                <span>Ksh {tax.toFixed(2)}</span>
+                <span>{formatCurrency(tax)}</span>
               </div>
             </div>
             <div className="bg-muted/30 -mx-6 px-6 py-3 mt-4">
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total</span>
-                <span>Ksh {total.toFixed(2)}</span>
+                <span>{formatCurrency(total)}</span>
               </div>
             </div>
 

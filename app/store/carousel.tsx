@@ -3,7 +3,6 @@ import {
   fetchCarouselById,
   getUniqueCarousels,
 } from "@/lib/actions/Carousel/fetch";
-import { clearCachedData, getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface Carousel {
@@ -37,17 +36,6 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set, get) => ({
   fetchCarousels: async () => {
     const cacheKey = "carousels";
 
-    // Check if data is cached
-    const cachedData = getCachedData<Carousel[]>(cacheKey);
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { carousels } = get();
-      if (JSON.stringify(carousels) !== JSON.stringify(cachedData)) {
-        set({ carousels: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
     // Prevent redundant API calls if already loading
     const { loading } = get();
     if (loading) return;
@@ -56,7 +44,6 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set, get) => ({
 
     try {
       const carousels = await getUniqueCarousels(); // Fetch carousels
-      setCachedData(cacheKey, carousels, { ttl: 2 * 60 * 60 * 1000 }); // Cache the data for 2 minutes
       set({ carousels, loading: false, error: null });
     } catch (err) {
       set({
@@ -74,14 +61,8 @@ export const createCarouselSlice: StateCreator<CarouselState> = (set, get) => ({
       const cacheKey = "carousels";
       await deleteCarousel(carousel_id);
 
-      // Clear the cached data
-      clearCachedData(cacheKey);
-
       // Refetch carousels after deletion
       const freshData = (await getUniqueCarousels()) as Carousel[];
-
-      // Cache the fresh data
-      setCachedData(cacheKey, freshData, { ttl: 2 * 60 });
 
       // Update the state with the latest data
       set({ carousels: freshData, loading: false, error: null });

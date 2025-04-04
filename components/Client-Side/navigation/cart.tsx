@@ -13,10 +13,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-
-const formatCurrency = (value: number, currency = "Ksh") => {
-  return `${currency} ${value.toFixed(2)}`;
-};
+import { formatCurrency } from "@/lib/utils";
 
 export default function Cart() {
   const [isClient, setIsClient] = useState(false);
@@ -64,13 +61,13 @@ export default function Cart() {
         </div>
       </PopoverTrigger>
 
-      <PopoverContent className="w-96">
-        <ScrollArea className="rounded-md p-4">
+      <PopoverContent className="w-96 overflow-y-scroll h-96">
+        <ScrollArea className="p-2">
           {!isClient ? (
             <p>Loading...</p> // Placeholder during SSR
           ) : cartItems?.length === 0 ? (
             <div className="text-center">
-              <p className="font-semibold my-4">Your Cart is empty</p>
+              <p className="font-semibold my-2">Your Cart is empty</p>
               <Link className="flex justify-center gap-2 items-center" href="/">
                 <ArrowLeft />
                 <span>Start Shopping</span>
@@ -80,21 +77,21 @@ export default function Cart() {
             <div>
               {cartItems.map((cartItem) => (
                 <div
-                  className="flex justify-between items-center my-2 border-b py-2 font-semibold"
+                  className="grid grid-cols-3 gap-4 w-full border-b py-2 font-semibold"
                   key={cartItem.id}>
                   <Image
-                    className="h-auto"
+                    className="h-auto m-auto"
                     src={cartItem.main_image}
                     alt={cartItem.name}
-                    height={80}
-                    width={80}
+                    height={50}
+                    width={50}
                   />
-                  <div className="space-y-6">
+                  <div className="grid items-start justify-start space-y-2 text-sm">
                     <div className="space-y-2">
                       <p>{cartItem.name}</p>
-                      <p>Ksh {cartItem.price}</p>
+                      <p>{formatCurrency(cartItem.price)}</p>
                     </div>
-                    <div className="grid grid-flow-col gap-2 py-2 px-3 border border-black rounded">
+                    <div className="grid grid-flow-col gap-2 py-1 px-3 border w-20 border-black rounded text-sm">
                       <button onClick={() => handleRemoveFromCart(cartItem.id)}>
                         -
                       </button>
@@ -104,18 +101,20 @@ export default function Cart() {
                       </button>
                     </div>
                   </div>
-                  <p>Ksh {cartItem.price * cartItem.quantity}</p>
+                  <p className="text-sm">
+                    {formatCurrency(cartItem.price * cartItem.quantity)}
+                  </p>
                 </div>
               ))}
 
-              <div className="subtotal flex justify-between items-center gap-x-4 my-4">
+              <div className="subtotal flex justify-between items-center gap-x-4 my-2">
                 <p className="font-bold text-2xl">Subtotal:</p>
                 <p className="font-bold text-xl">
                   {formatCurrency(cartTotalAmount)}
                 </p>
               </div>
 
-              <div className="flex justify-between items-center my-4">
+              <div className="flex justify-between items-center my-2">
                 <Button
                   variant="outline"
                   size="lg"

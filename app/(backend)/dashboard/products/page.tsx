@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { handleDeleteAction } from "@/lib/actions/Product/delete";
 import { fetchProductById } from "@/lib/actions/Product/fetch";
 import { Product } from "@/lib/actions/Product/productTypes";
+import { formatPrice } from "@/components/ProductsPage/product-grid";
 
 const includedKeys: (keyof Product)[] = [
   "sku",
@@ -58,13 +59,13 @@ const columnRenderers: Record<
         item.status === "approved"
           ? "default"
           : item.status === "pending"
-          ? "secondary"
-          : "destructive"
+            ? "secondary"
+            : "destructive"
       }>
       {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
     </Badge>
   ),
-  price: (item: Product) => `$${item.price.toFixed(2)}`,
+  price: (item: Product) => formatPrice(item.price),
   discount: (item: Product) => `${item.discount}%`,
   tags: function (item: Product): React.ReactNode {
     throw new Error("Function not implemented.");

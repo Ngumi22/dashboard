@@ -1,14 +1,10 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/Auth_actions/auth-actions";
-import { getSession } from "@/lib/Auth_actions/sessions";
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { revalidatePath } from "next/cache";
 
 export async function handleDeleteAction(product_id: number) {
-  const productCacheKey = `product_${product_id}`;
-
   // Validate product ID
   if (!product_id || product_id === 0) {
     throw new Error("Invalid product ID provided");
@@ -66,9 +62,6 @@ export async function handleDeleteAction(product_id: number) {
       await connection.execute(`DELETE FROM products WHERE product_id = ?`, [
         product_id,
       ]);
-
-      // Step 5: Invalidate product caches
-      cache.delete(productCacheKey);
 
       // Commit transaction
       await connection.commit();

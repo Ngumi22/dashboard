@@ -4,8 +4,6 @@ import {
   fetchProducts,
 } from "@/lib/actions/Product/fetch";
 import { Product } from "@/lib/actions/Product/productTypes";
-
-import { getCachedData, setCachedData } from "@/lib/utils";
 import { StateCreator } from "zustand";
 
 export interface ProductState {
@@ -30,18 +28,6 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
   productDetails: null,
 
   fetchProductsState: async (currentPage = 1, filter = {}) => {
-    const cacheKey = `products_${currentPage}_${JSON.stringify(filter)}`;
-    const cachedData = getCachedData<{ products: Product[] }>(cacheKey);
-
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { products } = get();
-      if (JSON.stringify(products) !== JSON.stringify(cachedData)) {
-        set({ products: cachedData.products, loading: false, error: null });
-      }
-      return;
-    }
-
     // Prevent redundant API calls if already loading
     const { loading } = get();
     if (loading) return;
@@ -50,9 +36,6 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
 
     try {
       const { products } = await fetchProducts(currentPage, filter);
-
-      // Cache the fetched data
-      setCachedData(cacheKey, { products }, { ttl: 16 * 60 });
 
       set({ products, loading: false, error: null });
     } catch (err) {
@@ -64,23 +47,12 @@ export const createProductSlice: StateCreator<ProductState> = (set, get) => ({
   },
 
   fetchProductByIdState: async (product_id: string) => {
-    const cacheKey = `product_${product_id}`;
-    const cachedProduct = getCachedData<Product>(cacheKey);
-
-    if (cachedProduct) {
-      set({ selectedProduct: cachedProduct, loading: false, error: null });
-      return cachedProduct;
-    }
-
     set({ loading: true, error: null });
 
     try {
       const product = await fetchProductById(Number.parseInt(product_id));
 
       if (product) {
-        // Cache the product with a TTL of 2 minutes
-        setCachedData(cacheKey, product, { ttl: 2 * 60 });
-
         set({ selectedProduct: product, loading: false, error: null });
         return product;
       } else {

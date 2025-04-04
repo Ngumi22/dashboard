@@ -1,6 +1,5 @@
 import { Brand } from "@/lib/actions/Brand/brandType";
 import { fetchBrandById, getUniqueBrands } from "@/lib/actions/Brand/fetch";
-import { getCachedData, setCachedData } from "@/lib/cache";
 import { StateCreator } from "zustand";
 
 export interface BrandState {
@@ -19,19 +18,6 @@ export const createBrandSlice: StateCreator<BrandState> = (set, get) => ({
   selectedBrand: null,
 
   fetchUniqueBrands: async () => {
-    const cacheKey = "brands";
-
-    //Check if data is cached
-    const cachedData = getCachedData<Brand[]>(cacheKey);
-    if (cachedData) {
-      // Prevent unnecessary state updates if the cached data is already present
-      const { brands } = get();
-      if (JSON.stringify(brands) !== JSON.stringify(cachedData)) {
-        set({ brands: cachedData, loading: false, error: null });
-      }
-      return;
-    }
-
     // Prevent redundant API calls if already loading
     const { loading } = get();
     if (loading) return;
@@ -39,8 +25,7 @@ export const createBrandSlice: StateCreator<BrandState> = (set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const brands = await getUniqueBrands(); // Fetch brands
-      setCachedData(cacheKey, brands, { ttl: 2 * 60 }); // Cache the data for 2 minutes
+      const brands = await getUniqueBrands();
       set({ brands, loading: false, error: null });
     } catch (err) {
       set({

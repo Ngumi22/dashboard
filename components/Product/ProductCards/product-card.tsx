@@ -11,14 +11,11 @@ import Link from "next/link";
 import { type MinimalProduct, useCartStore } from "@/app/store/cart";
 import { useCompareStore } from "@/app/store/compare";
 import { useWishStore } from "@/app/store/wishlist";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProductCardProps extends MinimalProduct {
   orientation?: "vertical" | "horizontal";
 }
-
-export const formatCurrency = (value: number, currency = "Ksh") => {
-  return `${currency} ${value.toFixed(2)}`;
-};
 
 const RatingStars = ({ rating }: { rating: number | null | undefined }) => {
   const numericRating = Number(rating);
@@ -38,8 +35,8 @@ const RatingStars = ({ rating }: { rating: number | null | undefined }) => {
               isFull
                 ? "text-yellow-400 fill-current"
                 : isHalf
-                ? "text-yellow-400 half-star"
-                : "text-gray-300"
+                  ? "text-yellow-400 half-star"
+                  : "text-gray-300"
             }`}
           />
         );
@@ -278,14 +275,14 @@ const ProductCard = ({
         href={productUrl}
         className="group relative block overflow-hidden md:max-w-72 transition-transform duration-300 ease-in-out">
         {/* Product Image Section */}
-        <div className="relative aspect-square w-full rounded-lg bg-white/70 object-cover group-hover:opacity-75">
+        <div className="relative aspect-square w-full bg-white object-cover group-hover:opacity-75">
           <div className="flex h-full justify-center items-center p-2">
             <Image
               src={main_image || "/placeholder.svg"}
               alt={name}
               height={200}
               width={200}
-              className="transition-transform duration-300 group-hover:scale-105 aspect-3/2 bg-gray-200 rounded-lg object-contain"
+              className="transition-transform duration-300 scale-110 group-hover:scale-125 aspect-3/2 bg-gray-200 rounded-lg object-contain"
             />
           </div>
           <div className="absolute top-4 left-4 flex flex-col gap-2">

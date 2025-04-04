@@ -48,7 +48,6 @@ export default function TopNav() {
           </SelectTrigger>
           <SelectContent className="grid grid-flow-row gap-4">
             <User />
-            <User />
             <Compare />
             <Wishlist />
           </SelectContent>

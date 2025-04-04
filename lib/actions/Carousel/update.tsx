@@ -1,7 +1,6 @@
 "use server";
 
 import { fileToBuffer } from "@/lib/utils";
-import { cache } from "@/lib/cache";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function updateCarouselAction(
@@ -84,10 +83,6 @@ export async function updateCarouselAction(
       if (result.affectedRows === 0) {
         throw new Error("Failed to update carousel. carousel might not exist.");
       }
-
-      // Clear the cache for the specific carousel and the unique carousel list
-      cache.delete(carouselCacheKey);
-      cache.delete(uniqueCarouselCacheKey);
 
       return { success: true, message: "carousel updated successfully." };
     } catch (error: any) {
