@@ -19,7 +19,6 @@ function LoadingOverlay({ isVisible }: { isVisible: boolean }) {
       }`}>
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-lg font-medium text-white">Loading...</p>
       </div>
     </div>
   );
