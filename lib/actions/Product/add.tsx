@@ -30,9 +30,9 @@ export async function onSubmitAction(
     return { message: "Unauthorized: Please log in first.", issues: [] };
   }
 
-  // if (user.role !== "admin") {
-  //   return { message: "Forbidden: Only admins can add products.", issues: [] };
-  // }
+  if (user.role !== "admin") {
+    return { message: "Forbidden: Only admins can add products.", issues: [] };
+  }
 
   return dbOperation(async (connection) => {
     await connection.beginTransaction();

@@ -215,14 +215,10 @@ export async function getCurrentUser() {
   let session = await getSession();
 
   if (!session) {
-    const refreshedSession = await refreshSession();
-    session = refreshedSession ? await getSession() : null;
+    console.warn("Session could not be refreshed or is invalid.");
+    return null;
   }
 
-  return {
-    id: session?.userId,
-    role: session?.role,
-    name: session?.name,
-    email: session?.email,
-  };
+  const { userId, role, name, email } = session;
+  return { id: userId, role, name, email };
 }

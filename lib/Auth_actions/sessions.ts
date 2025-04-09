@@ -93,7 +93,7 @@ export async function createSession(data: SessionData) {
     });
 
     // Set cookies using helper functions
-    setCookie("access_token", accessToken, { maxAge: 15 * 60 });
+    setCookie("access_token", accessToken, { maxAge: 2 * 60 * 60 });
     setCookie("refresh_token", refreshToken, {
       maxAge: 7 * 24 * 60 * 60,
       path: "/api/auth/refresh",
@@ -143,16 +143,22 @@ export async function verifyRefreshToken(token: string) {
 }
 
 /** ================== Get the current session from cookies ================== */
-export async function getSession() {
-  const accessToken = getCookie("access_token");
-  if (!accessToken) return null;
 
-  return verifyAccessToken(accessToken);
+export async function getSession(): Promise<SessionData | null> {
+  const accessToken = getCookie("access_token");
+  if (!accessToken) return await refreshSession();
+
+  const session = await verifyAccessToken(accessToken);
+  if (!session) {
+    return await refreshSession();
+  }
+
+  return session; // Always returning SessionData shape
 }
 
 /** ================== Refresh the session using a refresh token ================== */
 /** ================== Refresh the session using a refresh token ================== */
-export async function refreshSession() {
+export async function refreshSession(): Promise<SessionData | null> {
   const refreshToken = getCookie("refresh_token");
   if (!refreshToken) return null;
 
@@ -162,16 +168,23 @@ export async function refreshSession() {
   const user = await getUserById(tokenData.userId);
   if (!user) return null;
 
-  // Revoke the old refresh token
+  // Revoke the old token
   await revokeRefreshToken(tokenData.jti);
 
-  // Create new session (extending user session)
-  return createSession({
+  // Create new tokens
+  await createSession({
     userId: user.id,
     role: user.role,
     name: user.name,
     email: user.email,
   });
+
+  return {
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+  };
 }
 
 /** ================== Destroy the current session ================== */
