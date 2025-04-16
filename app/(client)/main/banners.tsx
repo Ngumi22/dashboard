@@ -6,6 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchBannersByContext } from "@/lib/actions/Banners/fetch";
 import { Banner } from "@/lib/actions/Banners/bannerType";
 import dynamic from "next/dynamic";
+import { useBanners } from "@/lib/actions/Banners/hooks";
 
 // Lazy load heavy dependencies
 const Base64Image = dynamic(
@@ -42,20 +43,7 @@ function Banners({
   paddingX = "",
   paddingY = "",
 }: BannerProps) {
-  const {
-    data: banners = initialData, // Fallback to server data
-    isLoading,
-    isError,
-    refetch, // Allows retrying manually
-  } = useQuery({
-    queryKey: ["bannerData", contextName], // Must match server-side
-    queryFn: () => fetchBannersByContext(contextName),
-    initialData,
-    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
-    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48 hours
-    enabled: Boolean(contextName),
-    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
-  });
+  const { data: banners = [], isLoading, isError } = useBanners();
 
   // Memoized transformations (same optimization pattern)
   const slicedBanners = useMemo(() => {
@@ -91,11 +79,6 @@ function Banners({
             </li>
           ))}
         </ul>
-        <button
-          onClick={() => refetch()}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
-          Retry
-        </button>
       </div>
     );
   }

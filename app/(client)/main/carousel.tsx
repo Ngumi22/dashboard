@@ -17,32 +17,11 @@ const CarouselSlide = dynamic(
   { ssr: false }
 );
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchCarousels, MiniCarousel } from "@/lib/actions/Carousel/fetch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCarousels } from "@/lib/actions/Carousel/hooks";
 
-const MINUTE = 1000 * 60;
-
-interface CarouselProps {
-  initialData?: MiniCarousel[];
-}
-
-export default function Carousel({ initialData }: CarouselProps) {
-  const {
-    data: carouselData = initialData, // Fallback to server data
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["carouselsData"],
-    queryFn: () => fetchCarousels(),
-    initialData,
-    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
-    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48
-    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
-  });
-
-  // Wrap the initialization of 'carousels' in useMemo
-  const carousels = useMemo(() => carouselData || [], [carouselData]);
+export default function CarouselComponent() {
+  const { data: carousels = [], isLoading, isError } = useCarousels();
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -153,12 +132,12 @@ export default function Carousel({ initialData }: CarouselProps) {
   };
 
   // Loading state (only shows if no initialData)
-  if ((isLoading && !initialData) || !carouselData) {
+  if (isLoading) {
     return (
       <Skeleton className="h-52 md:h-96 overflow-hidden bg-gray-200 animate-pulse w-full rounded-lg" />
     );
   }
-  if (isError || !carouselData) return <div>Error fetching categories</div>;
+  if (isError) return <div>Error fetching categories</div>;
 
   return (
     <div

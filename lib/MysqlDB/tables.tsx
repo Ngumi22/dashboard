@@ -144,6 +144,7 @@ export async function dbsetupTables() {
           product_name VARCHAR(255) NOT NULL,
           product_sku VARCHAR(255) NOT NULL UNIQUE,
           product_description TEXT,
+          long_description TEXT,
           product_price DECIMAL(10, 2) NOT NULL,
           product_discount DECIMAL(10, 2) DEFAULT 0.00,
           product_quantity INT DEFAULT 0,

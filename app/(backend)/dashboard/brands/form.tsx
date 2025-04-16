@@ -10,9 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
-import { brandSchema, updateBrandAction } from "@/lib/actions/Brand/update";
+import { updateBrandAction } from "@/lib/actions/Brand/update";
 import { addBrand } from "@/lib/actions/Brand/post";
 import { Brand } from "@/components/Product/Create/types";
+import { brandSchema } from "@/lib/ZodSchemas/BrandSchema";
 
 interface BrandFormProps {
   initialData?: Brand;
@@ -55,19 +56,16 @@ export default function BrandForm({
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === "brandImage" && value instanceof File) {
-        formData.append(key, value);
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, value.toString());
-      }
-    });
-
     try {
+      const formData = new FormData();
+      formData.append("brand_name", data.brand_name);
+      if (data.brand_image instanceof File) {
+        formData.append("brand_image", data.brand_image);
+      }
+
       const result = initialData?.brand_id
         ? await updateBrandAction(initialData.brand_id.toString(), formData)
-        : await addBrand(formData);
+        : await addBrand(formData, { success: false, message: "" });
 
       if (result.success) {
         toast({
@@ -76,8 +74,7 @@ export default function BrandForm({
             ? "Brand updated successfully"
             : "Brand created successfully",
         });
-        onSuccess?.();
-        onClose?.();
+        onSuccess?.(); // Call success callback
       } else {
         throw new Error("Failed to process brand.");
       }
@@ -91,7 +88,6 @@ export default function BrandForm({
       setIsSubmitting(false);
     }
   };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {

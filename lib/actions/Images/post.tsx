@@ -2,11 +2,11 @@
 
 import { z } from "zod";
 import { fileToBuffer } from "@/lib/utils";
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 
 export async function createProductImages(
   formData: FormData,
-  productId: number,
-  connection?: any
+  productId: number
 ) {
   const imageData = {
     mainImage: formData.get("main_image"),
@@ -20,14 +20,16 @@ export async function createProductImages(
     (imageData.thumbnails as File[]).map((thumbnail) => fileToBuffer(thumbnail))
   );
 
-  await connection.query(
-    `INSERT INTO product_images (product_id, main_image, thumbnail_image1, thumbnail_image2, thumbnail_image3, thumbnail_image4, thumbnail_image5)
+  return dbOperation(async (connection) => {
+    await connection.query(
+      `INSERT INTO product_images (product_id, main_image, thumbnail_image1, thumbnail_image2, thumbnail_image3, thumbnail_image4, thumbnail_image5)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [validatedProductId, mainImageBuffer, ...thumbnailBuffers]
-  );
+      [validatedProductId, mainImageBuffer, ...thumbnailBuffers]
+    );
 
-  return {
-    success: true,
-    message: "Images uploaded successfully",
-  };
+    return {
+      success: true,
+      message: "Images uploaded successfully",
+    };
+  });
 }

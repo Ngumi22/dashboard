@@ -21,11 +21,6 @@ import {
 } from "@/lib/actions/Category/server";
 import { useStore } from "@/app/store";
 
-interface CategoryFormProps {
-  initialData?: Category;
-  onCancel: () => void;
-}
-
 interface Category {
   category_id: number;
   category_name: string;
@@ -35,9 +30,16 @@ interface Category {
   parent_category_id?: number | null; // Optional parent category ID
 }
 
+interface CategoryFormProps {
+  initialData?: Category;
+  onCancel: () => void;
+  onSuccess?: () => void;
+}
+
 export default function CategoryForm({
   initialData,
   onCancel,
+  onSuccess,
 }: CategoryFormProps) {
   const [category, setCategory] = useState<Category>({
     category_id: initialData?.category_id || 0,
@@ -114,7 +116,7 @@ export default function CategoryForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isSubmitting) return; // Prevent multiple submissions
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     const formData = new FormData();
@@ -123,28 +125,26 @@ export default function CategoryForm({
     Object.entries(category).forEach(([key, value]) => {
       if (key === "category_image") {
         if (value instanceof File) {
-          formData.append(key, value); // Add the new image if uploaded
+          formData.append(key, value);
         } else if (existingImage) {
           formData.append(
             "existing_image",
             initialData?.category_image as string
-          ); // Pass the existing image
+          );
         }
       } else if (value !== null && value !== undefined) {
-        formData.append(key, value.toString()); // Convert all values to strings
+        formData.append(key, value.toString());
       }
     });
 
     try {
       let result;
       if (!category.category_id) {
-        // Create a new category
         result = await CategorySubmitAction(
           { message: "Created successfully" },
           formData
         );
       } else {
-        // Update an existing category
         result = await updateCategoryAction(
           category.category_id.toString(),
           formData
@@ -157,7 +157,6 @@ export default function CategoryForm({
           description: "A category with this name already exists.",
           variant: "destructive",
         });
-        setIsSubmitting(false);
         return;
       }
 
@@ -168,13 +167,13 @@ export default function CategoryForm({
             ? "Category updated successfully"
             : "Category created successfully",
         });
+        onSuccess?.();
         router.push("/dashboard/categories");
         router.refresh();
       } else {
         throw new Error("Failed to process category.");
       }
     } catch (error: any) {
-      console.error("Error:", error);
       toast({
         title: "Error",
         description: error.message || "Something went wrong.",
@@ -301,8 +300,8 @@ export default function CategoryForm({
               ? "Updating..."
               : "Creating..."
             : category.category_id
-            ? "Update Category"
-            : "Create Category"}
+              ? "Update Category"
+              : "Create Category"}
         </Button>
       </div>
     </form>

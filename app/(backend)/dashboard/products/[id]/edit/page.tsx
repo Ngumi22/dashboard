@@ -1,12 +1,14 @@
 "use client";
 
-import ProductForm from "@/components/Product/Create/ProductForm";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { fetchProductById } from "@/lib/actions/Product/fetch";
-import { Product } from "@/lib/actions/Product/productTypes";
+import { Product } from "@/lib/actions/Product/actions/types";
+import { fetchProductById } from "@/lib/actions/Product/actions/fetchById";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import ProductForm from "@/components/Admin/Products/Forms/AddProduct";
 
 export default function UpdateProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -42,6 +44,7 @@ export default function UpdateProductPage() {
       product_name: product.name || "",
       product_sku: product.sku || "",
       product_description: product.description || "",
+      long_description: product.long_description || "",
       product_price: Number(product.price) || 0,
       product_quantity: Number(product.quantity) || 0,
       product_discount: Number(product.discount) || 0,
@@ -85,20 +88,20 @@ export default function UpdateProductPage() {
       ) : error ? (
         <div>
           <p>Error: {error || "Something went wrong."}</p>
-          <Button
-            onClick={() => router.push("/dashboard/products")}
-            variant="default">
-            Back to Products
-          </Button>
+          <Link href="/dashboard/products">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       ) : !processedData ? (
         <div>
           <p>Product not found.</p>
-          <Button
-            onClick={() => router.push("/dashboard/products")}
-            variant="default">
-            Back to Products
-          </Button>
+          <Link href="/dashboard/products">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       ) : (
         <ProductForm initialData={processedData} />

@@ -15,8 +15,9 @@ const ArrowDown = dynamic(
 const CarouselSlide = dynamic(() => import("./Carousel-Slide"), { ssr: false });
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchCarousels, MiniCarousel } from "@/lib/actions/Carousel/fetch";
+import { fetchCarousels } from "@/lib/actions/Carousel/fetch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MiniCarousel } from "@/lib/actions/Carousel/carouselTypes";
 
 const MINUTE = 1000 * 60;
 

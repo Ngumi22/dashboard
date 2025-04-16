@@ -6,6 +6,7 @@ import Base64Image from "@/components/Data-Table/base64-image";
 import { getUniqueCategories } from "@/lib/actions/Category/fetch";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Category } from "@/lib/actions/Category/catType";
+import { useCategories } from "@/lib/actions/Category/hooks";
 
 const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 const MINUTE = 1000 * 60;
@@ -15,32 +16,11 @@ type SubCategoryProductsProps = {
 };
 
 export default function Categories({ initialData }: SubCategoryProductsProps) {
-  const {
-    data: categories = initialData,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<Category[] | undefined>({
-    queryKey: ["categoryData"],
-    queryFn: () => getUniqueCategories(),
-    initialData,
-    staleTime: 24 * 60 * MINUTE,
-    gcTime: 48 * 60 * MINUTE,
-    placeholderData: keepPreviousData,
-    refetchOnWindowFocus: false,
-  });
+  const { data: categories = [], isLoading, isError } = useCategories();
 
   // Error Handling with Retry
   if (isError) {
-    return (
-      <div className="text-center text-red-500">
-        <button
-          onClick={() => refetch()}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
-          Retry
-        </button>
-      </div>
-    );
+    return;
   }
 
   if (isLoading) {
@@ -56,9 +36,9 @@ export default function Categories({ initialData }: SubCategoryProductsProps) {
     );
   }
 
-  // Handle case where categories is undefined
-  if (!categories) {
-    return null; // or return some fallback UI
+  // Handle case where categories is undefined or empty
+  if (!categories || categories.length === 0) {
+    return null;
   }
 
   return (

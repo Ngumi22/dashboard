@@ -106,6 +106,15 @@ font {
   body {
     @apply bg-background text-foreground;
   }
+  h1 {
+    @apply text-2xl font-bold;
+  }
+  h2 {
+    @apply text-xl font-bold;
+  }
+  h3 {
+    @apply text-lg font-bold;
+  }
 }
 
 .bg {
@@ -142,11 +151,17 @@ font {
 
 @keyframes matrix {
   0% {
-    background-position: 0% 100%, 50% 100%, 100% 100%;
+    background-position:
+      0% 100%,
+      50% 100%,
+      100% 100%;
   }
 
   100% {
-    background-position: 0% 0%, 50% 0%, 100% 0%;
+    background-position:
+      0% 0%,
+      50% 0%,
+      100% 0%;
   }
 }
 

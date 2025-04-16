@@ -37,6 +37,7 @@ export async function prefetchData(params?: PrefetchParams) {
     queryClient.prefetchQuery({
       queryKey: ["bannerData", "hero"],
       queryFn: () => fetchBannersByContext("hero"),
+      staleTime: DAY,
       gcTime: 2 * DAY,
     }),
     queryClient.prefetchQuery({

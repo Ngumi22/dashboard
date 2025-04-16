@@ -5,16 +5,12 @@ import { useStore } from "@/hooks/use-store";
 import { useSidebarToggle } from "@/hooks/use-sidebar-toggle";
 import { Navbar } from "@/components/admin-panel/Navbar";
 
-import {
-  QueryClientProvider,
-  HydrationBoundary,
-  useIsFetching,
-} from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
+import { useState } from "react";
 import { DehydratedState } from "@tanstack/react-query";
 import { getQueryClient } from "./get-query-client";
 
-export default function ClientLayoutWrapper({
+export default function DashBoardProvider({
   children,
   dehydratedState,
 }: {

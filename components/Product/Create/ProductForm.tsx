@@ -561,8 +561,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                       t instanceof File
                         ? t
                         : typeof t === "object"
-                        ? Object.values(t)
-                        : [t]
+                          ? Object.values(t)
+                          : [t]
                     )
                   : []
                 ).map((thumbnail, index) => {
@@ -642,8 +642,8 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 ? "Updating..."
                 : "Creating..."
               : product.product_id
-              ? "Update Product"
-              : "Create Product"}
+                ? "Update Product"
+                : "Create Product"}
           </Button>
         </div>
       </form>

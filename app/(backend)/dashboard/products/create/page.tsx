@@ -1,4 +1,4 @@
-import ProductForm from "@/components/Product/Create/ProductForm";
+import ProductForm from "@/components/Admin/Products/Forms/AddProduct";
 
 export default function CreatePage() {
   return <ProductForm />;

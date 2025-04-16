@@ -4,6 +4,7 @@ import { metadata } from "@/lib/Metadata/RootMetadata";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import Loading from "./loading";
+import { initialize } from "@/lib/MysqlDB/initialize";
 
 export { metadata };
 
@@ -27,18 +28,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await initialize();
   // Prefetch only critical data
   const dehydratedState = await prefetchData();
 
   return (
     <html lang="en">
       <body suppressHydrationWarning={true}>
-        <Suspense fallback={<Loading />}>
-          <Providers dehydratedState={dehydratedState}>
-            {children}
-            <ToastContainer position="bottom-left" />
-          </Providers>
-        </Suspense>
+        <Providers dehydratedState={dehydratedState}>
+          {children}
+          <ToastContainer position="bottom-left" />
+        </Providers>
       </body>
     </html>
   );

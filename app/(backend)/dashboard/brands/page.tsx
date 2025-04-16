@@ -1,177 +1,237 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Trash } from "lucide-react";
-import { Filter, RowAction } from "@/components/Data-Table/types";
-import {
-  filterData,
-  searchData,
-  sortData,
-} from "@/components/Data-Table/utils";
-import DataTable from "@/components/Data-Table/data-table";
-import { useStore } from "@/app/store";
-
-export interface Brand {
-  brand_id: number;
-  brand_name: string;
-  brand_image: string;
-}
-
-const includedKeys: (keyof Brand)[] = ["brand_id", "brand_name", "brand_image"];
-
-import { useRouter, useParams } from "next/navigation";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
-import { deleteBrandAction } from "@/lib/actions/Brand/delete";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTableColumnHeader } from "@/components/Table/data-table-column-header";
+import { DataTableRowActions } from "@/components/Table/data-table-row-actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { DataTable } from "@/components/Table/data-table";
+import { useBrands } from "@/lib/actions/Brand/queries";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Brand } from "@/lib/actions/Brand/brandType";
+import { useBrandMutations } from "@/lib/actions/Brand/hooks";
+import BrandForm from "./form";
 
-const columnRenderers = {
-  brand_image: (brand: Brand) => (
-    <Base64Image
-      src={brand.brand_image}
-      alt={brand.brand_name}
-      width={50}
-      height={50}
-    />
-  ),
-};
-
-export default function BrandPage() {
-  const fetchUniqueBrands = useStore((state) => state.fetchUniqueBrands);
-  const brands = useStore((state) => state.brands);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {}
-  );
-  const [sortKey, setSortKey] = useState<keyof Brand>("brand_name");
+export default function BrandsPage() {
+  const { data: allBrands = [], isLoading, isError } = useBrands();
+  const { deleteBrand } = useBrandMutations();
   const router = useRouter();
+  const { toast } = useToast();
+  const [brandToDelete, setBrandToDelete] = useState<number | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
 
-  useEffect(() => {
-    fetchUniqueBrands(); // Fetch initial page
-  }, [fetchUniqueBrands, currentPage]);
+  const handleAddNewBrand = () => {
+    setIsDialogOpen(true);
+  };
 
-  const filters: Filter<any>[] = useMemo(() => [], []);
+  const handleEditBrand = async (brand: Brand) => {
+    try {
+      setEditingBrand(brand);
+      setIsDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open dialog",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const rowActions: RowAction<any>[] = [
+  const handleDeleteBrand = async (brand: Brand) => {
+    try {
+      await deleteBrand(brand.brand_id);
+      toast({
+        title: "Success",
+        description: "Brand deleted successfully",
+      });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete brand",
+        variant: "destructive",
+      });
+    } finally {
+      setBrandToDelete(null);
+    }
+  };
+
+  const confirmDelete = (brand: Brand) => {
+    setBrandToDelete(brand.brand_id);
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingBrand(null); // Reset editing state when dialog closes
+  };
+
+  const handleFormSuccess = () => {
+    setIsDialogOpen(false);
+    setEditingBrand(null); // Reset editing state on success
+    router.refresh(); // Refresh data after successful operation
+  };
+
+  // Define brand-specific actions
+  const brandActions = [
     {
-      label: "Delete",
-      icon: Trash,
-      onClick: async (brand) => {
-        deleteBrandAction(brand.brand_id);
-      },
+      label: "Actions",
+      items: [
+        {
+          label: "Edit",
+          icon: <Pencil className="h-4 w-4" />,
+          onClick: handleEditBrand,
+        },
+        {
+          label: "Delete",
+          icon: <Trash2 className="h-4 w-4" />,
+          onClick: confirmDelete,
+          className: "text-destructive focus:text-destructive",
+        },
+      ],
     },
   ];
 
-  const filteredAndSortedData = useMemo(() => {
-    let result = searchData(brands, searchTerm, "brand_name");
-    result = filterData(result, filters, activeFilters);
-    return result;
-  }, [brands, searchTerm, activeFilters, filters]);
+  // Columns with customizable actions
+  const columns: ColumnDef<Brand>[] = [
+    {
+      accessorKey: "brand_id",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Id" />
+      ),
+      size: 80,
+    },
+    {
+      accessorKey: "brand_name",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Name" />
+      ),
+      size: 80,
+    },
+    {
+      accessorKey: "brand_image",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Image" />
+      ),
+      cell: ({ row }) => {
+        const image = String(row.getValue("brand_image"));
+        return (
+          <div className="font-medium">
+            <Base64Image src={image} alt={""} width={50} height={50} />
+          </div>
+        );
+      },
+      size: 50,
+    },
 
-  const paginatedData = filteredAndSortedData.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <DataTableRowActions row={row} actions={brandActions} />
+      ),
+      size: 60,
+    },
+  ];
 
-  const handleSearch = (query: string) => {
-    setSearchTerm(query);
-    setCurrentPage(1);
-  };
-
-  const handleFilter = (key: string, value: string) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-      if (key === "price" || key === "discount") {
-        // For range filters, we only want one active value at a time
-        newFilters[key] = [value];
-      } else {
-        if (newFilters[key]) {
-          const index = newFilters[key].indexOf(value);
-          if (index > -1) {
-            newFilters[key] = newFilters[key].filter((v) => v !== value);
-            if (newFilters[key].length === 0) {
-              delete newFilters[key];
-            }
-          } else {
-            newFilters[key] = [...newFilters[key], value];
-          }
-        } else {
-          newFilters[key] = [value];
-        }
-      }
-      return newFilters;
-    });
-    setCurrentPage(1);
-  };
-
-  const handleResetFilters = () => {
-    setActiveFilters({});
-    setCurrentPage(1);
-  };
-
-  const handleSort = (key: string | number | symbol) => {
-    if (typeof key === "string" && includedKeys.includes(key as keyof Brand)) {
-      setSortKey(key as keyof Brand); // Set sort key safely
-    } else {
-      console.error("Invalid sort key:", key);
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchUniqueBrands(); // Fetch data for the new page
-  };
-
-  const handleRowsPerPageChange = (rows: number) => {
-    setRowsPerPage(rows);
-    setCurrentPage(1);
-  };
-
-  const handleRowSelect = (selectedRows: any[]) => {
-    console.log("Selected rows:", selectedRows);
-  };
-
-  const handleAddNew = () => {
-    router.push("/dashboard/brands");
-  };
-
-  const handleClearFilter = (key: string, value: string) => {
-    const newActiveFilters = { ...activeFilters };
-    newActiveFilters[key] = newActiveFilters[key].filter((v) => v !== value);
-    if (newActiveFilters[key].length === 0) {
-      delete newActiveFilters[key];
-    }
-    setActiveFilters(newActiveFilters);
-  };
+  if (isLoading) return <div>Loading brands...</div>;
+  if (isError) return <div>Error loading brands</div>;
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Brand Management</h1>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-      <DataTable
-        data={paginatedData}
-        includedKeys={includedKeys}
-        filters={filters}
-        rowActions={rowActions}
-        onSearch={handleSearch}
-        onFilter={handleFilter}
-        onSort={handleSort}
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        onRowSelect={handleRowSelect}
-        onAddNew={handleAddNew}
-        totalItems={filteredAndSortedData.length}
-        currentPage={currentPage}
-        rowsPerPage={rowsPerPage}
-        activeFilters={activeFilters}
-        onClearFilter={handleClearFilter}
-        onResetFilters={handleResetFilters}
-        columnRenderers={columnRenderers}
-      />
-    </div>
+    <>
+      <div className="container mx-auto py-4">
+        <div className="flex gap-4">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold mb-6">Brands</h1>
+        </div>
+
+        <DataTable
+          columns={columns}
+          data={allBrands}
+          searchKey="brand_name"
+          addNewButton={{
+            text: "Add Brand",
+            icon: <Plus className="h-4 w-4" />,
+            onClick: handleAddNewBrand,
+          }}
+        />
+      </div>
+
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleDialogClose();
+          else setIsDialogOpen(open);
+        }}>
+        <DialogContent className="sm:max-w-[40rem]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBrand ? "Edit Brand" : "Add New Brand"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingBrand
+                ? "Modify the brand details below."
+                : "Create a new brand."}
+            </DialogDescription>
+          </DialogHeader>
+          <BrandForm
+            initialData={editingBrand || undefined}
+            onClose={handleDialogClose}
+            onSuccess={handleFormSuccess}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!brandToDelete}
+        onOpenChange={(open) => !open && setBrandToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              brand and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const brand = allBrands.find(
+                  (b) => b.brand_id === brandToDelete
+                );
+                if (brand) handleDeleteBrand(brand);
+              }}
+              className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

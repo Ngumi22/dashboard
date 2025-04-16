@@ -1,22 +1,14 @@
 "use client";
-import Image from "next/image";
+import Base64Image from "@/components/Data-Table/base64-image";
+import { Carousel } from "@/lib/actions/Carousel/carouselTypes";
 import Link from "next/link";
-
-type MiniCarousel = {
-  carousel_id: number;
-  title: string;
-  short_description: string;
-  description: string;
-  image: string;
-  link: string;
-};
 
 export default function CarouselSlide({
   carousel,
   isActive,
   isAnimating,
 }: {
-  carousel: MiniCarousel;
+  carousel: Carousel;
   isActive: boolean;
   isAnimating: boolean;
 }) {
@@ -28,12 +20,11 @@ export default function CarouselSlide({
           className={`${
             isActive && isAnimating ? "animate-slide-in-bottom" : ""
           }`}>
-          <Image
+          <Base64Image
             src={carousel.image}
             alt={`${carousel.title} ${carousel.short_description}`}
-            width={600}
-            height={600}
-            className="object-contain scale-50 md:scale-75 h-auto w-auto"
+            width={100}
+            height={100}
           />
         </div>
       </div>
@@ -58,7 +49,7 @@ export default function CarouselSlide({
             </p>
             <div className="flex flex-col md:flex-row items-start gap-4">
               <Link
-                href={carousel.link}
+                href={carousel.link || ""}
                 className="text-xs md:text-base bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 md:px-8 md:py-2 rounded-md transition-colors">
                 Buy Now
               </Link>

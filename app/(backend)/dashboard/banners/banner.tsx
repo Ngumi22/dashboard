@@ -47,9 +47,7 @@ export default function BannerForm({
 }: BannerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(
-    typeof initialData?.image === "string"
-      ? `data:image/jpeg;base64,${initialData.image}`
-      : null
+    typeof initialData?.image === "string" ? initialData.image : null
   );
   const [usageContexts, setUsageContexts] = useState<UsageContext[]>([]);
 
@@ -114,7 +112,7 @@ export default function BannerForm({
   }, [initialData, setValue]);
 
   const onSubmit = async (data: Banner) => {
-    console.log("Form Data Submitted:", data);
+    // console.log("Form Data Submitted:", data);
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -135,8 +133,6 @@ export default function BannerForm({
       const result = initialData?.banner_id
         ? await updateBannerAction(initialData.banner_id.toString(), formData)
         : await createBanner(formData);
-
-      console.log("Form Submission Result:", result);
 
       if (result.success) {
         toast({
@@ -376,8 +372,8 @@ export default function BannerForm({
             {isSubmitting
               ? "Submitting..."
               : initialData
-              ? "Update Banner"
-              : "Create Banner"}
+                ? "Update Banner"
+                : "Create Banner"}
           </Button>
         </form>
       </CardContent>

@@ -127,11 +127,7 @@ export async function onSubmitAction(
       const productId = (productResult as any).insertId;
 
       // Add suppliers
-      const supplierResponse = await createSupplier(
-        data,
-        productId,
-        connection
-      );
+      const supplierResponse = await createSupplier(data, productId);
       const supplierIds = supplierResponse.supplierIds;
       if (!supplierIds || supplierIds.length === 0) {
         await connection.rollback();
@@ -151,9 +147,9 @@ export async function onSubmitAction(
 
       // Add related product data
       await Promise.all([
-        createProductImages(data, productId, connection),
-        createProductTags(data, productId, connection),
-        createProductSpecifications(data, productId, categoryId, connection),
+        createProductImages(data, productId),
+        createProductTags(data, productId),
+        createProductSpecifications(data, productId, categoryId),
       ]);
 
       // Commit transaction

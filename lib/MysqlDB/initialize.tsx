@@ -1,5 +1,5 @@
 import { initDbConnection } from "./initDb";
-import { dbsetupTables } from "./tables";
+import { dbsetupTables } from "./MysqlTables";
 
 let isInitialized = false; // Global flag to prevent redundant initialization
 

@@ -1,12 +1,28 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Edit, Trash, Eye } from "lucide-react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Filter, RowAction } from "@/components/Data-Table/types";
-import { filterData, searchData } from "@/components/Data-Table/utils";
-import DataTable from "@/components/Data-Table/data-table";
-import { useStore } from "@/app/store";
+import { useRouter } from "next/navigation";
+import Base64Image from "@/components/Data-Table/base64-image";
+import { useToast } from "@/hooks/use-toast";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTableColumnHeader } from "@/components/Table/data-table-column-header";
+import { DataTableRowActions } from "@/components/Table/data-table-row-actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { DataTable } from "@/components/Table/data-table";
+import { Category } from "@/lib/actions/Category/catType";
+import { useCategories } from "@/lib/actions/Category/queries";
+import { useCategoryMutations } from "@/lib/actions/Category/hooks";
 import {
   Dialog,
   DialogContent,
@@ -14,288 +30,222 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useRouter } from "next/navigation";
-import Base64Image from "@/components/Data-Table/base64-image";
-import { useToast } from "@/hooks/use-toast";
 import CategoryForm from "@/components/Categories/form";
-import ReusableAlertDialog from "@/components/alert-dialog";
-import { fetchCategoryById } from "@/lib/actions/Category/fetch";
-import { Category } from "@/lib/actions/Category/catType";
-
-const includedKeys: (keyof Category)[] = [
-  "category_id",
-  "category_name",
-  "category_image",
-  "category_description",
-  "category_status",
-];
-
-const columnRenderers = {
-  category_image: (category: Category) => (
-    <Base64Image
-      src={category.category_image}
-      alt={category.category_name}
-      width={50}
-      height={50}
-    />
-  ),
-  category_status: (category: { category_status: string }) => (
-    <Badge
-      variant={
-        category.category_status === "active"
-          ? "default"
-          : category.category_status === "inactive"
-          ? "secondary"
-          : "destructive"
-      }>
-      {category.category_status.charAt(0).toUpperCase() +
-        category.category_status.slice(1)}
-    </Badge>
-  ),
-};
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function CategoriesPage() {
-  const fetchUniqueCategoriesWithSubs = useStore(
-    (state) => state.fetchUniqueCategoriesWithSubs
-  );
-  const categories = useStore((state) => state.categories);
-  const deleteCategory = useStore((state) => state.deleteCategoryState);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {}
-  );
-  const [sortKey, setSortKey] = useState<keyof Category>("category_name");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { data: allCategories = [], isLoading, isError } = useCategories();
+  const { deleteCategory } = useCategoryMutations();
   const router = useRouter();
+  const { toast } = useToast();
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  useEffect(() => {
-    fetchUniqueCategoriesWithSubs(); // Fetch initial page
-  }, [fetchUniqueCategoriesWithSubs, currentPage]);
-
-  // Dynamically generate category supplier_name from the products data
-  const categoryOptions = useMemo(() => {
-    const uniqueCategories = new Set(
-      categories.map((category) => category.category_name)
-    );
-    return Array.from(uniqueCategories).map((category) => ({
-      value: category || "",
-      label: category || "",
-    }));
-  }, [categories]);
-
-  const filters: Filter<any>[] = useMemo(
-    () => [
-      {
-        key: "category_name",
-        label: "Name",
-        type: "select",
-        options: categoryOptions, // Dynamically populated suppliers
-      },
-      {
-        key: "status",
-        label: "Status",
-        type: "select",
-        options: [
-          { value: "active", label: "Active" },
-          { value: "inactive", label: "Inactive" },
-        ],
-      },
-    ],
-    [categoryOptions]
+  // Filter to show only parent categories (those without a parent_category_id)
+  const parentCategories = allCategories.filter(
+    (category) => !category.parent_category_id
   );
 
-  const handleDeleteCategory = async (category_id: number | null) => {
-    if (!category_id) {
-      alert("No category ID provided.");
-      return;
-    }
-
-    try {
-      const result = deleteCategory(category_id);
-      if (result == result) {
-        toast({
-          title: "Success",
-          description: "Category deleted successfully.",
-        });
-        fetchUniqueCategoriesWithSubs(); // Refresh data
-      } else {
-        throw new Error("Failed to delete category.");
-      }
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while deleting the category.",
-      });
-    } finally {
-      setDeletingCategory(null);
-      setIsAlertDialogOpen(false);
-    }
-  };
-
-  const handleViewCategory = async (category_id: number | null) => {
-    if (!category_id) {
-      alert("No category ID provided.");
-      return;
-    }
-
-    const result = fetchCategoryById(category_id);
-    if (result == result) {
-      router.push(`/dashboard/categories/${category_id}/category`);
-    } else {
-      throw new Error("Failed to delete category.");
-    }
-  };
-
-  const rowActions: RowAction<any>[] = [
-    {
-      label: "View",
-      icon: Eye,
-      onClick: (category) => {
-        handleViewCategory(category.category_id); // Extract and set only the `category_id`
-      },
-    },
-    {
-      label: "Edit",
-      icon: Edit,
-      onClick: (category) => {
-        setEditingCategory(category);
-        setIsDialogOpen(true);
-      },
-    },
-    {
-      label: "Delete",
-      icon: Trash,
-      onClick: (category) => {
-        setDeletingCategory(category.category_id); // Extract and set only the `category_id`
-        setIsAlertDialogOpen(true);
-      },
-    },
-  ];
-
-  const filteredAndSortedData = useMemo(() => {
-    let result = categories.filter((category) => !category.parent_category_id); // Exclude subcategories
-    result = searchData(result, searchTerm, "category_name");
-    result = filterData(result, filters, activeFilters);
-    return result;
-  }, [categories, searchTerm, activeFilters, filters]);
-
-  const paginatedData = filteredAndSortedData.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const handleSearch = (query: string) => {
-    setSearchTerm(query);
-    setCurrentPage(1);
-  };
-
-  const handleFilter = (key: string, value: string) => {
-    setActiveFilters((prev) => {
-      const newFilters = { ...prev };
-      if (key === "price" || key === "discount") {
-        // For range filters, we only want one active value at a time
-        newFilters[key] = [value];
-      } else {
-        if (newFilters[key]) {
-          const index = newFilters[key].indexOf(value);
-          if (index > -1) {
-            newFilters[key] = newFilters[key].filter((v) => v !== value);
-            if (newFilters[key].length === 0) {
-              delete newFilters[key];
-            }
-          } else {
-            newFilters[key] = [...newFilters[key], value];
-          }
-        } else {
-          newFilters[key] = [value];
-        }
-      }
-      return newFilters;
-    });
-    setCurrentPage(1);
-  };
-
-  const handleResetFilters = () => {
-    setActiveFilters({});
-    setCurrentPage(1);
-  };
-
-  const handleSort = (key: string | number | symbol) => {
-    if (
-      typeof key === "string" &&
-      includedKeys.includes(key as keyof Category)
-    ) {
-      setSortKey(key as keyof Category); // Set sort key safely
-    } else {
-      console.error("Invalid sort key:", key);
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchUniqueCategoriesWithSubs(); // Fetch data for the new page
-  };
-
-  const handleRowsPerPageChange = (rows: number) => {
-    setRowsPerPage(rows);
-    setCurrentPage(1);
-  };
-
-  const handleRowSelect = (selectedRows: any[]) => {
-    console.log("Selected rows:", selectedRows);
-  };
-
-  const handleAddNew = () => {
+  const handleAddNewCategory = () => {
     setIsDialogOpen(true);
   };
 
-  const handleClearFilter = (key: string, value: string) => {
-    const newActiveFilters = { ...activeFilters };
-    newActiveFilters[key] = newActiveFilters[key].filter((v) => v !== value);
-    if (newActiveFilters[key].length === 0) {
-      delete newActiveFilters[key];
+  const handleViewCategory = async (category: Category) => {
+    try {
+      // Navigate to the subcategories page for this category
+      router.push(`/dashboard/categories/${category.category_id}`);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to view category details",
+        variant: "destructive",
+      });
     }
-    setActiveFilters(newActiveFilters);
   };
 
+  const handleEditCategory = async (category: Category) => {
+    try {
+      setEditingCategory(category);
+      setIsDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open dialog",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCategory = async (category: Category) => {
+    try {
+      await deleteCategory(category.category_id);
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
+    } finally {
+      setCategoryToDelete(null);
+    }
+  };
+
+  const confirmDelete = (category: Category) => {
+    setCategoryToDelete(category.category_id);
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingCategory(null); // Reset editing state when dialog closes
+  };
+
+  const handleFormSuccess = () => {
+    setIsDialogOpen(false);
+    setEditingCategory(null); // Reset editing state on success
+    router.refresh(); // Refresh data after successful operation
+  };
+
+  // Define category-specific actions
+  const categoryActions = [
+    {
+      label: "Actions",
+      items: [
+        {
+          label: "View Subcategories",
+          icon: <Eye className="h-4 w-4" />,
+          onClick: handleViewCategory,
+        },
+        {
+          label: "Edit",
+          icon: <Pencil className="h-4 w-4" />,
+          onClick: handleEditCategory,
+        },
+        {
+          label: "Delete",
+          icon: <Trash2 className="h-4 w-4" />,
+          onClick: confirmDelete,
+          className: "text-destructive focus:text-destructive",
+        },
+      ],
+    },
+  ];
+
+  // Columns with customizable actions
+  const columns: ColumnDef<Category>[] = [
+    {
+      accessorKey: "category_id",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Id" />
+      ),
+      size: 80,
+    },
+    {
+      accessorKey: "category_name",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Name" />
+      ),
+      size: 80,
+    },
+    {
+      accessorKey: "category_image",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Image" />
+      ),
+      cell: ({ row }) => {
+        const image = String(row.getValue("category_image"));
+        return (
+          <div className="font-medium">
+            <Base64Image src={image} alt={""} width={50} height={50} />
+          </div>
+        );
+      },
+      size: 50,
+    },
+    {
+      accessorKey: "category_status",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Status" />
+      ),
+      cell: ({ row }) => {
+        const status = row.getValue("category_status") as string;
+        return (
+          <Badge
+            className="capitalize"
+            variant={
+              status === "active"
+                ? "default"
+                : status === "inactive"
+                  ? "secondary"
+                  : "destructive"
+            }>
+            {status}
+          </Badge>
+        );
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <DataTableRowActions row={row} actions={categoryActions} />
+      ),
+      size: 60,
+    },
+  ];
+
+  const filterableColumns = [
+    {
+      id: "category_status",
+      title: "Status",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+      ],
+    },
+  ];
+
+  if (isLoading) return <div>Loading categories...</div>;
+  if (isError) return <div>Error loading categories</div>;
+
   return (
-    <div className="container mx-auto py-10">
-      {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <p>Error</p>
-      ) : (
+    <>
+      <div className="container mx-auto py-4">
+        <div className="flex gap-4">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold mb-6">Categories</h1>
+        </div>
+
         <DataTable
-          data={paginatedData}
-          includedKeys={includedKeys}
-          filters={filters}
-          rowActions={rowActions}
-          onSearch={handleSearch}
-          onFilter={handleFilter}
-          onSort={handleSort}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          onRowSelect={handleRowSelect}
-          onAddNew={handleAddNew}
-          totalItems={filteredAndSortedData.length}
-          currentPage={currentPage}
-          rowsPerPage={rowsPerPage}
-          activeFilters={activeFilters}
-          onClearFilter={handleClearFilter}
-          onResetFilters={handleResetFilters}
-          columnRenderers={columnRenderers} // Updated
+          columns={columns}
+          data={parentCategories}
+          searchKey="category_name"
+          filterableColumns={filterableColumns}
+          addNewButton={{
+            text: "Add Category",
+            icon: <Plus className="h-4 w-4" />,
+            onClick: handleAddNewCategory,
+          }}
         />
-      )}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      </div>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleDialogClose();
+          else setIsDialogOpen(open);
+        }}>
         <DialogContent className="sm:max-w-[40rem]">
           <DialogHeader>
             <DialogTitle>
@@ -309,23 +259,38 @@ export default function CategoriesPage() {
           </DialogHeader>
           <CategoryForm
             initialData={editingCategory || undefined}
-            onCancel={() => setIsDialogOpen(false)}
+            onCancel={handleDialogClose}
+            onSuccess={handleFormSuccess}
           />
         </DialogContent>
       </Dialog>
-      <ReusableAlertDialog
-        triggerElement=""
-        title="Delete Category"
-        description={`Are you sure you want to delete the category with id ${deletingCategory}? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        isOpen={isAlertDialogOpen}
-        onConfirm={() => handleDeleteCategory(Number(deletingCategory))}
-        onCancel={() => {
-          setDeletingCategory(null);
-          setIsAlertDialogOpen(false);
-        }}
-      />
-    </div>
+
+      <AlertDialog
+        open={!!categoryToDelete}
+        onOpenChange={(open) => !open && setCategoryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              category and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const category = parentCategories.find(
+                  (c) => c.category_id === categoryToDelete
+                );
+                if (category) handleDeleteCategory(category);
+              }}
+              className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -29,53 +29,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ProductVariants } from "@/components/Product/ProductPage/product-variants";
 import { ProductReviews } from "@/components/Product/ProductPage/product-reviews";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useStore } from "@/app/store";
-import { fetchProductById } from "@/lib/actions/Product/fetch";
-import { Product } from "@/lib/actions/Product/productTypes";
 import Base64Image from "@/components/Data-Table/base64-image";
 import ProductAnalytics from "@/components/Product/ProductPage/product-analytics";
+import { useProductById } from "@/lib/actions/Product/hooks";
 
 export default function ProductPage() {
-  const fetchUniqueCategoriesWithSubs = useStore(
-    (state) => state.fetchUniqueCategoriesWithSubs
-  );
-  const categories = useStore((state) => state.categories);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const { toast } = useToast();
+  const { data: product, isLoading, isError } = useProductById(Number(id));
+  const categories = useStore((state) => state.categories);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    fetchUniqueCategoriesWithSubs(); // Fetch initial page
-  }, [fetchUniqueCategoriesWithSubs]);
-
-  useEffect(() => {
-    if (id) {
-      const fetchProduct = async () => {
-        try {
-          const res = await fetchProductById(Number(id));
-
-          setProduct(res);
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to fetch product",
-          });
-        }
-      };
-
-      fetchProduct();
-    }
-  }, [id, toast]);
 
   if (error) {
     return (
@@ -154,8 +124,8 @@ export default function ProductPage() {
 
                   <div className="mt-3 grid grid-cols-5 gap-4">
                     {product.thumbnails
-                      .flatMap((thumbnailObj) => Object.values(thumbnailObj))
-                      .map((thumbnail, index) => (
+                      ?.flatMap((thumbnailObj) => Object.values(thumbnailObj))
+                      ?.map((thumbnail, index) => (
                         <Image
                           key={index}
                           src={thumbnail}
@@ -211,14 +181,20 @@ export default function ProductPage() {
               />
             </CardContent>
           </Card>
-          <Tabs defaultValue="variants">
+          <Tabs defaultValue="long_description">
             <TabsList>
-              <TabsTrigger value="variants">Variants</TabsTrigger>
+              <TabsTrigger value="long_description">
+                Long Description
+              </TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
-            <TabsContent value="variants">
-              <ProductVariants />
+            <TabsContent value="long_description">
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: product.long_description || "",
+                }}
+              />
             </TabsContent>
             <TabsContent value="reviews">
               <ProductReviews />
@@ -247,7 +223,7 @@ export default function ProductPage() {
               <div>
                 <CardDescription>Average Rating</CardDescription>
                 <div className="flex items-center">
-                  <p className="text-2xl font-bold mr-2">4.5</p>
+                  <p className="text-2xl font-bold mr-2">{product.ratings}</p>
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
@@ -275,7 +251,7 @@ export default function ProductPage() {
               </div>
               <div>
                 <CardDescription>Low Stock Threshold</CardDescription>
-                <p className="text-2xl font-bold">50</p>
+                <p className="text-2xl font-bold">10</p>
               </div>
               <Button className="w-full">Manage Inventory</Button>
             </CardContent>

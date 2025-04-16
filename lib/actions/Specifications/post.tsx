@@ -1,10 +1,11 @@
 "use server";
 
+import { dbOperation } from "@/lib/MysqlDB/dbOperations";
+
 export async function createProductSpecifications(
   data: FormData,
   productId: number,
-  categoryId: number,
-  connection?: any
+  categoryId: number
 ) {
   if (!categoryId) {
     throw new Error("Category ID is required to add specifications.");
@@ -45,51 +46,52 @@ export async function createProductSpecifications(
   }
 
   const specificationIds: number[] = [];
-
-  // Check if specifications exist or insert them
-  for (const spec of specifications) {
-    const [existingSpec] = await connection.query(
-      `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
-      [spec.specification_name]
-    );
-
-    let specificationId: number;
-
-    if (existingSpec.length > 0) {
-      // Specification exists, use its ID
-      specificationId = existingSpec[0].specification_id;
-    } else {
-      // Specification does not exist, insert it and get the ID
-      const [insertResult]: [any, any] = await connection.query(
-        `INSERT INTO specifications (specification_name) VALUES (?)`,
+  return dbOperation(async (connection) => {
+    // Check if specifications exist or insert them
+    for (const spec of specifications) {
+      const [existingSpec] = await connection.query(
+        `SELECT specification_id FROM specifications WHERE specification_name = ? LIMIT 1`,
         [spec.specification_name]
       );
-      specificationId = insertResult.insertId; // Access insertId from ResultSetHeader
+
+      let specificationId: number;
+
+      if (existingSpec.length > 0) {
+        // Specification exists, use its ID
+        specificationId = existingSpec[0].specification_id;
+      } else {
+        // Specification does not exist, insert it and get the ID
+        const [insertResult]: [any, any] = await connection.query(
+          `INSERT INTO specifications (specification_name) VALUES (?)`,
+          [spec.specification_name]
+        );
+        specificationId = insertResult.insertId; // Access insertId from ResultSetHeader
+      }
+
+      specificationIds.push(specificationId);
+
+      // Insert into category_specifications table
+      await connection.query(
+        `INSERT IGNORE INTO category_specifications (category_id, specification_id) VALUES (?, ?)`,
+        [categoryId, specificationId]
+      );
     }
 
-    specificationIds.push(specificationId);
+    // Insert into product_specifications table
+    const productSpecInsertValues = specifications.map((spec, index) => [
+      productId,
+      specificationIds[index],
+      spec.specification_value,
+    ]);
 
-    // Insert into category_specifications table
     await connection.query(
-      `INSERT IGNORE INTO category_specifications (category_id, specification_id) VALUES (?, ?)`,
-      [categoryId, specificationId]
+      `INSERT INTO product_specifications (product_id, specification_id, value) VALUES ?`,
+      [productSpecInsertValues]
     );
-  }
 
-  // Insert into product_specifications table
-  const productSpecInsertValues = specifications.map((spec, index) => [
-    productId,
-    specificationIds[index],
-    spec.specification_value,
-  ]);
-
-  await connection.query(
-    `INSERT INTO product_specifications (product_id, specification_id, value) VALUES ?`,
-    [productSpecInsertValues]
-  );
-
-  return {
-    success: true,
-    message: "Specifications added successfully",
-  };
+    return {
+      success: true,
+      message: "Specifications added successfully",
+    };
+  });
 }
