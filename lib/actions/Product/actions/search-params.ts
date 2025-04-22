@@ -15,7 +15,7 @@ export interface Product {
   sku?: string;
   long_description?: string;
   status?: "draft" | "pending" | "approved";
-  created_at?: string;
+  created_at: string;
   updatedAt?: string;
 
   // Category information
@@ -80,7 +80,7 @@ export interface SearchParams {
   page?: number;
   perPage?: number;
   grid?: string;
-  [key: string]: string | number | string[] | undefined;
+  [key: string]: string | number | string[] | boolean | undefined;
 }
 
 export interface ProductsResponse {

@@ -19,7 +19,7 @@ import {
   CategorySubmitAction,
   updateCategoryAction,
 } from "@/lib/actions/Category/server";
-import { useStore } from "@/app/store";
+import { useSubCategories } from "@/lib/actions/Category/queries";
 
 interface Category {
   category_id: number;
@@ -50,14 +50,8 @@ export default function CategoryForm({
     parent_category_id: initialData?.parent_category_id || null, // Initialize parent_category_id
   });
 
-  const categories = useStore((state) => state.categories);
-  const fetchCategories = useStore(
-    (state) => state.fetchUniqueCategoriesWithSubs
-  );
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  // This should directly fetch only the immediate subcategories
+  const { data: categories = [] } = useSubCategories();
 
   const [existingImage, setExistingImage] = useState<string | null>(
     typeof initialData?.category_image === "string"

@@ -29,23 +29,47 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ProductReviews } from "@/components/Product/ProductPage/product-reviews";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
-
-import { useStore } from "@/app/store";
 import Base64Image from "@/components/Data-Table/base64-image";
 import ProductAnalytics from "@/components/Product/ProductPage/product-analytics";
-import { useProductById } from "@/lib/actions/Product/hooks";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProductById } from "@/lib/actions/Product/actions/fetchById";
+import { Product } from "@/lib/actions/Product/actions/search-params";
+import { useProductMutations } from "@/lib/actions/Product/hooks";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProductPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const { data: product, isLoading, isError } = useProductById(Number(id));
-  const categories = useStore((state) => state.categories);
+
+  const { data: product } = useQuery<Product>({
+    queryKey: ["product", id],
+    queryFn: () => fetchProductById(Number(id)),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
+  });
+
   const [error, setError] = useState<string | null>(null);
+
+  const { deleteProduct } = useProductMutations();
   const router = useRouter();
+  const { toast } = useToast();
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
 
   if (error) {
     return (
@@ -72,6 +96,45 @@ export default function ProductPage() {
       </div>
     );
   }
+
+  const handleEditProduct = async (product: Product) => {
+    try {
+      const id = product.id;
+      router.push(`/dashboard/products/${id}/edit`);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open edit page",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    try {
+      await deleteProduct(product.id);
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+
+      // Refresh the data
+      router.push("/dashboard/products");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    } finally {
+      setProductToDelete(null);
+    }
+  };
+
+  const confirmDelete = (product: Product) => {
+    setProductToDelete(product.id);
+  };
+
   return (
     <div className="flex flex-col space-y-8 p-8">
       <div className="flex items-center justify-between">
@@ -84,7 +147,7 @@ export default function ProductPage() {
           <h1 className="text-3xl font-bold tracking-tight">Product Details</h1>
         </div>
         <div className="flex items-center space-x-2">
-          <Button>
+          <Button onClick={() => handleEditProduct(product)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit Product
           </Button>
@@ -98,7 +161,9 @@ export default function ProductPage() {
               <DropdownMenuItem>Duplicate</DropdownMenuItem>
               <DropdownMenuItem>Archive</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem
+                onClick={() => confirmDelete(product)}
+                className="text-red-600">
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -155,13 +220,7 @@ export default function ProductPage() {
                     <Label htmlFor="category">Category</Label>
                     <Input
                       id="category"
-                      value={
-                        categories.find(
-                          (category) =>
-                            Number(category.category_id) ===
-                            Number(product.category_id)
-                        )?.category_name || "Category not found"
-                      }
+                      value={product.category_name}
                       readOnly
                     />
                   </div>
@@ -283,6 +342,30 @@ export default function ProductPage() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog
+        open={!!productToDelete}
+        onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              product and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (product) handleDeleteProduct(product);
+              }}
+              className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { Menu } from "lucide-react";
 import React from "react";
 import Logo from "../navigation/logo";
-import SearchComponent from "../navigation/search";
 import WishList from "../navigation/wishlist";
 import Compare from "../navigation/compare";
 import Cart from "../navigation/cart";

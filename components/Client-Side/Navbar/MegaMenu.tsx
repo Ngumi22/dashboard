@@ -18,12 +18,11 @@ import {
 } from "lucide-react";
 import { generateSlug } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { fetchCategoryWithSubCat } from "@/lib/actions/Category/fetch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { useSubCategories } from "@/lib/actions/Category/queries";
 
 export interface Category {
   category_id: number;
@@ -34,11 +33,10 @@ export interface Category {
   parent_category_id?: number | null;
   category_slug?: string;
 }
+
 interface MegaMenuProps {
   initialData?: Category[]; // Server-prefetched data
 }
-
-const MINUTE = 1000 * 60;
 
 export default function MegaMenu({ initialData }: MegaMenuProps) {
   const [isMobile, setIsMobile] = useState(false);
@@ -54,20 +52,12 @@ export default function MegaMenu({ initialData }: MegaMenuProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // This should directly fetch only the immediate subcategories
   const {
-    data: categoriesData = initialData, // Fallback to server data
+    data: categoriesData = initialData,
     isLoading,
     isError,
-  } = useQuery<Category[], Error>({
-    queryKey: ["categoryDataWithSub"],
-    queryFn: () => fetchCategoryWithSubCat(),
-    initialData,
-    staleTime: 24 * 60 * MINUTE,
-    gcTime: 48 * 60 * MINUTE,
-    placeholderData: keepPreviousData,
-    retry: 3,
-    refetchOnWindowFocus: false,
-  });
+  } = useSubCategories();
 
   // Loading state (only shows if no initialData)
   if ((isLoading && !initialData) || !categoriesData) {

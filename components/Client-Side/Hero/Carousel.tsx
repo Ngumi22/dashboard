@@ -15,9 +15,10 @@ const ArrowDown = dynamic(
 const CarouselSlide = dynamic(() => import("./Carousel-Slide"), { ssr: false });
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchCarousels } from "@/lib/actions/Carousel/fetch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniCarousel } from "@/lib/actions/Carousel/carouselTypes";
+import { getUniqueCarousels } from "@/lib/actions/Carousel/fetch";
+import { useCarousels } from "@/lib/actions/Carousel/hooks";
 
 const MINUTE = 1000 * 60;
 
@@ -26,22 +27,12 @@ interface CarouselProps {
   isAdmin: boolean;
 }
 
-export default function Carousel({
-  initialData,
-  isAdmin = false,
-}: CarouselProps) {
+export default function Carousel({ initialData }: CarouselProps) {
   const {
-    data: carouselData = initialData, // Fallback to server data
+    data: carouselData = initialData,
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ["carouselsData"],
-    queryFn: () => fetchCarousels(),
-    initialData,
-    staleTime: 24 * 60 * MINUTE, // Data is fresh for 24 hours
-    gcTime: 48 * 60 * MINUTE, // Garbage collection time is 48
-    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
-  });
+  } = useCarousels();
 
   // Wrap the initialization of 'carousels' in useMemo
   const carousels = useMemo(() => carouselData || [], [carouselData]);

@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useProductsByTagQuery } from "@/lib/actions/Hooks/useTags";
 import ProductCard from "@/components/Product/ProductCards/product-card";
 

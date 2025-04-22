@@ -44,7 +44,6 @@ export default function SubCategoriesPage({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { data: allCategories = [] } = useCategories();
 
   // This should directly fetch only the immediate subcategories
   const {

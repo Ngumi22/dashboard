@@ -58,9 +58,8 @@ export async function fetchProducts(
       LEFT JOIN product_specifications ps ON p.product_id = ps.product_id
       LEFT JOIN specifications spec ON ps.specification_id = spec.specification_id
       LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
-      WHERE
-          ${whereClause}
-          AND p.product_status = 'approved'
+      WHERE ${whereClause}
+      AND p.product_status = 'approved'
       GROUP BY p.product_id
       ORDER BY p.product_id ASC
       LIMIT ? OFFSET ?`;
@@ -164,10 +163,10 @@ async function mapRowsToProducts(rows: any[]): Promise<Product[]> {
             thumbnail5: compressedThumbnails[4] || "",
           },
         ],
-        category_id: row.category_id.toString(),
+        category_id: row.category_id,
         created_at: row.created_at,
         brand: {
-          brand_id: row.brand_id.toString(),
+          brand_id: row.brand_id,
           brand_name: row.brand_name,
           brand_image: (await compressAndEncodeBase64(row.brand_image)) ?? "",
         },

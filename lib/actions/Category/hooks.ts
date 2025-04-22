@@ -13,14 +13,6 @@ export function useCategories() {
   });
 }
 
-export function useSubCategories() {
-  return useQuery<Category[]>({
-    ...categoryQueries.subCategories,
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
-  });
-}
-
 export function useSubCategoriesById(category_id: number) {
   return useQuery({
     ...categoryQueries.subCategoriesById(category_id),

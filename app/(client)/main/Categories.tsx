@@ -1,75 +1,126 @@
 "use client";
-
 import Link from "next/link";
 import ScrollableSection from "@/components/Client-Side/Features/ScrollableSection";
 import Base64Image from "@/components/Data-Table/base64-image";
-import { getUniqueCategories } from "@/lib/actions/Category/fetch";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Category } from "@/lib/actions/Category/catType";
-import { useCategories } from "@/lib/actions/Category/hooks";
+import { fetchProducts } from "@/lib/actions/Product/actions/getData";
+import { useQuery } from "@tanstack/react-query";
 
-const url = process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
-const MINUTE = 1000 * 60;
+const BASE_URL =
+  process.env.BASE_URL1 || "https://www.bernzzdigitalsolutions.co.ke";
 
-type SubCategoryProductsProps = {
-  initialData?: Category[];
+type Category = {
+  id: string;
+  name: string;
+  image: string | null;
 };
 
-export default function Categories({ initialData }: SubCategoryProductsProps) {
-  const { data: categories = [], isLoading, isError } = useCategories();
+export default function Categories() {
+  const {
+    data: categories = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      try {
+        const result = await fetchProducts({
+          metadataOnly: true,
+        });
 
-  // Error Handling with Retry
-  if (isError) {
-    return;
-  }
+        const rawCategories = result?.filters?.categories || [];
 
+        const categories: Category[] = rawCategories
+          .filter(
+            (c: any) =>
+              (c.category_status === "active" || c.status === "active") &&
+              !c.parent_category_id &&
+              !c.parentId
+          )
+          .map((c: any) => ({
+            id: c.category_id.toString(),
+            name: c.category_name,
+            image: c.category_image || c.image,
+          }));
+
+        if (!categories.length) {
+          console.warn("No active main categories received from API");
+          return [];
+        }
+
+        return categories;
+      } catch (error) {
+        console.error("Fetch error:", error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 60,
+    gcTime: 1000 * 60 * 60 * 2,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
+  });
+
+  // Loading state with skeleton loader
   if (isLoading) {
     return (
-      <ul className="flex md:grid">
-        <li className="w-full flex-shrink-0 grid grid-flow-col content-center justify-between p-2 rounded-md bg-gray-200 animate-pulse">
-          <div className="w-10 h-10 bg-gray-300 rounded"></div>
-          <div className="w-10 h-10 bg-gray-300 rounded"></div>
-          <div className="w-10 h-10 bg-gray-300 rounded"></div>
-          <div className="w-10 h-10 bg-gray-300 rounded"></div>
-        </li>
-      </ul>
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold px-4">Featured Categories</h2>
+        <div className="flex overflow-x-auto pb-4 gap-4 px-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div
+              key={`skeleton-${index}`}
+              className="flex-shrink-0 w-[250px] h-32 bg-gray-100 rounded-md animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
     );
   }
 
-  // Handle case where categories is undefined or empty
-  if (!categories || categories.length === 0) {
-    return null;
+  // Empty state
+  if (!categories.length) {
+    return (
+      <div className="space-y-4 px-4">
+        <h2 className="text-lg font-semibold">Featured Categories</h2>
+        <div className="text-center py-8 text-gray-500">
+          No categories available
+        </div>
+      </div>
+    );
   }
 
   return (
     <ScrollableSection
       title="Featured Categories"
       items={categories.map((category) => ({
-        id: category.category_id,
+        id: category.id,
         content: (
           <div
-            key={category.category_id}
-            className="flex-shrink-0 w-full min-w-[250px] h-32 flex items-center justify-between bg-white shadow-md p-4 rounded-md mb-2">
-            <div className="flex flex-col justify-between h-1/2 space-y-2">
-              <Link className="text-lg font-semibold" href={url}>
-                {category.category_name}
+            key={category.id}
+            className="flex-shrink-0 w-[250px] h-32 flex items-center justify-between bg-white shadow-md p-4 rounded-md">
+            <div className="flex flex-col justify-between h-full">
+              <Link
+                href={`${BASE_URL}/categories/${category.id}`}
+                className="text-lg font-semibold hover:text-blue-600 transition-colors">
+                {category.name}
               </Link>
               <Link
-                className="text-xs text-muted-foreground font-semibold"
-                href={url}>
-                View All
+                href={`${BASE_URL}/categories/${category.id}`}
+                className="text-sm text-gray-500 hover:text-blue-500 transition-colors">
+                Shop Now →
               </Link>
             </div>
-            <Base64Image
-              src={
-                typeof category.category_image === "string"
-                  ? category.category_image
-                  : "/placeholder.svg"
-              }
-              alt={category.category_name}
-              width={100}
-              height={100}
-            />
+            {category.image && (
+              <div className="w-20 h-20 relative">
+                <Base64Image
+                  src={category.image}
+                  alt={category.name}
+                  width={80}
+                  height={80}
+                />
+              </div>
+            )}
           </div>
         ),
       }))}

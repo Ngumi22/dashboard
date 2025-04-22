@@ -1,111 +1,89 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { onSubmitAction } from "./actions/post";
-import { FormState, updateProductAction } from "./actions/update";
-import { Product, SearchParams } from "./actions/search-params";
-import { handleDeleteAction } from "./actions/delete";
+import { SearchParams } from "./search-params";
+import { Product } from "./actions/search-params";
 import {
-  productKeys,
-  getProductListKey,
-  getProductDetailKey,
-  getProductNameKey,
-} from "./services";
-import {
-  getProductById,
-  getProductByName,
-  getProductFilters,
-  getProducts,
-} from "./queries";
-
+  createProductAction,
+  deleteProductAction,
+  updateProductActionWrapper,
+} from "./dataFetch";
+// Cache constants
 const MINUTE = 1000 * 60;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-export function useProducts(filter?: SearchParams) {
-  return useQuery({
-    queryKey: getProductListKey(filter),
-    queryFn: () => getProducts(filter),
-    select: (data) => data,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
+export interface ProductFilters {
+  categories: { id: string; name: string }[];
+  brands: { id: string; name: string }[];
+  specifications: { id: string; name: string; values: string[] }[];
+  minPrice: number;
+  maxPrice: number;
+  tags: string[];
 }
 
-export function useProductFilters() {
-  return useQuery({
-    queryKey: productKeys.filters,
-    queryFn: getProductFilters,
-    staleTime: DAY,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
+export interface ProductMeta {
+  filters: ProductFilters;
+  totalPages: number;
+  totalProducts: number;
+  errorMessage?: string;
 }
 
-export function useProductById(id: number) {
-  return useQuery<Product>({
-    queryKey: getProductDetailKey(id),
-    queryFn: () => getProductById(id),
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
-}
-
-export function useProductByName(name: string) {
-  return useQuery<Product>({
-    queryKey: getProductNameKey(name),
-    queryFn: () => getProductByName(name),
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
-}
+export const productKeys = {
+  all: ["products"] as const,
+  lists: () => [...productKeys.all, "list"] as const,
+  list: (filter: SearchParams) => [...productKeys.lists(), filter] as const,
+  details: () => [...productKeys.all, "detail"] as const,
+  detail: (id: number) => [...productKeys.details(), id] as const,
+  searches: () => [...productKeys.all, "search"] as const,
+  search: (name: string) => [...productKeys.searches(), name] as const,
+  metadata: () => [...productKeys.all, "metadata"] as const,
+};
 
 export function useProductMutations() {
   const queryClient = useQueryClient();
 
-  const create = useMutation({
+  const createMutation = useMutation({
     mutationFn: ({ prevState, data }: { prevState: any; data: FormData }) =>
-      onSubmitAction(prevState, data),
+      createProductAction(prevState, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.lists });
-      queryClient.invalidateQueries({ queryKey: productKeys.filters });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.metadata() });
     },
   });
 
-  const update = useMutation({
-    mutationFn: ({
-      product_id,
-      data,
-      prevState,
-    }: {
-      product_id: string;
-      data: FormData;
-      prevState: FormState;
-    }) => updateProductAction(prevState, product_id, data),
-    onSuccess: (_, { product_id }) => {
+  const updateMutation = useMutation({
+    mutationFn: (variables: { id: number; data: FormData; prevState: any }) =>
+      updateProductActionWrapper(
+        variables.prevState,
+        variables.id.toString(),
+        variables.data
+      ),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({
-        queryKey: getProductDetailKey(Number(product_id)),
+        queryKey: productKeys.detail(variables.id),
       });
-      queryClient.invalidateQueries({ queryKey: productKeys.lists });
+      queryClient.invalidateQueries({ queryKey: productKeys.metadata() });
     },
   });
 
-  const remove = useMutation({
-    mutationFn: (product_id: number) => handleDeleteAction(product_id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.lists });
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteProductAction(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: productKeys.metadata() });
     },
   });
 
   return {
-    createProduct: create.mutateAsync,
-    updateProduct: update.mutateAsync,
-    deleteProduct: remove.mutateAsync,
-    isLoading: create.isPending || update.isPending || remove.isPending,
-    isCreating: create.isPending,
-    isUpdating: update.isPending,
-    isDeleting: remove.isPending,
+    createProduct: createMutation.mutateAsync,
+    updateProduct: updateMutation.mutateAsync,
+    deleteProduct: deleteMutation.mutateAsync,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    createError: createMutation.error,
+    updateError: updateMutation.error,
+    deleteError: deleteMutation.error,
   };
 }

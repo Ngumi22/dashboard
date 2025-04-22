@@ -117,38 +117,3 @@ export async function deleteCarousel(carousel_id: number): Promise<boolean> {
     }
   });
 }
-
-export async function fetchCarousels(): Promise<Carousel[]> {
-  return await dbOperation(async (connection) => {
-    try {
-      const [carousels] = await connection.query(
-        `SELECT
-            carousel_id,
-            title,
-            short_description,
-            description,
-            link,
-            image,
-            status
-        FROM carousels
-        WHERE status = 'active'
-        ORDER BY carousel_id DESC;`
-      );
-
-      if (!carousels || carousels.length === 0) return [];
-
-      // Process images in parallel
-      return await Promise.all(
-        carousels.map(async (carousel: any) => ({
-          ...carousel,
-          image: carousel.image
-            ? await compressAndEncodeBase64(carousel.image)
-            : null,
-        }))
-      );
-    } catch (error) {
-      console.error("Error fetching unique carousels:", error);
-      throw new Error("Failed to fetch carousels");
-    }
-  });
-}

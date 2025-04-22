@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/lib/actions/Product/actions/types";
 import { fetchProductById } from "@/lib/actions/Product/actions/fetchById";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ProductForm from "@/components/Admin/Products/Forms/AddProduct";
+import { Product } from "@/lib/actions/Product/actions/search-params";
 
 export default function UpdateProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -68,12 +68,18 @@ export default function UpdateProductPage() {
           }))
         : [],
 
-      brand_id: product.brand?.brand_id ?? 0,
+      brand_id: String(product.brand?.brand_id ?? ""),
       brand_name: product.brand?.brand_name || "",
       brand_image: product.brand?.brand_image || "",
       main_image: product.main_image || "",
       thumbnails: Array.isArray(product.thumbnails)
-        ? product.thumbnails.flatMap((t) => t)
+        ? product.thumbnails.map((t) => ({
+            thumbnail1: t.thumbnail1 || "",
+            thumbnail2: t.thumbnail2 || "",
+            thumbnail3: t.thumbnail3 || "",
+            thumbnail4: t.thumbnail4 || "",
+            thumbnail5: t.thumbnail5 || "",
+          }))
         : [],
     };
   }, [product]);

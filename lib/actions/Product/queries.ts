@@ -1,45 +1,43 @@
-"use server";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { onSubmitAction } from "./actions/post";
+import { updateProductAction } from "./actions/update";
+import { handleDeleteAction } from "./actions/delete";
 
-import { unstable_cache as cache } from "next/cache";
-import { fetchProductByName } from "./actions/byName";
-import { fetchProductById } from "./actions/fetchById";
-import { fetchProducts } from "./actions/fetch";
-import { SearchParams } from "./actions/search-params";
-import { getFilteredProducts } from "./actions/getproduct";
+export const useAddProduct = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ prevState, data }: { prevState: any; data: FormData }) =>
+      onSubmitAction(prevState, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+};
 
-const MINUTE = 1000 * 60;
-const DAY = 24 * 60 * MINUTE;
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      product_id,
+      data,
+      prevState,
+    }: {
+      product_id: string;
+      data: FormData;
+      prevState: any;
+    }) => updateProductAction(prevState, product_id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+};
 
-export const getProducts = cache(
-  async (filter: SearchParams = {}) => {
-    const products = await getFilteredProducts(filter);
-    return products;
-  },
-  ["products", "list"],
-  { revalidate: 30 * MINUTE }
-);
-
-export const getProductById = cache(
-  async (id: number) => {
-    return await fetchProductById(id);
-  },
-  ["products", "detail"],
-  { revalidate: 30 * MINUTE }
-);
-
-export const getProductByName = cache(
-  async (name: string) => {
-    return await fetchProductByName(name);
-  },
-  ["products", "name"],
-  { revalidate: 30 * MINUTE }
-);
-
-export const getProductFilters = cache(
-  async () => {
-    const [_, meta] = await fetchProducts({});
-    return meta.filters;
-  },
-  ["products", "filters"],
-  { revalidate: DAY }
-);
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (product_id: number) => handleDeleteAction(product_id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+};

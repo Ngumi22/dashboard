@@ -21,10 +21,7 @@ import {
 import { ArrowLeft, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/Table/data-table";
 import { Category } from "@/lib/actions/Category/catType";
-import {
-  useCategories,
-  useSubCategoriesWithCatId,
-} from "@/lib/actions/Category/queries";
+import { useSubCategoriesWithCatId } from "@/lib/actions/Category/queries";
 import { useCategoryMutations } from "@/lib/actions/Category/hooks";
 import {
   Dialog,

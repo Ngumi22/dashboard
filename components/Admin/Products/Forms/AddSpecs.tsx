@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getCategorySpecs } from "@/lib/actions/Category/fetch";
+import { getCategorySpecs } from "@/lib/actions/Category/get";
 
 interface Specification {
   specification_name: string;

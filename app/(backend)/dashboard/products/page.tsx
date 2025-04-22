@@ -6,7 +6,8 @@ import { DataTableColumnHeader } from "@/components/Table/data-table-column-head
 import { DataTableRowActions } from "@/components/Table/data-table-row-actions";
 import { DataTable } from "@/components/Table/data-table";
 import { Product } from "@/lib/actions/Product/actions/search-params";
-import { useProductMutations, useProducts } from "@/lib/actions/Product/hooks";
+import { SearchParams } from "@/lib/actions/Product/search-params";
+import { useProductMutations } from "@/lib/actions/Product/hooks";
 import Base64Image from "@/components/Data-Table/base64-image";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -24,9 +25,34 @@ import { useState } from "react";
 import { ArrowLeft, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProducts } from "@/lib/actions/Product/actions/getData";
 
-export default function ProductsPage() {
-  const { data: products = [], isLoading, isError } = useProducts();
+export const dynamic = "force-dynamic";
+
+export default function ProductsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["prods", searchParams],
+    queryFn: async () => {
+      try {
+        const result = await fetchProducts(searchParams);
+
+        return result.products;
+      } catch (error) {
+        console.error("Error fetching products by brand:", error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
+  });
   const { deleteProduct } = useProductMutations();
   const router = useRouter();
   const { toast } = useToast();

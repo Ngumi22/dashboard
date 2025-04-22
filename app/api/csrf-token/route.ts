@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
+import { initialize } from "@/lib/MysqlDB/initialize";
 
 export async function GET() {
+  await initialize();
   const token = crypto.randomBytes(32).toString("hex");
 
   cookies().set("XSRF-TOKEN", token, {

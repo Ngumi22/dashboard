@@ -2,9 +2,6 @@ import { query } from "./initDb";
 
 export async function dbsetupTables() {
   try {
-    // Create the database if it doesn't exist
-    await query(`CREATE DATABASE IF NOT EXISTS bernzz`);
-
     await query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,

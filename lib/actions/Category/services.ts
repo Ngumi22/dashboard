@@ -2,8 +2,7 @@
 
 import { unstable_cache as cache } from "next/cache";
 import {
-  fetchCategoryWithSubCatById,
-  fetchCategoryWithSubCat,
+  fetchCategoryWithSubCatByCatId,
   getCategoryById,
   getUniqueCategories,
 } from "./get";
@@ -36,21 +35,15 @@ const cachedFetchCategoryById = cache(
 );
 
 const cachedFetchCategoryTree = cache(
-  async (id: number) => fetchCategoryWithSubCatById(id),
+  async (id: number) => fetchCategoryWithSubCatByCatId(id),
   toMutableArray(categoryKeys.tree(0)), // Provide a dummy ID for key pattern
-  { revalidate: 30 * MINUTE }
-);
-
-const cachedFetchAllSubCategories = cache(
-  async () => fetchCategoryWithSubCat(),
-  toMutableArray(categoryKeys.subCategories),
   { revalidate: 30 * MINUTE }
 );
 
 export const categoryQueries = {
   all: {
     queryKey: categoryKeys.all,
-    queryFn: cachedGetUniqueCategories,
+    queryFn: () => cachedGetUniqueCategories(),
     staleTime: 30 * MINUTE,
     gcTime: 2 * HOUR,
     refetchOnWindowFocus: false,
@@ -68,16 +61,6 @@ export const categoryQueries = {
     refetchOnMount: false,
   }),
 
-  subCategories: {
-    queryKey: categoryKeys.subCategories,
-    queryFn: cachedFetchAllSubCategories,
-    staleTime: 30 * MINUTE,
-    gcTime: 2 * HOUR,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  },
-
   subCategoriesById: (category_id: number) => ({
     queryKey: [...categoryKeys.subCategories, category_id],
     queryFn: () => cachedFetchCategoryTree(category_id),
@@ -93,4 +76,3 @@ export const categoryQueries = {
 export const getCategoriesAction = cachedGetUniqueCategories;
 export const getCategoryByIdAction = cachedFetchCategoryById;
 export const getCategoryTreeAction = cachedFetchCategoryTree;
-export const getSubCategoriesAction = cachedFetchAllSubCategories;

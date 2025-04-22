@@ -32,12 +32,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import AddSpecifications from "./AddSpecs";
 import AddSuppliers from "./AddSuppliers";
-import { fetchCategoryWithSubCat } from "@/lib/actions/Category/fetch";
 import { getUniqueBrands } from "@/lib/actions/Brand/fetch";
 import { updateProductAction } from "@/lib/actions/Product/update";
 import type { Brand, Category, Product, ProductFormProps } from "./types";
 import { onSubmitAction } from "@/lib/actions/Product/actions/post";
 import RichTextEditor from "./Editor";
+import { fetchCategoryWithSubCat } from "@/lib/actions/Category/get";
 
 export default function ProductForm({ initialData }: ProductFormProps) {
   const [product, setProduct] = useState<Product>({

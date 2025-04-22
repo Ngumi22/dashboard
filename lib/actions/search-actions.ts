@@ -2,48 +2,55 @@
 
 import { fetchProductsAndFilters } from "./Product/fetchByFilters";
 
-// Types for our data
-type Product = {
+// Types
+export type Product = {
   id: string;
   name: string;
   description: string;
   price: number;
   category: string;
   brand: string;
-  specifications: {
-    [key: string]: string | number | boolean;
-  };
+  specifications: Record<string, string | number | boolean>;
   image?: string;
 };
 
-type SearchSuggestion = {
+export type SearchSuggestion = {
   id: string;
-  name: string; // Key-value pair for URL construction
-  displayName: string; // Only the value for display
+  name: string;
+  displayName: string;
   type: "product" | "category" | "brand" | "specification";
   image?: string;
 };
 
 /**
- * Fetch products from the database and transform specifications
+ * Fetch products and normalize data
  */
 export async function getProducts(): Promise<Product[]> {
   try {
     const { products } = await fetchProductsAndFilters({});
+
     return products.map((product) => ({
-      id: product.id.toString(),
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      category: product.category_name,
-      brand: product.brand_name,
-      specifications: product.specifications.reduce((acc, spec) => {
-        // Prefix specification keys with "spec_"
-        acc[`spec_${spec.specification_name.toLowerCase()}`] =
-          spec.specification_value;
-        return acc;
-      }, {} as { [key: string]: string | number | boolean }),
-      image: product.main_image,
+      id: String(product.id),
+      name: product.name || "Unknown Product",
+      description: product.description || "No description",
+      price: product.price ?? 0,
+      category: product.category_name || "Unknown Category",
+      brand: product.brand_name || "Unknown Brand",
+      specifications: (product.specifications ?? []).reduce(
+        (acc, spec) => {
+          const key = spec?.specification_name?.toLowerCase?.();
+          if (
+            key &&
+            spec.specification_value !== null &&
+            spec.specification_value !== undefined
+          ) {
+            acc[`spec_${key}`] = spec.specification_value;
+          }
+          return acc;
+        },
+        {} as Record<string, string | number | boolean>
+      ),
+      image: product.main_image || undefined,
     }));
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -52,22 +59,27 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 /**
- * Get unique categories and brands from products
+ * Get unique categories and brands
  */
 async function getCategoriesAndBrands(products: Product[]) {
-  const categories = [...new Set(products.map((p) => p.category))].map(
-    (name) => ({
-      id: name.toLowerCase().replace(/\s+/g, "-"),
-      name,
-      displayName: name, // Add displayName for categories
-      type: "category" as const,
-    })
-  );
+  const safeLower = (val: string | undefined | null) =>
+    val?.toLowerCase?.().replace(/\s+/g, "-") || "unknown";
 
-  const brands = [...new Set(products.map((p) => p.brand))].map((name) => ({
-    id: name.toLowerCase().replace(/\s+/g, "-"),
+  const categories = [
+    ...new Set(products.map((p) => p.category || "Unknown Category")),
+  ].map((name) => ({
+    id: safeLower(name),
     name,
-    displayName: name, // Add displayName for brands
+    displayName: name,
+    type: "category" as const,
+  }));
+
+  const brands = [
+    ...new Set(products.map((p) => p.brand || "Unknown Brand")),
+  ].map((name) => ({
+    id: safeLower(name),
+    name,
+    displayName: name,
     type: "brand" as const,
   }));
 
@@ -75,102 +87,85 @@ async function getCategoriesAndBrands(products: Product[]) {
 }
 
 /**
- * Extract all specifications as searchable items
+ * Extract unique specifications from all products
  */
 async function getSpecifications(
   products: Product[]
 ): Promise<SearchSuggestion[]> {
-  const specifications: SearchSuggestion[] = [];
-  const seenSpecs = new Set<string>(); // Track seen specifications to avoid duplicates
+  const specs: SearchSuggestion[] = [];
+  const seen = new Set<string>();
 
-  products.forEach((product) => {
-    Object.entries(product.specifications).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        const specKey = key.replace("spec_", ""); // Remove the "spec_" prefix
-        const specValue = String(value);
-        const specName = `${specKey}:${specValue}`; // Combine key and value
-        const normalizedSpec = specName.toLowerCase();
+  for (const product of products) {
+    for (const [key, value] of Object.entries(product.specifications || {})) {
+      if (!key || value === null || value === undefined) continue;
 
-        if (!seenSpecs.has(normalizedSpec)) {
-          seenSpecs.add(normalizedSpec);
-          specifications.push({
-            id: `spec-${normalizedSpec.replace(/\s+/g, "-")}`,
-            name: specName, // Store key and value for URL construction
-            displayName: specValue, // Store only the value for display
-            type: "specification",
-          });
-        }
+      const cleanKey = key.replace(/^spec_/, "");
+      const valStr = String(value).trim();
+      const combined = `${cleanKey}:${valStr}`;
+      const lowerCombined = combined.toLowerCase();
+
+      if (!seen.has(lowerCombined)) {
+        seen.add(lowerCombined);
+        specs.push({
+          id: `spec-${lowerCombined.replace(/\s+/g, "-")}`,
+          name: combined,
+          displayName: valStr,
+          type: "specification",
+        });
       }
-    });
-  });
+    }
+  }
 
-  return specifications;
+  return specs;
 }
 
 /**
- * Get search suggestions based on input query
+ * Get search suggestions
  */
 export async function getSuggestions(
   query: string
 ): Promise<SearchSuggestion[]> {
   try {
-    // Simulate server delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
+    await new Promise((r) => setTimeout(r, 100));
     if (!query) return [];
 
     const normalizedQuery = query.toLowerCase().trim();
-
-    // Fetch real products from the database
     const products = await getProducts();
-
-    // Get categories, brands, and specifications
     const { categories, brands } = await getCategoriesAndBrands(products);
     const specifications = await getSpecifications(products);
 
-    // Search products, categories, brands, and specifications
-    const searchInArray = <T extends { name: string }>(
-      items: T[],
-      query: string
-    ) => items.filter((item) => item.name.toLowerCase().includes(query));
+    const searchInArray = <T extends { name: string }>(items: T[], q: string) =>
+      items.filter((item) => item?.name?.toLowerCase?.().includes(q));
+
+    const formatProduct = (product: Product): SearchSuggestion => ({
+      id: product.id,
+      name: product.name,
+      displayName: product.name,
+      type: "product",
+      image: product.image,
+    });
 
     const matchingProducts = searchInArray(
-      products.map((product) => ({
-        id: product.id,
-        name: product.name,
-        displayName: product.name, // Add displayName for products
-        type: "product" as const,
-        image: product.image,
-      })),
+      products.map(formatProduct),
       normalizedQuery
     );
-
     const matchingCategories = searchInArray(categories, normalizedQuery);
     const matchingBrands = searchInArray(brands, normalizedQuery);
     const matchingSpecs = searchInArray(specifications, normalizedQuery);
 
-    // Combine results, prioritizing exact matches
     const exactMatches = [
-      ...matchingProducts.filter(
-        (p) => p.name.toLowerCase() === normalizedQuery
-      ),
-      ...matchingSpecs.filter((s) => s.name.toLowerCase() === normalizedQuery),
-      ...matchingCategories.filter(
-        (c) => c.name.toLowerCase() === normalizedQuery
-      ),
-      ...matchingBrands.filter((b) => b.name.toLowerCase() === normalizedQuery),
-    ];
+      ...matchingProducts,
+      ...matchingSpecs,
+      ...matchingCategories,
+      ...matchingBrands,
+    ].filter((item) => item.name.toLowerCase() === normalizedQuery);
 
     const partialMatches = [
-      ...matchingProducts.filter(
-        (p) => p.name.toLowerCase() !== normalizedQuery
-      ),
-      ...matchingSpecs.filter((s) => s.name.toLowerCase() !== normalizedQuery),
-      ...matchingCategories.filter(
-        (c) => c.name.toLowerCase() !== normalizedQuery
-      ),
-      ...matchingBrands.filter((b) => b.name.toLowerCase() !== normalizedQuery),
-    ];
+      ...matchingProducts,
+      ...matchingSpecs,
+      ...matchingCategories,
+      ...matchingBrands,
+    ].filter((item) => item.name.toLowerCase() !== normalizedQuery);
 
     return [...exactMatches, ...partialMatches].slice(0, 10);
   } catch (error) {
@@ -178,8 +173,9 @@ export async function getSuggestions(
     throw new Error("Failed to fetch suggestions");
   }
 }
+
 /**
- * Search products by query, category, brand, or specification
+ * Search products by query, category, brand, specification
  */
 export async function searchProducts(params: {
   search?: string;
@@ -192,81 +188,64 @@ export async function searchProducts(params: {
 }) {
   try {
     const {
-      search,
-      name,
-      category,
-      brand,
-      spec,
+      search = "",
+      name = "",
+      category = "",
+      brand = "",
+      spec = "",
       page = 1,
       limit = 10,
     } = params || {};
 
-    // Simulate server delay
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((r) => setTimeout(r, 200));
 
-    // Fetch real products from the database
     const products = await getProducts();
+    const normalizedSearch = search.toLowerCase().trim();
+    const normalizedSpec = spec.toLowerCase().trim();
 
-    let filteredProducts = [...products];
+    let filtered = products.filter((product) => {
+      const matchesSearch =
+        !search ||
+        [
+          product.name,
+          product.description,
+          product.brand,
+          product.category,
+          ...Object.keys(product.specifications),
+          ...Object.values(product.specifications).map(String),
+        ].some((val) => val?.toLowerCase?.().includes(normalizedSearch));
 
-    // Apply filters
-    if (search) {
-      const normalizedSearch = search.toLowerCase().trim();
-      filteredProducts = filteredProducts.filter(
-        (product) =>
-          product.name.toLowerCase().includes(normalizedSearch) ||
-          product.description.toLowerCase().includes(normalizedSearch) ||
-          product.brand.toLowerCase().includes(normalizedSearch) ||
-          product.category.toLowerCase().includes(normalizedSearch) ||
-          Object.values(product.specifications || {}).some(
-            (value) =>
-              value !== undefined &&
-              value !== null &&
-              String(value).toLowerCase().includes(normalizedSearch)
-          )
+      const matchesName =
+        !name || product.name.toLowerCase().includes(name.toLowerCase());
+      const matchesCategory =
+        !category || product.category.toLowerCase() === category.toLowerCase();
+      const matchesBrand =
+        !brand || product.brand.toLowerCase() === brand.toLowerCase();
+
+      const matchesSpec =
+        !spec ||
+        Object.entries(product.specifications).some(([key, value]) => {
+          const combined =
+            `${key.replace(/^spec_/, "")}:${String(value)}`.toLowerCase();
+          return combined === normalizedSpec;
+        });
+
+      return (
+        matchesSearch &&
+        matchesName &&
+        matchesCategory &&
+        matchesBrand &&
+        matchesSpec
       );
-    }
+    });
 
-    if (name) {
-      filteredProducts = filteredProducts.filter((product) =>
-        product.name.toLowerCase().includes(name.toLowerCase())
-      );
-    }
-
-    if (category) {
-      filteredProducts = filteredProducts.filter(
-        (product) => product.category.toLowerCase() === category.toLowerCase()
-      );
-    }
-
-    if (brand) {
-      filteredProducts = filteredProducts.filter(
-        (product) => product.brand.toLowerCase() === brand.toLowerCase()
-      );
-    }
-
-    if (spec) {
-      const normalizedSpec = spec.toLowerCase().trim();
-      filteredProducts = filteredProducts.filter((product) =>
-        Object.values(product.specifications || {}).some(
-          (value) =>
-            value !== undefined &&
-            value !== null &&
-            String(value).toLowerCase() === normalizedSpec
-        )
-      );
-    }
-
-    // Calculate pagination
-    const totalItems = filteredProducts.length;
+    const totalItems = filtered.length;
     const totalPages = Math.ceil(totalItems / limit);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-
-    const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+    const start = (page - 1) * limit;
+    const paginated = filtered.slice(start, start + limit);
 
     return {
-      products: paginatedProducts,
+      products: paginated,
       pagination: {
         page,
         limit,
@@ -281,18 +260,13 @@ export async function searchProducts(params: {
 }
 
 /**
- * Get product by ID
+ * Get single product by ID
  */
 export async function getProductById(id: string) {
   try {
     if (!id) return null;
-
-    // Simulate server delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Fetch real products from the database
+    await new Promise((r) => setTimeout(r, 100));
     const products = await getProducts();
-
     return products.find((product) => product.id === id) || null;
   } catch (error) {
     console.error("Error fetching product by ID:", error);

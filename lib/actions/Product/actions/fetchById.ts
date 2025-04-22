@@ -2,7 +2,7 @@
 
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../../utils";
-import { Product, ProductStatus } from "./types";
+import { Product, ProductStatus } from "./search-params";
 
 export async function fetchProductById(product_id: number): Promise<Product> {
   return dbOperation(async (connection) => {
@@ -23,6 +23,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
             b.brand_id,
             b.brand_name,
             b.brand_image,
+            c.category_name,
             GROUP_CONCAT(DISTINCT s.supplier_id, ':', s.supplier_name, ':', s.supplier_email, ':', s.supplier_phone_number, ':', s.supplier_location ORDER BY s.supplier_name SEPARATOR '|') AS suppliers,
              COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
             MAX(pi.main_image) AS main_image,
@@ -34,6 +35,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
             COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags,
             COALESCE(GROUP_CONCAT(DISTINCT spec.specification_id, ':', spec.specification_name, ':', ps.value, ':', p.category_id ORDER BY spec.specification_name SEPARATOR '|'), '') AS specifications
         FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN product_images pi ON p.product_id = pi.product_id
         LEFT JOIN brands b ON p.brand_id = b.brand_id
         LEFT JOIN product_suppliers psup ON p.product_id = psup.product_id
@@ -65,6 +67,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
         discount: parseFloat(row.product_discount),
         status: row.product_status as ProductStatus,
         category_id: String(row.category_id),
+        category_name: row.category_name,
         created_at: row.created_at,
         ratings: row.ratings,
         tags: row.tags ? row.tags.split(",").filter(Boolean) : [],

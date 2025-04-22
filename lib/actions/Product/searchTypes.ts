@@ -1,7 +1,3 @@
-import { z } from "zod";
-import { NewProductSchemaServer } from "./schema";
-
-// types/product.ts
 export type ProductStatus = "draft" | "pending" | "approved";
 
 export interface Product {
@@ -18,8 +14,8 @@ export interface Product {
   // Optional fields (present in detailed view but not search results)
   sku?: string;
   long_description?: string;
-  status?: ProductStatus;
-  created_at?: string;
+  status?: "draft" | "pending" | "approved";
+  created_at: string;
   updatedAt?: string;
 
   // Category information
@@ -66,5 +62,46 @@ export interface Product {
   }>;
 }
 
-// Helper type for product creation/update
-export type ProductFormValues = z.infer<typeof NewProductSchemaServer>;
+export interface SearchParams {
+  id?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minDiscount?: number;
+  maxDiscount?: number;
+  name?: string;
+  brand?: string | string[]; // Allow string or string[]
+  category?: string | string[]; // Allow string or string[]
+  quantity?: number;
+  tags?: string[];
+  specifications?: string[];
+  minRating?: number;
+  maxRating?: number;
+  sort?: string;
+  page?: number;
+  perPage?: number;
+  grid?: string;
+  [key: string]: string | number | string[] | boolean | undefined;
+}
+
+export type ProductFetchResult = {
+  products: Product[];
+  filters: {
+    categories: {
+      id: string;
+      name: string;
+      image: string;
+      parentId: string | null;
+    }[];
+    brands: { id: string; name: string }[];
+    specifications: { id: string; name: string; values: string[] }[];
+    priceRange: { min: number; max: number };
+    tags: string[];
+  };
+  pagination: {
+    totalProducts: number;
+    totalPages: number;
+    currentPage: number;
+    perPage: number;
+  };
+  error?: string;
+};

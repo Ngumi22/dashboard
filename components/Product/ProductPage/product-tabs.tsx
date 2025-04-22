@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Product } from "@/lib/actions/Product/productTypes";
+import { Product } from "@/lib/actions/Product/actions/search-params";
 
 interface ProductTabsProps {
   product: Product;
@@ -19,7 +19,7 @@ export default function ProductTabs({ product }: ProductTabsProps) {
       </TabsContent>
       <TabsContent value="specifications" className="mt-6">
         <div className="grid gap-4">
-          {product.specifications.map((spec: any) => (
+          {product.specifications?.map((spec: any) => (
             <div
               key={spec.specification_id}
               className="grid grid-cols-2 gap-4 border-b pb-4">

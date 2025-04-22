@@ -12,8 +12,13 @@ import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { updateBrandAction } from "@/lib/actions/Brand/update";
 import { addBrand } from "@/lib/actions/Brand/post";
-import { Brand } from "@/components/Product/Create/types";
 import { brandSchema } from "@/lib/ZodSchemas/BrandSchema";
+
+export interface Brand {
+  brand_id: number;
+  brand_name: string;
+  brand_image: File | null | string;
+}
 
 interface BrandFormProps {
   initialData?: Brand;

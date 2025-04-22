@@ -1,5 +1,6 @@
 "use client";
 import Base64Image from "@/components/Data-Table/base64-image";
+import { Button } from "@/components/ui/button";
 import { Carousel } from "@/lib/actions/Carousel/carouselTypes";
 import Link from "next/link";
 
@@ -40,7 +41,7 @@ export default function CarouselSlide({
             <h2 className="text-sky-300 text-md md:text-2xl font-medium mb-1">
               {carousel.title}
             </h2>
-            <h1 className="text-white text-md md:text-2xl lg:text-5xl font-bold mb-4 tracking-tight">
+            <h1 className="text-white text-md md:text-xl lg:text-5xl font-bold mb-4 tracking-tight">
               {carousel.short_description}
               <span className="border-b-4 border-white pb-1 pr-10"></span>
             </h1>
@@ -48,10 +49,15 @@ export default function CarouselSlide({
               {carousel.description}
             </p>
             <div className="flex flex-col md:flex-row items-start gap-4">
-              <Link
-                href={carousel.link || ""}
-                className="text-xs md:text-base bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 md:px-8 md:py-2 rounded-md transition-colors">
-                Buy Now
+              <Link href={carousel.link || ""} className="text-xs md:text-base">
+                <Button variant="default" className="rounded-none">
+                  Buy Now
+                </Button>
+              </Link>
+              <Link href={"/products"} className="text-xs md:text-base">
+                <Button variant="outline" className="rounded-none">
+                  See More
+                </Button>
               </Link>
             </div>
           </div>

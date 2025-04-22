@@ -3,7 +3,7 @@ import { query } from "./initDb";
 export async function dbsetupTables() {
   try {
     // Create the database if it doesn't exist
-    await query(`CREATE DATABASE IF NOT EXISTS bernzzz`);
+    await query(`CREATE DATABASE IF NOT EXISTS bernzz`);
 
     // Users and authentication tables
     await query(`
