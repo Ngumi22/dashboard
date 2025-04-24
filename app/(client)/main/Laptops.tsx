@@ -36,7 +36,6 @@ export default function SubCategoryProducts({
     isLoading,
     isError,
     error,
-    refetch,
   } = useQuery({
     queryKey: [`category-products:${categoryName}`, categoryName],
     queryFn: async () => {
@@ -82,7 +81,7 @@ export default function SubCategoryProducts({
             try {
               const productsResult = await fetchProducts({
                 category: subCategory.name,
-                perPage: 12,
+                perPage: 10,
               });
               return {
                 name: subCategory.name,

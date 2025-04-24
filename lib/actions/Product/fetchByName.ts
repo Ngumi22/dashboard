@@ -19,11 +19,13 @@ export async function fetchProductByName(
             p.product_quantity,
             p.product_status,
             p.product_description,
+            p.long_description,
             p.category_id,
             DATE_FORMAT(p.created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at,
             b.brand_id,
             b.brand_name,
             b.brand_image,
+            c.category_name,
             GROUP_CONCAT(DISTINCT s.supplier_id, ':', s.supplier_name, ':', s.supplier_email, ':', s.supplier_phone_number, ':', s.supplier_location ORDER BY s.supplier_name SEPARATOR '|') AS suppliers,
              COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
             MAX(pi.main_image) AS main_image,
@@ -35,6 +37,7 @@ export async function fetchProductByName(
             COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags,
             COALESCE(GROUP_CONCAT(DISTINCT spec.specification_id, ':', spec.specification_name, ':', ps.value, ':', p.category_id ORDER BY spec.specification_name SEPARATOR '|'), '') AS specifications
         FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN product_images pi ON p.product_id = pi.product_id
         LEFT JOIN brands b ON p.brand_id = b.brand_id
         LEFT JOIN product_suppliers psup ON p.product_id = psup.product_id
@@ -62,6 +65,7 @@ export async function fetchProductByName(
         name: row.product_name,
         sku: row.product_sku,
         description: row.product_description,
+        long_description: row.long_description,
         price: parseFloat(row.product_price),
         quantity: parseInt(row.product_quantity),
         discount: parseFloat(row.product_discount),
@@ -111,6 +115,8 @@ export async function fetchProductByName(
             })
           : [],
       };
+
+      // console.log(product.tags);
 
       return product;
     } catch (error) {

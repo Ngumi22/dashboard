@@ -2,8 +2,6 @@ import "../globals.css";
 import { prefetchData } from "@/lib/actions/serverSideFetching";
 import { metadata } from "@/lib/Metadata/RootMetadata";
 import dynamic from "next/dynamic";
-import { Suspense } from "react";
-import Loading from "./loading";
 import { initialize } from "@/lib/MysqlDB/initialize";
 
 export { metadata };
@@ -33,7 +31,7 @@ export default async function RootLayout({
   const dehydratedState = await prefetchData();
 
   return (
-    <html lang="en">
+    <html lang="en" className="bg-gray-300">
       <body suppressHydrationWarning={true}>
         <Providers dehydratedState={dehydratedState}>
           {children}

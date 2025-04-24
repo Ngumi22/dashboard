@@ -28,7 +28,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const relatedPosts = getRelatedPosts(post.id);
 
   return (
-    <div className="container mt-[8rem] lg:mt-[11rem] bg-muted/80 px-4 py-4 mx-auto">
+    <div className="container mt-[9.9rem] lg:mt-[12rem] bg-muted/80 px-4 py-4 mx-auto">
       <Button variant="ghost" asChild className="mb-8">
         <Link href="/blog" className="flex items-center">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to all posts

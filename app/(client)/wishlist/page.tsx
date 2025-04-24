@@ -28,7 +28,7 @@ export default function Wishlist() {
 
   if (wishItems.length === 0) {
     return (
-      <div className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80 p-2 sm:p-5 text-center">
+      <div className="mt-[9.9rem] lg:mt-[12rem] bg-muted/80 p-2 sm:p-5 text-center">
         <div className="grid h-64 py-8">
           <p className="text-xl font-semibold">No products added to wish.</p>
           <Link href={"/"}>

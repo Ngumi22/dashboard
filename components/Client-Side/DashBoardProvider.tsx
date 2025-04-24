@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/hooks/use-store";
 import { useSidebarToggle } from "@/hooks/use-sidebar-toggle";
 import { Navbar } from "@/components/admin-panel/Navbar";
-
 import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
 import { useState } from "react";
 import { DehydratedState } from "@tanstack/react-query";

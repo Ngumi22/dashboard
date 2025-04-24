@@ -7,6 +7,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { Search, Loader2 } from "lucide-react";
 import { getSuggestions } from "@/lib/actions/search-actions";
 import Image from "next/image";
+import { Input } from "@/components/ui/input";
 
 type SearchSuggestion = {
   id: string;
@@ -82,13 +83,11 @@ export default function SearchInput() {
         brand: `/products?brand=${queryParam}`,
         specification: `/products?spec_${queryParam}=${queryParam}`, // Fallback for invalid specifications
       };
-
       router.push(routes[suggestion.type]);
     },
     [router, suggestions]
   );
 
-  // Handle form submission
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -102,7 +101,6 @@ export default function SearchInput() {
     [router, input]
   );
 
-  // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -122,7 +120,6 @@ export default function SearchInput() {
     };
   }, [isFocused]);
 
-  // Memoized grouped suggestions
   const groupedSuggestions = useMemo(() => {
     return suggestions.reduce<Record<string, SearchSuggestion[]>>(
       (acc, item) => {
@@ -137,19 +134,16 @@ export default function SearchInput() {
   return (
     <div ref={searchContainerRef} className="relative w-full max-w-lg mx-auto">
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative h-10 w-full rounded-md border bg-background shadow-sm flex items-center">
-          <input
+        <div className="relative h-10 w-full rounded-none bg-background shadow-sm flex items-center">
+          <Input
             ref={inputRef}
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
             placeholder="Search products..."
-            className="flex-1 h-full bg-transparent px-3 md:px-6 py-2 text-sm outline-none placeholder:text-muted-foreground pr-2"
+            className="relative flex-1 h-full bg-transparent px-3 md:px-3 py-2 text-sm outline-none placeholder:text-muted-foreground pr-2 rounded-none"
           />
-          <Search className="mr-3 h-4 w-4 shrink-0 opacity-50" />
-          {loading && (
-            <Loader2 className="mr-3 h-4 w-4 animate-spin opacity-70" />
-          )}
+          <Search className="absolute top-1/2 bottom-1/2 my-auto right-1 mr-3 h-4 w-4 shrink-0 opacity-50" />
         </div>
 
         {isFocused && (input.trim().length > 0 || suggestions.length > 0) && (
@@ -157,7 +151,7 @@ export default function SearchInput() {
             <div className="max-h-[300px] overflow-y-auto">
               {loading && (
                 <div className="py-6 text-center text-sm">
-                  <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto my-2" />
                   Loading suggestions...
                 </div>
               )}

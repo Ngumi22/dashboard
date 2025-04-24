@@ -4,10 +4,10 @@ import { DBQUERYLIMITS } from "@/lib/Constants";
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../../utils";
 import { Product, SearchParams } from "./search-params";
+import { unstable_cache as nextCache } from "next/cache";
 
 const MAX_QUERY_LIMIT = 100;
-const CACHE_TTL = 60 * 60 * 2; // 2 hours in seconds
-const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 60 * 60 * 0.1; // 2 hours in seconds
 
 export type ProductFetchResult = {
   products: Product[];
@@ -32,89 +32,67 @@ export type ProductFetchResult = {
   error?: string;
 };
 
-export async function fetchProducts(
-  filter: SearchParams
-): Promise<ProductFetchResult> {
-  try {
-    // Validate and normalize input
-    const validatedFilter = validateAndNormalizeFilter(filter);
-    const { limit, offset } = calculatePagination(validatedFilter);
+export const fetchProducts = nextCache(
+  async (filter: SearchParams): Promise<ProductFetchResult> => {
+    try {
+      const validatedFilter = validateAndNormalizeFilter(filter);
+      const { limit, offset } = calculatePagination(validatedFilter);
 
-    // Check cache
-    const cacheKey = generateCacheKey(validatedFilter);
-    const cachedData = getFromCache(cacheKey);
-    if (cachedData) return cachedData;
-
-    // Fetch data
-    return await dbOperation(async (connection) => {
-      const [
-        categories,
-        brands,
-        priceRange,
-        specifications,
-        tags,
-        totalProducts,
-        products,
-      ] = await Promise.all([
-        fetchCategories(connection),
-        fetchBrands(connection),
-        fetchPriceRange(connection),
-        fetchSpecifications(connection),
-        fetchTags(connection),
-        fetchTotalProducts(connection, validatedFilter),
-        fetchPaginatedProducts(connection, validatedFilter, limit, offset),
-      ]);
-
-      // Transform data
-      const result = {
-        products: await mapProducts(products),
-        filters: {
+      return await dbOperation(async (connection) => {
+        // Execute all database queries in parallel
+        const [
           categories,
           brands,
-          specifications: transformSpecifications(specifications),
           priceRange,
+          specifications,
           tags,
-        },
-        pagination: {
           totalProducts,
-          totalPages: Math.ceil(totalProducts / limit),
-          currentPage: validatedFilter.page || 1,
-          perPage: limit,
-        },
-      };
+          products,
+        ] = await Promise.all([
+          fetchCategories(connection),
+          fetchBrands(connection),
+          fetchPriceRange(connection),
+          fetchSpecifications(connection),
+          fetchTags(connection),
+          fetchTotalProducts(connection, validatedFilter),
+          fetchPaginatedProducts(connection, validatedFilter, limit, offset),
+        ]);
 
-      // Cache result
-      cache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now(),
+        // Process product images in parallel
+        const processedProducts = await Promise.all(
+          products.map(async (product: Product) => mapProduct(product))
+        );
+
+        return {
+          products: processedProducts,
+          filters: {
+            categories: await processCategories(categories),
+            brands,
+            specifications: transformSpecifications(specifications),
+            priceRange,
+            tags,
+          },
+          pagination: {
+            totalProducts,
+            totalPages: Math.ceil(totalProducts / limit),
+            currentPage: validatedFilter.page || 1,
+            perPage: limit,
+          },
+        };
       });
-
-      return result;
-    });
-  } catch (error) {
-    console.error("Product fetch error:", error);
-    return {
-      products: [],
-      filters: {
-        categories: [],
-        brands: [],
-        specifications: [],
-        priceRange: { min: 0, max: 0 },
-        tags: [],
-      },
-      pagination: {
-        totalProducts: 0,
-        totalPages: 0,
-        currentPage: filter.page || 1,
-        perPage: filter.perPage || DBQUERYLIMITS.default,
-      },
-      error: "Failed to load products. Please try again later.",
-    };
-  }
-}
+    } catch (error) {
+      console.error("Product fetch error:", error);
+      return getErrorResponse(
+        filter,
+        error instanceof Error ? error.message : "Failed to load products"
+      );
+    }
+  },
+  ["products-fetch"],
+  { revalidate: CACHE_TTL, tags: ["products"] }
+);
 
 // Helper Functions
-
 function validateAndNormalizeFilter(filter: SearchParams): SearchParams {
   return {
     ...filter,
@@ -149,60 +127,110 @@ function calculatePagination(filter: SearchParams) {
 }
 
 function generateCacheKey(filter: SearchParams): string {
-  return JSON.stringify({
-    ...filter,
-    // Exclude high-cardinality fields from cache key
-    page: undefined,
-    perPage: undefined,
-  });
+  const { page, perPage, ...rest } = filter;
+  return JSON.stringify(rest);
 }
 
-function getFromCache(key: string): ProductFetchResult | null {
-  const cached = cache.get(key);
-  if (!cached) return null;
-  if (Date.now() - cached.timestamp > CACHE_TTL * 1000) {
-    cache.delete(key);
-    return null;
-  }
-  return cached.data;
+function getErrorResponse(
+  filter: SearchParams,
+  errorMessage: string
+): ProductFetchResult {
+  return {
+    products: [],
+    filters: {
+      categories: [],
+      brands: [],
+      specifications: [],
+      priceRange: { min: 0, max: 0 },
+      tags: [],
+    },
+    pagination: {
+      totalProducts: 0,
+      totalPages: 0,
+      currentPage: filter.page || 1,
+      perPage: filter.perPage || DBQUERYLIMITS.default,
+    },
+    error: errorMessage,
+  };
 }
 
-// Data Fetching Functions
+// Data Processing Functions
+async function processCategories(categories: any[]) {
+  return Promise.all(
+    categories.map(async (category) => ({
+      ...category,
+      image: category.image
+        ? await compressAndEncodeBase64(category.image)
+        : "",
+    }))
+  );
+}
 
+function transformSpecifications(specs: any[]) {
+  return specs.map((spec) => ({
+    id: spec.id,
+    name: spec.name,
+    values: spec.spec_values || [], // Map spec_values to values
+  }));
+}
+
+async function mapProduct(product: any): Promise<Product> {
+  const mainImage = product.main_image
+    ? await compressAndEncodeBase64(product.main_image)
+    : "";
+
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    long_description: product.long_description,
+    sku: product.sku,
+    status: product.status,
+    price: product.price,
+    quantity: product.quantity,
+    discount: product.discount,
+    main_image: mainImage || "",
+    ratings: product.ratings,
+    category_id: product.category_id,
+    category_name: product.category_name,
+    brand_name: product.brand_name,
+    brand_id: product.brand_id,
+    tags: product.tags ? product.tags.split(",") : [],
+    specifications: product.specifications
+      ? product.specifications.split("||").map((spec: string) => {
+          const [name, value] = spec.split("::");
+          return {
+            specification_id: "",
+            specification_name: name,
+            specification_value: value,
+            category_id: product.category_id,
+          };
+        })
+      : [],
+    created_at: product.created_at,
+  };
+}
+
+// Database Query Functions
 async function fetchCategories(connection: any) {
   const [categories] = await connection.query(`
     SELECT
-      c1.category_id AS id,
-      c1.category_name AS name,
-      c1.category_image AS image,
-      c1.parent_category_id AS parentId,
-      c2.category_name AS parentName
-    FROM categories c1
-    LEFT JOIN categories c2 ON c1.parent_category_id = c2.category_id
-    ORDER BY COALESCE(c2.category_name, c1.category_name), c1.category_name
+      category_id AS id,
+      category_name AS name,
+      category_image AS image,
+      parent_category_id AS parentId
+    FROM categories
+    ORDER BY category_name
   `);
-
-  const categoriesWithImage = await Promise.all(
-    categories.map(async (category: any) => {
-      if (category.image) {
-        return {
-          ...category,
-          image: await compressAndEncodeBase64(category.image),
-        };
-      }
-      return category;
-    })
-  );
-
-  return categoriesWithImage;
+  return categories;
 }
 
 async function fetchBrands(connection: any) {
   const [brands] = await connection.query(`
-    SELECT b.brand_id AS id, b.brand_name AS name
+    SELECT DISTINCT b.brand_id AS id, b.brand_name AS name
     FROM brands b
-    LEFT JOIN products p ON p.brand_id = b.brand_id
-    GROUP BY b.brand_id, b.brand_name
+    JOIN products p ON p.brand_id = b.brand_id
+    WHERE p.product_status = 'approved'
   `);
   return brands;
 }
@@ -213,10 +241,11 @@ async function fetchPriceRange(connection: any) {
       COALESCE(MIN(product_price), 0) AS min,
       COALESCE(MAX(product_price), 1000) AS max
     FROM products
+    WHERE product_status = 'approved'
   `);
   return {
     min: Number(result.min) || 0,
-    max: Number(result.max) || 1000, // Provide reasonable defaults
+    max: Number(result.max) || 1000,
   };
 }
 
@@ -241,10 +270,13 @@ async function fetchSpecifications(connection: any) {
 
 async function fetchTags(connection: any) {
   const [tags] = await connection.query(`
-    SELECT DISTINCT t.tag_name FROM tags t
+    SELECT DISTINCT t.tag_name
+    FROM tags t
     JOIN product_tags pt ON t.tag_id = pt.tag_id
+    JOIN products p ON pt.product_id = p.product_id
+    WHERE p.product_status = 'approved'
   `);
-  return tags.map((t: any) => t.name);
+  return tags.map((t: any) => t.tag_name);
 }
 
 async function fetchTotalProducts(connection: any, filter: SearchParams) {
@@ -289,29 +321,46 @@ async function fetchPaginatedProducts(
       p.product_quantity AS quantity,
       p.product_description AS description,
       p.product_status AS status,
+      p.category_id,
+      p.brand_id,
       c.category_name,
       b.brand_name,
-      COALESCE(AVG(pr.rating), 0) AS ratings,
-      MAX(pi.main_image) AS main_image,
-      (
-        SELECT GROUP_CONCAT(DISTINCT t.tag_name)
-        FROM product_tags pt
-        JOIN tags t ON pt.tag_id = t.tag_id
-        WHERE pt.product_id = p.product_id
-      ) AS tags,
-      (
-        SELECT GROUP_CONCAT(DISTINCT
-          CONCAT(s.specification_name, '::', ps.value)
-          SEPARATOR '||')
-        FROM product_specifications ps
-        JOIN specifications s ON ps.specification_id = s.specification_id
-        WHERE ps.product_id = p.product_id
-      ) AS specifications
+      COALESCE(pr.avg_rating, 0) AS ratings,
+      pi.main_image,
+      pt.tags,
+      ps.specifications,
+      p.created_at
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.category_id
     LEFT JOIN brands b ON p.brand_id = b.brand_id
-    LEFT JOIN product_images pi ON p.product_id = pi.product_id
-    LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
+    LEFT JOIN (
+      SELECT product_id, AVG(rating) AS avg_rating
+      FROM product_reviews
+      GROUP BY product_id
+    ) pr ON p.product_id = pr.product_id
+    LEFT JOIN (
+      SELECT product_id, MAX(main_image) AS main_image
+      FROM product_images
+      GROUP BY product_id
+    ) pi ON p.product_id = pi.product_id
+    LEFT JOIN (
+      SELECT
+        pt.product_id,
+        GROUP_CONCAT(DISTINCT t.tag_name) AS tags
+      FROM product_tags pt
+      JOIN tags t ON pt.tag_id = t.tag_id
+      GROUP BY pt.product_id
+    ) pt ON p.product_id = pt.product_id
+    LEFT JOIN (
+      SELECT
+        ps.product_id,
+        GROUP_CONCAT(DISTINCT
+          CONCAT(s.specification_name, '::', ps.value)
+          SEPARATOR '||') AS specifications
+      FROM product_specifications ps
+      JOIN specifications s ON ps.specification_id = s.specification_id
+      GROUP BY ps.product_id
+    ) ps ON p.product_id = ps.product_id
     WHERE ${whereClause}
     GROUP BY p.product_id
     ORDER BY ${sortClause}
@@ -351,13 +400,11 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
   const conditions: string[] = ["p.product_status = 'approved'"];
   const params: (string | number)[] = [];
 
-  // Text search
   if (filter.name) {
     conditions.push("(p.product_name LIKE ? OR p.product_description LIKE ?)");
     params.push(`%${filter.name}%`, `%${filter.name}%`);
   }
 
-  // Price range
   if (filter.minPrice) {
     conditions.push("p.product_price >= ?");
     params.push(filter.minPrice);
@@ -367,7 +414,6 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     params.push(filter.maxPrice);
   }
 
-  // Category filtering
   if (categoryIds.length > 0) {
     conditions.push(
       `p.category_id IN (${categoryIds.map(() => "?").join(",")})`
@@ -375,7 +421,6 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     params.push(...categoryIds);
   }
 
-  // Brand filtering
   if (filter.brand) {
     if (Array.isArray(filter.brand)) {
       conditions.push(
@@ -388,7 +433,6 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     }
   }
 
-  // Tag filtering
   if (filter.tag) {
     conditions.push(`
       EXISTS (
@@ -398,13 +442,11 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
         AND t.tag_name ${Array.isArray(filter.tag) ? `IN (${filter.tag.map(() => "?").join(",")})` : "= ?"}
       )
     `);
-    if (Array.isArray(filter.tag)) {
-      params.push(...filter.tag);
-    } else {
-      if (typeof filter.tag === "string" || typeof filter.tag === "number") {
-        params.push(filter.tag);
-      }
-    }
+    Array.isArray(filter.tag)
+      ? params.push(...filter.tag)
+      : typeof filter.tag === "string" || typeof filter.tag === "number"
+        ? params.push(filter.tag)
+        : null;
   }
 
   Object.entries(filter)
@@ -431,7 +473,7 @@ function buildFilterConditions(filter: SearchParams, categoryIds: string[]) {
     });
 
   return {
-    whereClause: conditions.join(" AND "),
+    whereClause: conditions.length > 0 ? conditions.join(" AND ") : "1=1",
     queryParams: params,
   };
 }
@@ -453,61 +495,3 @@ function getSortClause(sort?: string): string {
       return "p.created_at DESC";
   }
 }
-
-// Update mapProducts to match mock data structure
-async function mapProducts(products: any[]): Promise<Product[]> {
-  return Promise.all(
-    products.map(async (product) => {
-      const mainImage = await compressAndEncodeBase64(product.main_image);
-
-      return {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        quantity: product.quantity,
-        discount: product.discount,
-        main_image: mainImage || "",
-        ratings: product.ratings,
-        category_id: product.category_id,
-        category_name: product.category_name,
-        brand_name: product.brand_name,
-        brand_id: product.brand_id,
-        tags: product.tags ? product.tags.split(",") : [],
-        specifications: product.specifications
-          ? product.specifications.split("||").map((spec: string) => {
-              const [name, value] = spec.split("::");
-              return {
-                specification_id: "", // Add proper ID if available
-                specification_name: name,
-                specification_value: value,
-                category_id: product.category_id,
-              };
-            })
-          : [],
-        created_at: product.created_at,
-      };
-    })
-  );
-}
-
-function transformSpecifications(specs: any[]) {
-  return specs.map((spec) => ({
-    id: spec.id,
-    name: spec.name,
-    values: spec.spec_values || [], // Map spec_values to values
-  }));
-}
-
-// Cache cleanup
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, entry] of cache.entries()) {
-      if (now - entry.timestamp > CACHE_TTL * 1000) {
-        cache.delete(key);
-      }
-    }
-  },
-  60 * 60 * 1000
-); // Run every hour

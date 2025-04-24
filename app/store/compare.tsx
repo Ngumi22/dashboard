@@ -2,10 +2,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "react-toastify";
 
+// Define the MinimalProduct type
 export type MinimalProduct = {
   id: number;
+  sku?: string;
   name: string;
   description: string;
+  long_description?: string;
   price: number;
   discount: number;
   quantity: number;

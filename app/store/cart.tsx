@@ -9,6 +9,7 @@ export type MinimalProduct = {
   sku?: string;
   name: string;
   description: string;
+  long_description?: string;
   price: number;
   discount: number;
   quantity: number;

@@ -53,9 +53,9 @@ export default function Cart() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="relative cursor-pointer flex items-center justify-center space-x-2 text-white">
+        <div className="relative cursor-pointer flex items-center justify-center space-x-2">
           <ShoppingCart className="h-6 w-6" />
-          <span className="absolute -top-2 -right-3 flex items-center justify-center font-bold text-center text-xs bg-white text-gray-900 h-5 w-5 rounded-full">
+          <span className="absolute -top-2 -right-3 flex items-center justify-center font-bold text-center text-xs text-gray-900 h-5 w-5 rounded-full">
             {isClient ? cartTotalQuantity : 0}
           </span>
         </div>

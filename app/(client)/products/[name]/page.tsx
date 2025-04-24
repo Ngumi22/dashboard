@@ -24,7 +24,7 @@ export default async function ProductPage({
   }
 
   return (
-    <section className="md:container mt-[9.7rem] lg:mt-[12rem] bg-muted/80">
+    <section className="md:container mt-[9.9rem] lg:mt-[12rem] bg-muted/80">
       <div className="mb-4">
         <Button
           variant="ghost"
@@ -54,10 +54,13 @@ export default async function ProductPage({
               name={product.name}
               price={product.price}
               description={product.description}
+              long_description={product.long_description}
               discount={product.discount}
               quantity={product.quantity}
               main_image={product.main_image}
               ratings={product.ratings}
+              tags={product.tags}
+              specifications={product.specifications}
             />
           </div>
           <ProductTabs product={product} />

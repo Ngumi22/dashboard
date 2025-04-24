@@ -148,6 +148,7 @@ async function mapRowsToProducts(rows: any[]): Promise<Product[]> {
         name: row.name,
         sku: row.sku,
         description: row.description,
+        long_description: row.long_description,
         price: parseFloat(row.price),
         quantity: parseInt(row.quantity),
         discount: parseFloat(row.discount),
@@ -255,7 +256,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
   return dbOperation(async (connection) => {
     try {
       const query = `
-        SELECT
+         SELECT
             p.product_id,
             p.product_name,
             p.product_sku,
@@ -264,11 +265,13 @@ export async function fetchProductById(product_id: number): Promise<Product> {
             p.product_quantity,
             p.product_status,
             p.product_description,
+            p.long_description,
             p.category_id,
             DATE_FORMAT(p.created_at, '%Y-%m-%dT%H:%i:%sZ') AS created_at,
             b.brand_id,
             b.brand_name,
             b.brand_image,
+            c.category_name,
             GROUP_CONCAT(DISTINCT s.supplier_id, ':', s.supplier_name, ':', s.supplier_email, ':', s.supplier_phone_number, ':', s.supplier_location ORDER BY s.supplier_name SEPARATOR '|') AS suppliers,
              COALESCE(ROUND(AVG(pr.rating), 1), 0) AS ratings,
             MAX(pi.main_image) AS main_image,
@@ -280,6 +283,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
             COALESCE(GROUP_CONCAT(DISTINCT t.tag_name ORDER BY t.tag_name SEPARATOR ','), '') AS tags,
             COALESCE(GROUP_CONCAT(DISTINCT spec.specification_id, ':', spec.specification_name, ':', ps.value, ':', p.category_id ORDER BY spec.specification_name SEPARATOR '|'), '') AS specifications
         FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN product_images pi ON p.product_id = pi.product_id
         LEFT JOIN brands b ON p.brand_id = b.brand_id
         LEFT JOIN product_suppliers psup ON p.product_id = psup.product_id
@@ -290,6 +294,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
         LEFT JOIN specifications spec ON ps.specification_id = spec.specification_id
         LEFT JOIN product_reviews pr ON p.product_id = pr.product_id
         WHERE p.product_id = ?
+        AND p.product_status = 'approved'
         GROUP BY p.product_id
       `;
 
@@ -305,6 +310,7 @@ export async function fetchProductById(product_id: number): Promise<Product> {
         name: row.product_name,
         sku: row.product_sku,
         description: row.product_description,
+        long_description: row.long_description,
         price: parseFloat(row.product_price),
         quantity: parseInt(row.product_quantity),
         discount: parseFloat(row.product_discount),

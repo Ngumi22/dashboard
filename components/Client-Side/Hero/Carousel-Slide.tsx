@@ -38,10 +38,10 @@ export default function CarouselSlide({
             className={`${
               isActive && isAnimating ? "animate-slide-in-top" : ""
             }`}>
-            <h2 className="text-sky-300 text-md md:text-2xl font-medium mb-1">
+            <h2 className="text-sky-300 text-md md:text-xl font-medium mb-1">
               {carousel.title}
             </h2>
-            <h1 className="text-white text-md md:text-xl lg:text-5xl font-bold mb-4 tracking-tight">
+            <h1 className="text-white text-xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
               {carousel.short_description}
               <span className="border-b-4 border-white pb-1 pr-10"></span>
             </h1>
@@ -50,13 +50,13 @@ export default function CarouselSlide({
             </p>
             <div className="flex flex-col md:flex-row items-start gap-4">
               <Link href={carousel.link || ""} className="text-xs md:text-base">
-                <Button variant="default" className="rounded-none">
+                <Button variant="default" className="rounded-none bg-gray-950">
                   Buy Now
                 </Button>
               </Link>
               <Link href={"/products"} className="text-xs md:text-base">
                 <Button variant="outline" className="rounded-none">
-                  See More
+                  Browse More Products
                 </Button>
               </Link>
             </div>

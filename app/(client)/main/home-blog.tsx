@@ -52,21 +52,21 @@ export default function HomeBlogSection() {
     <div className="mx-auto py-8 max-w-9xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-xl font-bold tracking-tight">
             Latest from our Blog
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-2 text-sm">
             Stay updated with the latest tech trends and product reviews
           </p>
         </div>
         <Button asChild variant="ghost" className="mt-4 md:mt-0">
-          <Link href="/blog" className="flex items-center">
+          <Link href="/blog" className="flex items-center font-semibold">
             View all posts <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         {featuredPosts.map((post) => (
           <Card key={post.id} className="flex flex-col h-full">
             <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
@@ -95,7 +95,11 @@ export default function HomeBlogSection() {
             </CardHeader>
             <CardFooter className="border-t pt-4">
               {/* <div className="text-sm">By {post.author}</div> */}
-              <Button asChild variant="ghost" size="sm" className="m-auto">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="text-md text-start font-semibold">
                 <Link href={`/blog/${post.slug}`}>Read more</Link>
               </Button>
             </CardFooter>

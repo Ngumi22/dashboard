@@ -77,7 +77,7 @@ const ProductCards: React.FC<ProductCardProps> = ({
           className="h-auto w-auto object-cover-fill"
         />
       </div>
-      <h3 className="font-semibold text-lg line-clamp-2">{name}</h3>
+      <h3 className="font-semibold text-md line-clamp-2">{name}</h3>
       <p className="text-muted-foreground mt-auto text-lg font-bold">{price}</p>
     </div>
   );

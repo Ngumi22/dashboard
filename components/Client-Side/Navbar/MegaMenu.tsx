@@ -93,7 +93,7 @@ export default function MegaMenu({ initialData }: MegaMenuProps) {
               activeMenu ? null : mainCategories[0]?.category_id
             )
           }
-          className="flex items-center justify-between w-full px-4 py-3 bg-white border rounded-lg shadow-sm">
+          className="flex items-center justify-between w-full px-4 py-3 bg-gray-100 border shadow-sm">
           <span className="font-medium">Shop Categories</span>
           <svg
             className={`w-5 h-5 transition-transform ${
@@ -117,7 +117,7 @@ export default function MegaMenu({ initialData }: MegaMenuProps) {
         className={cn(
           "w-full transition-all duration-300 ease-in-out",
           isMobile
-            ? `fixed inset-0 z-50 bg-white transform ${
+            ? `fixed inset-0 z-50 bg-gray-100 transform ${
                 activeMenu ? "translate-y-0" : "-translate-y-full"
               } pt-4 overflow-y-auto`
             : "relative"
@@ -169,10 +169,10 @@ export default function MegaMenu({ initialData }: MegaMenuProps) {
                 )}>
                 <NavigationMenuTrigger
                   className={cn(
-                    "h-12 px-4 text-base font-medium text-gray-800 hover:bg-gray-50 transition-colors duration-200",
+                    "h-12 px-4 text-base  font-semibold text-gray-950 rounded-none",
                     isMobile ? "w-full justify-between" : "",
                     debouncedActiveMenu === category.category_id && !isMobile
-                      ? "bg-gray-50 text-primary"
+                      ? "bg-gray-200/50"
                       : ""
                   )}>
                   {category.category_name}
@@ -197,7 +197,7 @@ export default function MegaMenu({ initialData }: MegaMenuProps) {
                 {(debouncedActiveMenu === category.category_id || isMobile) && (
                   <NavigationMenuContent
                     className={cn(
-                      "absolute left-0 bg-white shadow-xl rounded-b-lg p-4",
+                      "absolute left-0 bg-gray-100 shadow-xl rounded-b-lg p-4",
                       isMobile
                         ? "w-full relative shadow-none border-t border-gray-100"
                         : "w-screen animate-fade-in"
@@ -210,7 +210,7 @@ export default function MegaMenu({ initialData }: MegaMenuProps) {
                             ? "w-full mb-4"
                             : "hidden md:flex w-1/4 shrink-0"
                         )}>
-                        <h2 className="font-semibold text-lg text-gray-900 mb-3">
+                        <h2 className="font-semibold text-lg text-gray-100 mb-3">
                           Good to know
                         </h2>
                         <ul className="space-y-3 text-sm">

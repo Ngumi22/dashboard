@@ -40,9 +40,7 @@ export function ProductsHeader({
   const pathname = usePathname();
 
   const handleSortChange = (value: string) => {
-    const newParams = new URLSearchParams(
-      searchParams as Record<string, string>
-    );
+    const newParams = new URLSearchParams(window.location.search); // Use current URL params
 
     if (value === "default") {
       newParams.delete("sort");
@@ -53,7 +51,6 @@ export function ProductsHeader({
     newParams.delete("page"); // Reset to page 1 on sort change
     router.push(createUrl(pathname, newParams));
   };
-
   const handleResetFilters = () => {
     router.push(pathname);
   };

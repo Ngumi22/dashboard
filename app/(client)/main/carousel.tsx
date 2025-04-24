@@ -20,6 +20,8 @@ const CarouselSlide = dynamic(
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCarousels } from "@/lib/actions/Carousel/hooks";
 
+export const revalidate = 86400; // Revalidate every 7days
+
 export default function CarouselComponent() {
   const { data: carousels = [], isLoading, isError } = useCarousels();
 

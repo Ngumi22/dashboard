@@ -37,7 +37,7 @@ export default function ShopByBrand({
       try {
         const result = await fetchProducts({
           metadataOnly: false,
-          perPage: 100,
+          perPage: 10,
         });
 
         if (!result) {

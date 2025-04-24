@@ -30,7 +30,7 @@ export async function prefetchData(params?: PrefetchParams) {
     }),
 
     queryClient.prefetchQuery({
-      queryKey: ["carousels"],
+      queryKey: ["carouselsData"],
       queryFn: () => getUniqueCarousels(),
       staleTime: DAY,
       gcTime: 2 * DAY,

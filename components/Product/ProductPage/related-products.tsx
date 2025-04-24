@@ -60,7 +60,7 @@ export default function RelatedProducts({
 
           return (
             <Card key={product.id} className="w-full bg-card overflow-hidden">
-              <CardContent className="p-3">
+              <CardContent className="p-4">
                 <Link
                   href={`/products/${product.name}`}
                   className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export default function RelatedProducts({
                       src={product.main_image}
                       alt={product.name}
                       fill
-                      className="object-cover rounded-md"
+                      className="object-contain rounded-md"
                     />
                     {hasDiscount && (
                       <Badge

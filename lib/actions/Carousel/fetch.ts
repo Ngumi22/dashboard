@@ -3,94 +3,99 @@
 import { dbOperation } from "@/lib/MysqlDB/dbOperations";
 import { compressAndEncodeBase64 } from "../utils";
 import { Carousel } from "./carouselTypes";
+import { unstable_cache } from "next/cache";
 
-export async function getUniqueCarousels({
-  limit = 4,
-  status = "active",
-}: {
-  limit?: number;
-  status?: "active" | "inactive" | "all";
-} = {}): Promise<Carousel[]> {
-  return await dbOperation(async (connection) => {
-    try {
-      // Construct the SQL query dynamically based on status
-      let query = `
-        SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
-        FROM carousels
-      `;
+export const getUniqueCarousels = unstable_cache(
+  async ({
+    limit = 4,
+    status = "active",
+  }: {
+    limit?: number;
+    status?: "active" | "inactive" | "all";
+  } = {}): Promise<Carousel[]> => {
+    return await dbOperation(async (connection) => {
+      try {
+        let query = `
+          SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
+          FROM carousels
+        `;
 
-      if (status !== "all") {
-        query += ` WHERE status = ?`;
+        if (status !== "all") {
+          query += ` WHERE status = ?`;
+        }
+
+        query += ` ORDER BY carousel_id DESC LIMIT ?`;
+
+        const [carousels] = await connection.query(
+          query,
+          status !== "all" ? [status, limit] : [limit]
+        );
+
+        if (!carousels || carousels.length === 0) return [];
+
+        return await Promise.all(
+          carousels.map(async (carousel: any) => ({
+            ...carousel,
+            image: carousel.image
+              ? await compressAndEncodeBase64(carousel.image)
+              : null,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching unique carousels:", error);
+        throw new Error("Failed to fetch carousels");
       }
+    });
+  },
+  ["getUniqueCarousels"],
+  {
+    tags: ["carousels"],
+    revalidate: 3600, // Revalidate every hour
+  }
+);
 
-      query += ` ORDER BY carousel_id DESC LIMIT ?`;
+export const fetchCarouselById = unstable_cache(
+  async (carousel_id: number): Promise<Carousel | null> => {
+    return await dbOperation(async (connection) => {
+      try {
+        const [rows] = await connection.query(
+          `SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
+           FROM carousels WHERE carousel_id = ?`,
+          [carousel_id]
+        );
 
-      // Execute the query with parameters
-      const [carousels] = await connection.query(
-        query,
-        status !== "all" ? [status, limit] : [limit]
-      );
+        if (!rows || rows.length === 0) {
+          return null;
+        }
 
-      // Return an empty array if no carousels found
-
-      if (!carousels || carousels.length === 0) return [];
-
-      // Process images in parallel
-      return await Promise.all(
-        carousels.map(async (carousel: any) => ({
-          ...carousel,
+        const carousel = rows[0];
+        const processedCarousel: any = {
+          carousel_id: String(carousel.carousel_id),
+          title: carousel.title,
+          short_description: carousel.short_description,
+          description: carousel.description,
+          link: carousel.link,
           image: carousel.image
             ? await compressAndEncodeBase64(carousel.image)
             : null,
-        }))
-      );
-    } catch (error) {
-      console.error("Error fetching unique carousels:", error);
-      throw new Error("Failed to fetch carousels");
-    }
-  });
-}
+          status: carousel.status,
+          text_color: carousel.text_color,
+          background_color: carousel.background_color,
+        };
 
-export async function fetchCarouselById(
-  carousel_id: number
-): Promise<Carousel | null> {
-  return await dbOperation(async (connection) => {
-    try {
-      // Query the database
-      const [rows] = await connection.query(
-        `SELECT carousel_id, title, short_description, description, link, image, status, text_color, background_color
-         FROM carousels WHERE carousel_id = ?`,
-        [carousel_id]
-      );
-
-      if (!rows || rows.length === 0) {
-        return null; // Return null if no banner is found
+        return processedCarousel;
+      } catch (error) {
+        console.error("Database query error:", error);
+        throw new Error("Failed to fetch carousel");
       }
-
-      // Map database results to a carousel object
-      const carousel = rows[0];
-      const processedCarousel: any = {
-        carousel_id: String(carousel.carousel_id),
-        title: carousel.title,
-        short_description: carousel.short_description,
-        description: carousel.description,
-        link: carousel.link,
-        image: carousel.image
-          ? await compressAndEncodeBase64(carousel.image)
-          : null, // Compress image if it exists
-        status: carousel.status,
-        text_color: carousel.text_color,
-        background_color: carousel.background_color,
-      };
-
-      return processedCarousel;
-    } catch (error) {
-      console.error("Database query error:", error);
-      throw new Error("Failed to fetch carousel");
-    }
-  });
-}
-
+    });
+  },
+  ["fetchCarouselById"],
+  {
+    tags: ["carousels"],
+    revalidate: 3600, // Revalidate every hour
+  }
+);
 export async function deleteCarousel(carousel_id: number): Promise<boolean> {
   return await dbOperation(async (connection) => {
     try {

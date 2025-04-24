@@ -36,7 +36,7 @@ export default function ProductsPage({
   searchParams: SearchParams;
 }) {
   const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ["prods", searchParams],
+    queryKey: ["products-fetchducts", searchParams],
     queryFn: async () => {
       try {
         const result = await fetchProducts(searchParams);

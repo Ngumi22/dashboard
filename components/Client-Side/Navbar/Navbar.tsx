@@ -49,7 +49,7 @@ export default function NewNavbar() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-
+      <Separator />
       {/* MegaMenu - Always visible */}
       <div className="hidden md:flex w-full">
         <MegaMenu />

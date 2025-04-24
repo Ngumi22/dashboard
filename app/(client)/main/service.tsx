@@ -28,7 +28,7 @@ const services = [
     id: 1,
     title: "Free Shipping",
     icon: "ShapesIcon",
-    description: "From all orders over Ksh 80k",
+    description: "For orders above Ksh 80k",
   },
   {
     id: 2,
@@ -65,13 +65,11 @@ export default function Service() {
           return (
             <div
               key={service.id}
-              className="flex-shrink-0 h-32 w-56 snap-start flex items-center justify-center shadow bg-white gap-4 p-2 md:p-4 rounded-lg text-center">
-              {Icon && <Icon className="h-12 w-12 text-gray-900" />}
+              className="flex-shrink-0 h-32 w-56 snap-start flex items-center justify-center shadow bg-white gap-2 py-2 rounded-lg text-center">
+              {Icon && <Icon className="h-10 w-10 text-gray-900" />}
               <div className="text-start">
-                <h3 className="text-start text-md font-semibold">
-                  {service.title}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-start font-semibold">{service.title}</h3>
+                <p className="text-xs text-gray-500 mt-1">
                   {service.description}
                 </p>
               </div>

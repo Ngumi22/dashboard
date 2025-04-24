@@ -1,4 +1,4 @@
-export default function Loading() {
+export default function BanterLoader() {
   return (
     <div className="banter-loader">
       <div className="banter-loader__box"></div>

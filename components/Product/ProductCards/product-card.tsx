@@ -1,17 +1,26 @@
 "use client";
 
 import React, { useMemo, useState, useCallback } from "react";
-import { Eye, Heart, Minus, Plus, Share2, Star, X } from "lucide-react";
+import {
+  Eye,
+  Heart,
+  Minus,
+  Plus,
+  RefreshCcw,
+  Share2,
+  Star,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import Link from "next/link";
 import { type MinimalProduct, useCartStore } from "@/app/store/cart";
 import { useCompareStore } from "@/app/store/compare";
 import { useWishStore } from "@/app/store/wishlist";
 import { formatCurrency } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 interface ProductCardProps extends MinimalProduct {
   orientation?: "vertical" | "horizontal";
@@ -31,19 +40,16 @@ const RatingStars = ({ rating }: { rating: number | null | undefined }) => {
         return (
           <Star
             key={index}
-            className={`h-3 w-3 ${
+            className={`h-4 w-4 ${
               isFull
-                ? "text-yellow-400 fill-current"
+                ? "text-gray-950 fill-current"
                 : isHalf
-                  ? "text-yellow-400 half-star"
-                  : "text-gray-300"
+                  ? "text-gray-950 half-star"
+                  : "text-gray-600"
             }`}
           />
         );
       })}
-      <span className="text-xs font-bold text-gray-600">
-        {isNaN(numericRating) ? "Not yet rated" : `${numericRating.toFixed(1)}`}
-      </span>
     </div>
   );
 };
@@ -75,25 +81,25 @@ const QuantitySelector = ({
   onDecrement: () => void;
   maxQuantity: number;
 }) => (
-  <div className="flex items-center gap-4 mb-4">
-    <span className="text-sm font-medium">Quantity:</span>
-    <div className="flex items-center border rounded">
+  <div className="space-y-2">
+    <span className="font-medium">Quantity:</span>
+    <div className="flex items-center border border-black rounded-none w-24">
       <Button
         variant="ghost"
         size="icon"
         onClick={onDecrement}
         disabled={quantity <= 1}
-        className="h-8 w-8">
-        <Minus className="h-3 w-3" />
+        className="h-10 w-10">
+        <Minus className="h-4 w-4" />
       </Button>
-      <span className="w-8 text-center">{quantity}</span>
+      <span className="text-center">{quantity}</span>
       <Button
         variant="ghost"
         size="icon"
         onClick={onIncrement}
         disabled={quantity >= maxQuantity}
-        className="h-8 w-8">
-        <Plus className="h-3 w-3" />
+        className="h-10 w-10">
+        <Plus className="h-4 w-4" />
       </Button>
     </div>
   </div>
@@ -101,6 +107,7 @@ const QuantitySelector = ({
 
 const ProductCard = ({
   id,
+  sku,
   name,
   description,
   price,
@@ -111,6 +118,7 @@ const ProductCard = ({
   brand_name,
   created_at,
   specifications,
+  tags,
 }: ProductCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogQuantity, setDialogQuantity] = useState(1); // Local state for dialog quantity
@@ -282,7 +290,7 @@ const ProductCard = ({
               alt={name}
               height={200}
               width={200}
-              className="transition-transform duration-300 scale-110 group-hover:scale-125 aspect-3/2 bg-gray-200 rounded-lg object-contain"
+              className="transition-transform duration-300 scale-90 group-hover:scale-110 aspect-3/2 bg-gray-200 rounded-lg object-contain"
             />
           </div>
           <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -346,7 +354,7 @@ const ProductCard = ({
                 });
               }}
               disabled={quantity === 0}
-              className="w-full bg-gray-900 text-white hover:bg-yellow-500 transition-colors duration-300">
+              className="w-full bg-gray-900 text-white hover:bg-gray-300 transition-colors duration-300">
               Add to Cart
             </Button>
           </div>
@@ -370,7 +378,7 @@ const ProductCard = ({
             variant="secondary"
             className="rounded-full"
             onClick={handleCompareToggle}>
-            <Share2
+            <RefreshCcw
               className={`h-4 w-4 ${
                 isInCompare ? "text-blue-500 fill-current" : ""
               }`}
@@ -391,54 +399,56 @@ const ProductCard = ({
       </Link>
 
       {/* Quick View Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen} modal={false}>
-        <DialogContent className="overflow-scroll max-w-xs max-h-svh md:max-w-4xl p-0 border rounded-lg bg-white">
-          <DialogClose className="absolute right-4 top-4 z-10 rounded-full p-2 bg-white/80 hover:bg-white">
-            <X className="h-4 w-4" />
-          </DialogClose>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-xs max-h-svh md:max-w-4xl p-0 border rounded-lg bg-white">
+          <DialogClose className="absolute right-4 top-4 z-10 rounded-full p-2 bg-white/80 hover:bg-white"></DialogClose>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 h-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 h-full gap-2">
             {/* Product Image Section */}
-            <div className="relative flex items-center justify-center p-6 bg-gray-50">
-              <div className="relative w-full aspect-square">
+            <div className="relative flex items-center justify-center bg-gray-50">
+              <div className="flex items-center justify-center w-full aspect-square py-2 m-auto">
                 <Image
-                  src={main_image || "/placeholder.svg"}
+                  src={main_image}
                   alt={name}
-                  fill
-                  className="object-contain"
+                  height={300}
+                  width={300}
+                  className="h-72 object-contain w-auto m-auto"
                 />
               </div>
               {isOnSale && (
                 <Badge
                   variant="destructive"
-                  className="absolute top-4 right-4 rounded-none">
+                  className="absolute top-4 right-4 rounded-none text-md p-2">
                   {Math.round(discount)}% OFF
                 </Badge>
               )}
               {isNew && (
                 <Badge
                   variant="secondary"
-                  className="absolute top-4 left-4 bg-gray-200 text-black rounded-none">
+                  className="absolute top-4 left-4 bg-gray-200 text-black rounded-none text-md p-2">
                   New
                 </Badge>
               )}
             </div>
 
             {/* Product Details Section */}
-            <div className="p-6 flex flex-col h-full overflow-y-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{name}</h2>
-
-              <div className="flex items-center gap-2 mb-4">
-                <RatingStars rating={ratings} />
+            <div className="grid gap-y-4 p-4">
+              <h2 className="text-xl font-bold text-gray-900">{name}</h2>
+              <div className="flex gap-x-4 items-center">
+                <p className="flex gap-x-4 items-center">
+                  <RatingStars rating={ratings} />
+                  <p>({Math.floor(ratings)} Reviews)</p>
+                </p>
+                <Separator orientation="vertical" />
                 {brand_name && (
-                  <span className="text-sm text-gray-500">
-                    by <span className="font-medium">{brand_name}</span>
-                  </span>
+                  <p className="">
+                    Brand: <span className="font-medium">{brand_name}</span>
+                  </p>
                 )}
               </div>
 
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl font-bold text-gray-900">
+              <div className="flex items-center gap-3 my-2">
+                <span className="text-xl font-bold text-gray-900">
                   {formatCurrency(discountedPrice)}
                 </span>
                 {isOnSale && (
@@ -448,85 +458,66 @@ const ProductCard = ({
                 )}
               </div>
 
-              <div className="mb-6">
-                <p className="text-gray-600 line-clamp-4">{description}</p>
-                <Link
-                  href={productUrl}
-                  className="text-sm text-blue-600 hover:underline mt-1 inline-block">
-                  Read more
-                </Link>
+              <p className="text-muted-foreground font-normal text-sm my-2">
+                {description}
+              </p>
+
+              <div className="space-y-2">
+                {quantity > 0 ? (
+                  <p className="text-green-600">
+                    In Stock ({quantity} units), ready to be shipped.
+                  </p>
+                ) : (
+                  <p className="text-red-600">Out of Stock</p>
+                )}
+              </div>
+              <Separator />
+              <QuantitySelector
+                quantity={dialogQuantity}
+                onIncrement={incrementDialogQuantity}
+                onDecrement={decrementDialogQuantity}
+                maxQuantity={quantity}
+              />
+
+              <div className="">
+                SKU: <span className="text-muted-foreground">{sku}</span>
               </div>
 
-              <Tabs defaultValue="details" className="mb-6">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="specifications">
-                    Specifications
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="details" className="mt-2">
-                  <div className="text-sm text-gray-600 space-y-2">
-                    <p>{description || "No detailed description available."}</p>
-                    {quantity > 0 ? (
-                      <p className="text-green-600">
-                        In Stock: {quantity} available
-                      </p>
-                    ) : (
-                      <p className="text-red-600">Out of Stock</p>
-                    )}
-                  </div>
-                </TabsContent>
-                <TabsContent value="specifications" className="mt-2">
-                  {specifications && Object.keys(specifications).length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2 text-sm">
-                      {Object.entries(specifications).map(([key, value]) => (
-                        <div
-                          key={key}
-                          className="flex justify-between border-b pb-1">
-                          <span className="font-medium text-gray-700">
-                            {key}
-                          </span>
-                          <span className="text-gray-600">
-                            {value.specification_value}
-                          </span>
-                        </div>
+              <div className="flex flex-col sm:flex-row gap-2 my-2">
+                <Button
+                  className="flex-1 rounded-none text-white transition-colors duration-300"
+                  disabled={quantity === 0}
+                  onClick={addToCartFromDialog}>
+                  Add to Cart
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-none font-semibold border-black">
+                  <Link href={productUrl}>View Details</Link>
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <h2>Tags:</h2>
+                {tags && tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 items-baseline">
+                    <div className="flex flex-wrap gap-x-2">
+                      {tags.map((tag: string, index: number) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          className="rounded-none border-black">
+                          <Link
+                            className="hover:underline"
+                            href={`/products/tags/${encodeURIComponent(tag)}`}
+                            passHref>
+                            {tag}
+                          </Link>
+                        </Button>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      No specifications available.
-                    </p>
-                  )}
-                </TabsContent>
-              </Tabs>
-
-              <div className="mt-auto">
-                <QuantitySelector
-                  quantity={dialogQuantity}
-                  onIncrement={incrementDialogQuantity}
-                  onDecrement={decrementDialogQuantity}
-                  maxQuantity={quantity}
-                />
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    className="flex-1 bg-gray-900 hover:bg-yellow-500 transition-colors duration-300"
-                    disabled={quantity === 0}
-                    onClick={addToCartFromDialog}>
-                    Add to Cart
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleWishlistToggle}>
-                    <Heart
-                      className={`h-4 w-4 mr-2 ${
-                        isInWishlist ? "text-blue-500 fill-current" : ""
-                      }`}
-                    />
-                    {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
-                  </Button>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

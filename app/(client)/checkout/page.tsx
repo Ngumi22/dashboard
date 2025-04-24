@@ -71,7 +71,7 @@ export default function CheckoutPage() {
   }, [isEmpty, activeTab, toast]);
 
   return (
-    <div className="container mt-[9.7rem] lg:mt-[12rem] bg-muted/80 text-center">
+    <div className="container mt-[9.9rem] lg:mt-[12rem] bg-muted/80 text-center">
       <h1 className="text-3xl font-bold mb-2 text-center md:text-left">
         Checkout
       </h1>

@@ -1,6 +1,14 @@
 "use client";
 
-import { Heart, Minus, Plus, Share2, Star } from "lucide-react";
+import {
+  Dot,
+  Heart,
+  Minus,
+  Plus,
+  RefreshCcw,
+  Share2,
+  Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Link from "next/link";
@@ -11,9 +19,9 @@ import { formatCurrency } from "@/lib/utils";
 
 export default function ProductInfo({
   id,
-  sku,
   name,
   description,
+  long_description,
   price,
   main_image,
   ratings,
@@ -65,6 +73,7 @@ export default function ProductInfo({
       ratings,
       discount,
       description,
+      long_description,
       quantity: localQuantity, // Use localQuantity for cart
       created_at,
       specifications,
@@ -85,6 +94,7 @@ export default function ProductInfo({
           ratings,
           discount,
           description,
+          long_description,
           quantity: stockQuantity, // Use stockQuantity for wishlist
           brand_name,
           created_at,
@@ -106,6 +116,7 @@ export default function ProductInfo({
           ratings,
           discount,
           description,
+          long_description,
           quantity: stockQuantity, // Use stockQuantity for compare
           brand_name,
           created_at,
@@ -144,8 +155,6 @@ export default function ProductInfo({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-xl font-bold">{name}</h1>
-
         <div className="flex items-center gap-4">
           <div className="flex items-center">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -157,23 +166,35 @@ export default function ProductInfo({
               />
             ))}
           </div>
-          <span className="text-sm">
-            {ratings} ({ratings} reviews)
-          </span>
+          <span className="text-sm">({ratings} reviews)</span>
         </div>
+        <h1 className="text-xl font-bold">{description}</h1>
+      </div>
+
+      <div className="">
+        <p className="text-start text-md font-semibold mb-1">
+          Key Specifications:
+        </p>
+        {specifications?.map((spec) => (
+          <p key={spec.specification_id} className="flex items-center">
+            <Dot className="font-bold text-md" />
+            <p className="font-normal">
+              {spec.specification_name}: {spec.specification_value}
+            </p>
+          </p>
+        ))}
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center gap-4">
-          <span className="text-sm font-bold text-primary">
+          <span className="text-lg font-bold text-primary">
             {formatCurrency(finalPrice)}
           </span>
           {discount > 0 && (
             <>
-              <span className="text-sm text-muted-foreground line-through">
+              <span className="text-md text-muted-foreground line-through">
                 {formatCurrency(price)}
               </span>
-              <span className="text-sm">-{discount}%</span>
             </>
           )}
         </div>
@@ -185,20 +206,6 @@ export default function ProductInfo({
           <span className={stockStatus.color}>{stockStatus.text}</span>
         </div>
       </div>
-
-      {tags && tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <p>Tags: </p>
-          {tags.map((tag: string) => (
-            <Link
-              key={tag}
-              href={`/products/tags/${encodeURIComponent(tag)}`}
-              passHref>
-              {tag}
-            </Link>
-          ))}
-        </div>
-      )}
 
       <div className="space-y-4">
         <div className="flex items-center gap-4 mb-4">
@@ -224,9 +231,9 @@ export default function ProductInfo({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-shrink flex-wrap gap-2 items-center justify-between">
           <Button
-            className="flex-1 bg-gray-900 hover:bg-yellow-500 transition-colors duration-300"
+            className="flex-1 bg-gray-950 transition-colors duration-300"
             disabled={stockQuantity === 0}
             onClick={handleAddToCart}>
             Add to Cart
@@ -236,30 +243,44 @@ export default function ProductInfo({
             className="flex-1"
             onClick={handleWishlistToggle}>
             <Heart
-              className={`h-4 w-4 mr-2 ${
+              className={`h-4 w-4 mr-1 ${
                 isInWishlist ? "text-blue-500 fill-current" : ""
               }`}
             />
-            {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+            {isInWishlist ? "Remove" : "Add to Wishlist"}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handleCompareToggle}>
+            <RefreshCcw
+              className={`h-4 w-4 mr-1 ${
+                isInCompare ? "text-blue-500 fill-current" : ""
+              }`}
+            />
+            {isInCompare ? "Remove" : "Add to Compare"}
           </Button>
         </div>
-
-        <Button
-          variant="outline"
-          className="flex-1 mt-2"
-          onClick={handleCompareToggle}>
-          <Share2
-            className={`h-4 w-4 mr-2 ${
-              isInCompare ? "text-blue-500 fill-current" : ""
-            }`}
-          />
-          {isInCompare ? "Remove from Compare" : "Add to Compare"}
-        </Button>
-
-        <ul>
-          <li>Prices are subject to change without notice!</li>
-          <li>All Prices are VAT Exclusive</li>
-        </ul>
+        {tags && tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 items-baseline">
+            <p>Tags: </p>
+            <div className="flex flex-wrap gap-x-2">
+              {tags.map((tag: string, index: number) => (
+                <div key={tag} className="inline-flex items-center">
+                  <Link
+                    className="hover:underline"
+                    href={`/products/tags/${encodeURIComponent(tag)}`}
+                    passHref>
+                    {tag}
+                  </Link>
+                  {index < tags.length - 1 && <span>,</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <p className="text-lg font-semibold">All Prices are VAT Exclusive</p>
       </div>
     </div>
   );

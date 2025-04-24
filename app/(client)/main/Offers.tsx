@@ -131,7 +131,7 @@ export default function DiscountedOffers({
   if (isError) {
     return (
       <div className="text-center space-y-2 py-4">
-        <h2 className="text-lg font-semibold">Discounted Offers</h2>
+        <h2 className="text-lg font-semibold">Amazing Offers</h2>
         <p className="text-red-500">
           {error instanceof Error
             ? error.message

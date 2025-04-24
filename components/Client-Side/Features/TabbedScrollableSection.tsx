@@ -142,17 +142,35 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
   };
 
   const scrollProducts = (direction: "left" | "right") => {
-    if (productsRef.current) {
-      const scrollAmount = productsRef.current.clientWidth / 2;
-      productsRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
+    const container = productsRef.current;
+    if (!container) return;
+
+    const card = container.querySelector("div.snap-start") as HTMLElement;
+    if (!card) return;
+
+    const cardWidth = card.offsetWidth;
+    const gap = 16;
+    const scrollAmount = cardWidth + gap;
+
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+    if (direction === "right") {
+      const newScrollLeft = container.scrollLeft + scrollAmount;
+      container.scrollTo({
+        left: newScrollLeft >= maxScrollLeft ? 0 : newScrollLeft,
+        behavior: "smooth",
+      });
+    } else {
+      const newScrollLeft = container.scrollLeft - scrollAmount;
+      container.scrollTo({
+        left: newScrollLeft <= 0 ? maxScrollLeft : newScrollLeft,
         behavior: "smooth",
       });
     }
   };
 
   return (
-    <div className={`mx-auto py-4 ${className}`}>
+    <div className={`mx-auto ${className}`}>
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold mb-4">{title}</h2>
         <Link href={`/products`}>
@@ -233,19 +251,39 @@ const ScrollableTabbedSection: React.FC<ScrollableTabbedSectionProps> = ({
       </div>
 
       <div className="relative">
-        <div ref={productsRef} className="flex overflow-x-auto scrollbar gap-2">
+        {/* Scrollable container */}
+        <div
+          ref={productsRef}
+          className="
+      flex
+      overflow-x-auto
+      scroll-smooth
+      snap-x snap-mandatory
+      gap-4
+      px-4
+      [scroll-padding-left:1rem] [scroll-padding-right:1rem]
+      scrollbar
+    ">
           {(activeTabData?.products ?? []).length > 0
             ? activeTabData.products.map((product) => (
                 <div
                   key={product.id}
-                  className="flex-shrink-0 w-[200px] sm:w-[250px] md:w-[300px] lg:w-[350px]">
+                  className="
+              flex-shrink-0
+              w-64
+              snap-start
+            ">
                   <ProductCard {...product} />
                 </div>
               ))
-            : Array.from({ length: 4 }).map((_, index) => (
+            : Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="flex-shrink-0 w-[200px] sm:w-[250px] md:w-[300px] lg:w-[350px]">
+                  className="
+              flex-shrink-0
+              w-64
+              snap-start
+            ">
                   <ProductCardSkeleton />
                 </div>
               ))}

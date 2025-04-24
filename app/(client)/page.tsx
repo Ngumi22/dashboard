@@ -48,7 +48,7 @@ const HomeBlogSection = dynamic(() => import("./main/home-blog"), {
 
 export default function Page() {
   return (
-    <div className="mt-[9.7rem] lg:mt-[12rem] bg-muted/80">
+    <div className="mt-[9.9rem] lg:mt-[12rem] bg-muted/80">
       <HeroSection />
       <div className="md:container space-y-6">
         <Service />
@@ -73,6 +73,7 @@ export default function Page() {
           paddingY="py-2 md:py-4"
         />
         <SubCategoryProducts categoryName="Laptops" />
+        {/* Computers And Desktops */}
         <SubCategoryProducts categoryName="Desktop Computers" />
         <Categories />
         <SubCategoryProducts categoryName="SmartPhones" />

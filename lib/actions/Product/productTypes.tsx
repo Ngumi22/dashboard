@@ -16,6 +16,7 @@ export interface Product {
   name: string;
   sku: string;
   description: string;
+  long_description: string;
   price: number;
   quantity: number;
   discount: number;
@@ -140,6 +141,7 @@ export async function mapProductRow(row: ProductRow): Promise<Product> {
     name: row.name,
     sku: row.sku,
     description: row.description,
+    long_description: row.long_description,
     price: row.price,
     quantity: row.quantity,
     discount: row.discount,

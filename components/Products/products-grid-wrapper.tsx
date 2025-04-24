@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { ProductsHeader } from "./products-header";
-import { ProductsGrid } from "./products-grid";
+import dynamic from "next/dynamic";
+import { useCallback, useMemo, useState } from "react";
 import { Product, SearchParams } from "@/lib/actions/Product/searchTypes";
-import { ProductsPagination } from "./products-pagination";
+
+const ProductsHeader = dynamic(() =>
+  import("./products-header").then((mod) => mod.ProductsHeader)
+);
+const ProductsGrid = dynamic(() =>
+  import("./products-grid").then((mod) => mod.ProductsGrid)
+);
+const ProductsPagination = dynamic(() =>
+  import("./products-pagination").then((mod) => mod.ProductsPagination)
+);
 
 const gridColsMap = {
   1: "grid-cols-1",
@@ -21,7 +29,7 @@ const isValidGridKey = (value: any): value is GridValue =>
 interface ProductsGridClientWrapperProps {
   products: Product[];
   totalProducts: number;
-  searchParams: SearchParams;
+  searchParams: Pick<SearchParams, "grid" | "filters" | "sort" | "page">;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -41,27 +49,35 @@ export function ProductsGridClientWrapper({
     : 4;
 
   const [grid, setGrid] = useState<GridValue>(initialGrid);
-  const gridCols = gridColsMap[grid];
+
+  const gridCols = useMemo(() => gridColsMap[grid], [grid]);
+  const handleGridChange = useCallback(
+    (value: GridValue) => setGrid(value),
+    []
+  );
 
   return (
     <>
       <ProductsHeader
         totalProducts={totalProducts}
-        searchParams={searchParams}
+        searchParams={{
+          sort: searchParams.sort,
+          filters: searchParams.filters,
+        }}
         grid={grid}
-        onGridChange={setGrid}
+        onGridChange={handleGridChange}
       />
 
       <ProductsGrid
         products={products}
-        searchParams={searchParams}
         gridCols={gridCols}
+        searchParams={{ filters: searchParams.filters }}
       />
 
       {totalProducts > 0 && (
         <ProductsPagination
           pagination={pagination}
-          searchParams={searchParams}
+          searchParams={{ page: searchParams.page }}
         />
       )}
     </>

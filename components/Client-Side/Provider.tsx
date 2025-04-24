@@ -10,6 +10,7 @@ import { DehydratedState } from "@tanstack/react-query";
 import { getQueryClient } from "./get-query-client";
 import NewNavbar from "./Navbar/Navbar";
 import Footer from "./Footer/footer";
+import BanterLoader from "./loader";
 
 function LoadingOverlay({ isVisible }: { isVisible: boolean }) {
   return (
@@ -17,9 +18,7 @@ function LoadingOverlay({ isVisible }: { isVisible: boolean }) {
       className={`fixed inset-0 z-[9999] bg-black flex items-center justify-center transition-opacity duration-500 ${
         isVisible ? "opacity-100 visible" : "opacity-0 invisible"
       }`}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
+      <BanterLoader />
     </div>
   );
 }
